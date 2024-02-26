@@ -19,6 +19,7 @@ body:
         - Feature Request
         - Deliverable
         - General Question
+        - Wiki
     validations:
       required: true
 

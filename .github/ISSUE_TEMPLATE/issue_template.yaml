@@ -31,36 +31,6 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: steps-to-reproduce
-    attributes:
-      label: Steps to Reproduce
-      description: If reporting a bug, provide steps to reproduce the bug.
-      placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Scroll down to '....'
-        4. See error
-    validations:
-      required: false
-
-  - type: input
-    id: expected-behavior
-    attributes:
-      label: Expected Behavior
-      description: If reporting a bug, describe what you expected to happen.
-      placeholder: e.g., The page should load without errors.
-    validations:
-      required: false
-
-  - type: input
-    id: actual-behavior
-    attributes:
-      label: Actual Behavior
-      description: If reporting a bug, describe what actually happened.
-      placeholder: e.g., The page crashes and shows an error message.
-    validations:
-      required: false
 
   - type: textarea
     id: additional-context
@@ -70,12 +40,3 @@ body:
       placeholder: You can also attach links to documents or images here.
     validations:
       required: false
-
-  - type: checkboxes
-    id: code-of-conduct
-    attributes:
-      label: Code of Conduct
-      description: Please ensure you have read and agree to our Code of Conduct.
-      options:
-        - label: I agree to follow this project's Code of Conduct.
-          required: true

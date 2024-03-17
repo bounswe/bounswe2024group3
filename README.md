@@ -3,7 +3,7 @@ Welcome to our project repository 👋. We are a team of 9 members participating
 
 
 ## 📚 About Our Project
-Our project Bibliosearch is dedicated to developing a platform that enables users to express their feelings and opinions on books, organize reading lists and explore posts about books by providing filters of authors, genres and etc. 
+Our project Bibliosearch is dedicated to developing a platform that enables users to express their feelings and opinions on books, organize reading lists and discover engaging book-related content through semantic search functionality.
 
 
 ## 👥 Who We Are

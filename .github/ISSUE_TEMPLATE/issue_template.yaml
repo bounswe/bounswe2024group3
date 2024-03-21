@@ -1,5 +1,5 @@
 name: Generate an Issue
-description: Report a bug, request a feature, ask a question related to the course or open an issue for deliverables. Please do not forget to specify your issue with its Project, Milestone, Priority, Size, Start and End date fields.
+description: Report a bug or open an issue for deliverables. Please do not forget to specify Project, Milestone, Priority, Size, Start and End date fields.
 title: "[Type]: Brief Description"
 labels: ["pending triage"]
 body:

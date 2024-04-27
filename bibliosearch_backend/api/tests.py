@@ -38,7 +38,7 @@ class BibliosearchUserTestCase(TestCase):
         u = User.objects.create_user(username="testuser", password="testpassword")
         u.save()
 
-        bu = BiblioSearchUser(user=u)
+        bu = BiblioSearchUser(user=u ,name="Test", surname="User")
         bu.save()
         
 

@@ -8,9 +8,6 @@ from django.middleware.csrf import get_token
 
 from django.http import JsonResponse
 
-#import csrf_exempt
-from django.views.decorators.csrf import csrf_exempt
-
 #import messages
 from django.contrib import messages
 

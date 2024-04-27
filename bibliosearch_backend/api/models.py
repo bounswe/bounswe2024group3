@@ -35,6 +35,8 @@ class BiblioSearchUser(models.Model):
         User,
         on_delete=models.CASCADE,
     )
+    name = models.CharField(max_length=255, default='')  
+    surname = models.CharField(max_length=255, default='')
 
     fav_authors = models.ManyToManyField(Author, blank=True)
     fav_genres = models.ManyToManyField(Genre, blank=True)

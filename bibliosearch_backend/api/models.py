@@ -27,10 +27,6 @@ class Book(models.Model):
     def __str__(self):
         return self.title + " (" + self.publication_date + ")"
 
-# BookList model with many-to-many relationship with Book
-# User will have many book lists
-class BookList(models.Model):
-    books = models.ManyToManyField(Book, blank=True)
 
 # Django has its own user model, so we need to create a new model that has a one-to-one relationship with the Django user model
 # This is because we want to add more fields to the user model
@@ -42,5 +38,20 @@ class BiblioSearchUser(models.Model):
 
     fav_authors = models.ManyToManyField(Author, blank=True)
     fav_genres = models.ManyToManyField(Genre, blank=True)
-    book_lists = models.ManyToManyField(BookList, blank=True)
 
+    def create_book_list(self, books=None):
+        bl = BookList(user=self)
+        bl.save()
+        if books:
+            for book in books:
+                bl.books.add(book)
+        return bl
+    
+# BookList model with many-to-many relationship with Book
+# User will have many book lists
+class BookList(models.Model):
+    books = models.ManyToManyField(Book, blank=True)
+    user = models.ForeignKey(
+        BiblioSearchUser,
+        on_delete=models.CASCADE,
+    )

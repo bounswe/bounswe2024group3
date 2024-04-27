@@ -35,11 +35,6 @@ class BibliosearchUserTestCase(TestCase):
         b.save()
         b2.save()
 
-        bl = BookList()
-        bl.save()
-
-        bl.books.add(b)
-
         u = User.objects.create_user(username="testuser", password="testpassword")
         u.save()
 
@@ -50,8 +45,8 @@ class BibliosearchUserTestCase(TestCase):
         bu.fav_authors.add(a)
 
         bu.fav_genres.add(g)
-
-        bu.book_lists.add(bl)
+        
+        bu.create_book_list([b])
 
         bu.save()
 
@@ -71,13 +66,13 @@ class BibliosearchUserTestCase(TestCase):
         u = User.objects.get(username="testuser")
         bu = BiblioSearchUser.objects.get(user=u)
 
-        self.assertEqual(bu.book_lists.count(), 1)
+        self.assertEqual(bu.booklist_set.count(), 1)
 
     def test_user_has_books_in_book_list(self):
         u = User.objects.get(username="testuser")
         bu = BiblioSearchUser.objects.get(user=u)
 
-        bl = bu.book_lists.first()
+        bl = bu.booklist_set.first()
 
         self.assertEqual(bl.books.count(), 1)
 

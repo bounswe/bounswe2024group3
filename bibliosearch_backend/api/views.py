@@ -3,10 +3,13 @@ from django.shortcuts import render
 
 #import auth_logout,auth_login,authenticate
 from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
+from django.middleware.csrf import get_token
 
 
 from django.http import JsonResponse
 
+#import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt
 
 #import messages
 from django.contrib import messages
@@ -87,3 +90,7 @@ def logout(request):
     return JsonResponse({'message': 'Logout successful'})
 
 
+      
+def csrf_token(request):
+    csrf_token = get_token(request)
+    return JsonResponse({'csrf_token': csrf_token})

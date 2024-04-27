@@ -1,14 +1,12 @@
 import json
 from django.shortcuts import render
 
-#import auth
-from django.contrib.auth import authenticate
+#import auth_logout,auth_login,authenticate
+from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
 
-from django.contrib.auth import logout as auth_logout
-
-from django.contrib.auth import login as auth_login
 
 from django.http import JsonResponse
+
 
 #import messages
 from django.contrib import messages
@@ -22,8 +20,7 @@ from django.contrib.auth.models import User
 #import BiblioSearchUser
 from api.models import BiblioSearchUser
 
-from django.views.decorators.csrf import csrf_exempt
-
+from django.views.decorators.http import require_http_methods
 
 #import decorators
 from django.contrib.auth.decorators import login_required  
@@ -32,9 +29,8 @@ from django.contrib.auth.decorators import login_required
 # Create your views here.
 
 # create login view
-@csrf_exempt
+@require_http_methods(["POST"])
 def login(request):
-    if request.method == 'POST':
         data = json.loads(request.body)
         username = data['username']
         password = data['password']
@@ -45,13 +41,11 @@ def login(request):
             return JsonResponse({'message': 'Login successful', 'username': user.username})
         else:
             return JsonResponse({'error': 'Invalid username or password'}, status=400)
-    else:
-        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+    
         
 
-@csrf_exempt
+@require_http_methods(["POST"])
 def register(request):
-    if request.method == 'POST':
         # get the name, username, email, and password from the request body
         data = json.loads(request.body)
         name = data['name']
@@ -84,18 +78,12 @@ def register(request):
             # return json object user  with user details and status code 200
             return JsonResponse({'message': 'Registration successful', 'username': user.username})
             
-    else:
-        return render(request, 'register.html')
 
     
 
 # create logout view
-@csrf_exempt
 def logout(request):
     auth_logout(request)
     return JsonResponse({'message': 'Logout successful'})
 
-# create home view
-def home(request):
-    return render(request, 'home.html')
 

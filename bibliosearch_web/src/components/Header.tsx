@@ -17,7 +17,7 @@ const Header = () => {
             className="input input-bordered w-24 md:w-auto"
           />
         </div>
-        <NavbarAccount registered={true} />
+        <NavbarAccount registered={false} />
       </div>
     </div>
   );

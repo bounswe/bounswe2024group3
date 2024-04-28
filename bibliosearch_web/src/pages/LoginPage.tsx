@@ -27,7 +27,7 @@ const LoginPage = () => {
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>
       <label className="input input-bordered flex items-center gap-2">
        
-       <SvgIcon icon="user"></SvgIcon>
+       <SvgIcon icon="user"/>
         <input
           type="text"
           className="grow"
@@ -37,7 +37,7 @@ const LoginPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon="password"></SvgIcon>
+      <SvgIcon icon="password"/>
         <input
           type="password"
           className="grow"

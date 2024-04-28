@@ -29,7 +29,7 @@ const RegisterPage = () => {
   return (
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>
       <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon = "user"></SvgIcon>
+        <SvgIcon icon = "user"/>
         <input
           type="text"
           className="grow"
@@ -39,7 +39,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "user"></SvgIcon>
+      <SvgIcon icon = "user"/>
 
         <input
           type="text"
@@ -50,7 +50,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "email"></SvgIcon>
+      <SvgIcon icon = "email"/>
 
         <input
           type="text"
@@ -61,7 +61,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "user"></SvgIcon>
+      <SvgIcon icon = "user"/>
 
         <input
           type="text"
@@ -72,7 +72,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "password"></SvgIcon>
+      <SvgIcon icon = "password"/>
 
         <input
           type="password"

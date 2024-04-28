@@ -4,14 +4,20 @@ import "./index.css";
 import Home from "./pages/Home";
 import Layout from "./components/Layout";
 
+import { Routes, Route, BrowserRouter } from "react-router-dom";
+
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
 root.render(
   <React.StrictMode>
-    <Layout>
-      <Home />
-    </Layout>
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   </React.StrictMode>
 );

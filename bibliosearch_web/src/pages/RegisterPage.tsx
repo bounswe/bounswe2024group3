@@ -12,7 +12,7 @@ const RegisterPage = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        process.env.REACT_APP_LOGIN_ENDPOINT || "",
+        process.env.REACT_APP_BACKEND_URL || "",
         {
           username: username,
           password: password,

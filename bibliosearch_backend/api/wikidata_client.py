@@ -86,8 +86,6 @@ def search_book_by_keyword(keyword:str, limit:int=50, page:int=1):
         # Process the JSON response
         data = response.json()
 
-
-        json.dump(data["results"]["bindings"], open('data.json', 'w'), indent=4)
         return (200,data["results"]["bindings"])
     else:
         return (response.status_code,None)

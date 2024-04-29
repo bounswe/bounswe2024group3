@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  db:
+    extends:
+      file: ./db.yml
+      service: db
+
+  backend:
+    depends_on:
+      - db
+    extends:
+      file: ./backend.yml
+      service: backend
+    build:
+      context: ../bibliosearch_backend
+      dockerfile: ./Dockerfile
+    links:
+      - db:database
+    environment:
+        DB_HOST: db
+        DB_PORT: 5432
+        DB_NAME: postgres
+        DB_USERNAME: postgres
+        DB_PASSWORD: topsecret
+
+  frontend:
+    depends_on:
+      - backend
+    extends:
+      file: ./frontend.yml
+      service: frontend
+    build:
+      context: ../bibliosearch_web
+      dockerfile: ./Dockerfile
+    links:
+      - backend:backend
+
+
+
+  proxy:
+    depends_on:
+      - backend
+      - frontend
+    extends:
+      file: ./nginx.yml
+      service: proxy
+

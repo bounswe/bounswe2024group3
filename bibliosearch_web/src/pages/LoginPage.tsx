@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import FormInput from "../components/FormInput";
 import { req } from "../utils/client";
 import { useUser } from "../providers/UserContest";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { setUsername: setGlobalUsername } = useUser();
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +20,7 @@ const LoginPage = () => {
       });
       console.log("Login Successful", response.data);
       setGlobalUsername(username);
+      navigate("/");
     } catch (error: any) {
       console.error("Login failed:", error);
       setError(error.message);

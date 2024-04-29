@@ -33,7 +33,7 @@ const RegisterPage = () => {
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>
       <FormInput icon= "user" type="text" placeholder ="Name" value ={name} onChange ={(e:any) => setName(e.target.value)} /> 
       <FormInput icon= "user" type="text" placeholder ="Surname" value ={surname} onChange ={(e:any) => setSurname(e.target.value)} /> 
-      <FormInput icon= "email" type="text" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} /> 
+      <FormInput icon= "email" type="email" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} /> 
       <FormInput icon= "user" type="text" placeholder ="Username" value ={username} onChange ={(e:any) => setUsername(e.target.value)} /> 
       <FormInput icon= "password" type="password" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} /> 
       <button type="submit" className="btn btn-primary mt-4">

@@ -12,6 +12,7 @@ const FormInput = (props:any) => {
         placeholder={props.placeholder}
         value={props.value}
         onChange={props.onChange}
+        required
       />
     </label>
   );

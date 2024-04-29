@@ -1,5 +1,6 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   SafeAreaView,
   StyleSheet,
   TextInput,
@@ -7,22 +8,50 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import BookPage from './BookPage';
+import axios from 'axios';
 
 const {width} = Dimensions.get('window'); // Get the width of the screen
 
 const MainPage = () => {
   const [query, setQuery] = useState('');
-  const [querysend, setQuerySend] = useState(false);
-  const handleQuery = () => {
-    // Here we send the query to backend.
-    console.log('Button pressed!', query);
-    setQuerySend(true);
+  const [queryResults, setQueryResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleQuery = async () => {
+    setIsLoading(true);
+    const searchEndpoint = 'http://207.154.246.225/api/'; 
+
+    try {
+      // Fetch the CSRF token
+      const csrfTokenResponse = await axios.get(searchEndpoint + 'getToken/');
+      const csrfToken = csrfTokenResponse.data.csrf_token;
+      console.log('CSRF Token:', csrfToken);
+      
+      // Proceed with registration
+      const response = await axios.get(`${searchEndpoint}book/search/?keyword=${encodeURIComponent(query)}`);
+      
+      if (response.data.message === 'successfully fetched data') {
+        console.log('search successful');
+        console.log(response.data.data);
+        setQueryResults(response.data.data);
+      } else {
+        console.log(response.data.message || 'Failed to search');
+        throw new Error(response.data.message || 'Failed to search');
+      }
+    } catch (error) {
+      console.error('search Error:', error);
+      Alert.alert('search Error', error.message || 'An error occurred during search');
+    }
+    setIsLoading(false);
   };
-  if (querysend) {
-    return <BookPage query={query} />;
+
+  if (queryResults) {
+    return <BookPage query={query} results={queryResults} />;
   }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.welcome}>
@@ -37,13 +66,17 @@ const MainPage = () => {
           placeholder="Browse Books"
           style={styles.input}
         />
-        <TouchableOpacity style={styles.button} onPress={handleQuery}>
+        <TouchableOpacity style={styles.button} onPress={handleQuery} disabled={isLoading}>
           <Text style={styles.buttonText}>Browse!</Text>
         </TouchableOpacity>
       </View>
+      {isLoading && (
+        <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />
+      )}
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

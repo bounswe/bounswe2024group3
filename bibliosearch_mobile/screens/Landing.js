@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,23 +7,45 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
+import axios from 'axios';
 import RegistrationScreen from './RegistrationScreen';
 import MainPage from './MainPage';
 
-const {width} = Dimensions.get('window'); // Get the width of the screen
+const { width } = Dimensions.get('window'); // Get the width of the screen
 
 const Landing = () => {
-  const [emailorusername, setEmailorusername] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLogged, setIsLogged] = useState(false); //will be implemented
-  const [registrationRequested, setRegReq] = useState(false); //will be implemented
+  const [isLogged, setIsLogged] = useState(false);
+  const [registrationRequested, setRegReq] = useState(false);
 
-  const handleLogin = () => {
-    // Here you would usually send the email and password to your backend service
-    console.log('Logging in:', emailorusername, password);
-    // Remember to handle validation, error messages, and security best practices
-    setIsLogged(true);
+  const handleLogin = async () => {
+    const loginEndpoint = 'http://207.154.246.225/api/'; // Your API endpoint
+
+    try {
+      const csrfToken = (await axios.get(loginEndpoint + 'getToken/')).data.csrf_token;
+      console.log('CSRF Token:', csrfToken);
+
+      const response = await axios.post(loginEndpoint + 'login/', {
+        username: emailOrUsername,
+        password: password,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        // Note: WithCredentials and xsrfHeaderName might be needed depending on your backend setup
+        withCredentials: true,
+        xsrfHeaderName: 'X-CSRFToken',
+      });
+      console.log('Login successful');
+      setIsLogged(true);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Login Error', error.message || 'An error occurred during login');
+    }
   };
 
   const handleRegistrationRequest = () => {
@@ -63,8 +85,8 @@ const Landing = () => {
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Username:</Text>
         <TextInput
-          value={emailorusername}
-          onChangeText={setEmailorusername}
+          value={emailOrUsername}
+          onChangeText={setEmailOrUsername}
           placeholder="Enter your email or username"
           style={styles.input}
           autoCapitalize="none"

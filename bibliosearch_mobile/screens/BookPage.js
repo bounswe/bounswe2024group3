@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,49 +7,81 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
+import axios from 'axios';
 
 const {width} = Dimensions.get('window');
 
-const BookPage = ({query: initialQuery}) => {
+const BookPage = ({query: initialQuery, results: initialResults}) => {
   const [query, setQuery] = useState(initialQuery);
-  const [input, setInput] = useState(''); // New state variable for the TextInput
+  const [input, setInput] = useState('');
+  const [results, setResults] = useState(initialResults); // State to manage results
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleQuery = () => {
-    // Here we send the query to backend.
-    console.log('Button pressed!', input);
-    setQuery(input); // Set the query to the current input when the button is pressed
+  const handleQuery = async () => {
+    setIsLoading(true);
+    const searchEndpoint = 'http://207.154.246.225/api/'; 
+
+    try {
+      // Fetch the CSRF token
+      const csrfTokenResponse = await axios.get(searchEndpoint + 'getToken/');
+      const csrfToken = csrfTokenResponse.data.csrf_token;
+      console.log('CSRF Token:', csrfToken);
+      
+      // Proceed with registration
+      const response = await axios.get(`${searchEndpoint}book/search/?keyword=${encodeURIComponent(input)}`);
+      
+      if (response.data.message === 'successfully fetched data') {
+        console.log('search successful');
+        console.log(response.data.data);
+        setResults(response.data.data); // Update results using setState
+      } else {
+        console.log(response.data.message || 'Failed to search');
+        throw new Error(response.data.message || 'Failed to search');
+      }
+    } catch (error) {
+      console.error('search Error:', error);
+      Alert.alert('search Error', error.message || 'An error occurred during search');
+    }
+    setIsLoading(false);
   };
+
+  const renderBooks = () => {
+    return results.map((book, index) => (
+      <View key={index} style={styles.bookContainer}>
+        <Text style={styles.bookTitle}>{book.title?.value || 'Title not available'}</Text>
+        <Text style={styles.bookAuthor}>{book.authors?.value || 'Author not available'}</Text>
+        <Text style={styles.bookDescription}>{book.description?.value || 'Description not available'}</Text>
+        <Text style={styles.bookPublicationYear}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
+        <Text style={styles.bookISBN}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
+      </View>
+    ));
+  };
+  
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.inputButtonRow}>
         <TextInput
-          value={input} // Use the new state variable here
+          value={input}
+          onChangeText={setInput}
           placeholder="Browse Books"
-          onChangeText={setInput} // Update the new state variable when the text changes
           style={styles.input}
         />
         <TouchableOpacity style={styles.button} onPress={handleQuery}>
           <Text style={styles.buttonText}>Browse!</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>{query}</Text>
-      </View>
-      <View style={styles.welcome}>
-        <Text style={styles.welcomeText}>
-          Welcome to the Profile Page for {query}!{' '}
-        </Text>
-        <Text style={styles.welcomeText}>
-          Here we will add the book information. Explore a world of literature
-          right at your fingertips. From timeless classics to modern
-          masterpieces, our extensive collection ensures there is something for
-          every reader. Delve into detailed descriptions, insightful reviews,
-          and author biographies, all designed to enhance your reading
-          experience.
-        </Text>
-      </View>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="black" />
+      ) : (
+        <ScrollView style={styles.resultsContainer}>
+          {results.length > 0 ? renderBooks() : <Text>No books found. Try a different search!</Text>}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -62,6 +94,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: '#eb2727',
     width: width,
+  },
+  bookContainer: {
+    padding: 16,
+    margin: 8,
+    backgroundColor: 'white',
+    borderRadius: 10,
   },
   header: {
     alignSelf: 'center',

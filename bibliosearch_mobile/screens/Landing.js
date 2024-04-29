@@ -7,6 +7,7 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import RegistrationScreen from './RegistrationScreen';
 import MainPage from './MainPage';
@@ -16,14 +17,34 @@ const {width} = Dimensions.get('window'); // Get the width of the screen
 const Landing = () => {
   const [emailorusername, setEmailorusername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLogged, setIsLogged] = useState(false); //will be implemented
-  const [registrationRequested, setRegReq] = useState(false); //will be implemented
+  const [isLogged, setIsLogged] = useState(false);
+  const [registrationRequested, setRegReq] = useState(false);
 
-  const handleLogin = () => {
-    // Here you would usually send the email and password to your backend service
-    console.log('Logging in:', emailorusername, password);
-    // Remember to handle validation, error messages, and security best practices
-    setIsLogged(true);
+  const handleLogin = async () => {
+    const loginEndpoint = 'https://api.yourdomain.com/login'; // Replace with your actual endpoint
+
+    try {
+      const response = await fetch(loginEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emailOrUsername: emailorusername,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setIsLogged(true);
+      } else {
+        throw new Error(data.message || 'Failed to login');
+      }
+    } catch (error) {
+      Alert.alert('Login Error', error.toString());
+    }
   };
 
   const handleRegistrationRequest = () => {

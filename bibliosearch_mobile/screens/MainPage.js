@@ -1,5 +1,6 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   SafeAreaView,
   StyleSheet,
   TextInput,
@@ -7,6 +8,7 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  Alert
 } from 'react-native';
 import BookPage from './BookPage';
 
@@ -14,15 +16,35 @@ const {width} = Dimensions.get('window'); // Get the width of the screen
 
 const MainPage = () => {
   const [query, setQuery] = useState('');
-  const [querysend, setQuerySend] = useState(false);
-  const handleQuery = () => {
-    // Here we send the query to backend.
-    console.log('Button pressed!', query);
-    setQuerySend(true);
+  const [queryResults, setQueryResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleQuery = async () => {
+    setIsLoading(true);
+    const searchEndpoint = 'https://api.yourdomain.com/search'; // Replace with your actual search API endpoint
+
+    try {
+      const response = await fetch(`${searchEndpoint}?keyword=${encodeURIComponent(query)}`, {
+        method: 'GET'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setQueryResults(data.data); // Assuming 'data.data' is the array of books or search results
+      } else {
+        throw new Error(data.message || 'Failed to fetch results');
+      }
+    } catch (error) {
+      Alert.alert('Search Error', error.toString());
+    }
+    setIsLoading(false);
   };
-  if (querysend) {
-    return <BookPage query={query} />;
+
+  if (queryResults) {
+    return <BookPage query={query} results={queryResults} />;
   }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.welcome}>
@@ -37,13 +59,17 @@ const MainPage = () => {
           placeholder="Browse Books"
           style={styles.input}
         />
-        <TouchableOpacity style={styles.button} onPress={handleQuery}>
+        <TouchableOpacity style={styles.button} onPress={handleQuery} disabled={isLoading}>
           <Text style={styles.buttonText}>Browse!</Text>
         </TouchableOpacity>
       </View>
+      {isLoading && (
+        <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />
+      )}
     </SafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

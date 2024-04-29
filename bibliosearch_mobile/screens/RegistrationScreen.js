@@ -7,6 +7,7 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import Landing from './Landing';
 
@@ -19,15 +20,39 @@ const RegistrationScreen = () => {
   const [username, setUsername] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
 
-  const handleRegistration = () => {
-    // Here you would usually send the email and password to your backend service
-    console.log('Registering:', fullname, username, email, password);
-    // Remember to handle validation, error messages, and security best practices
-    setIsRegistered(true);
+  const handleRegistration = async () => {
+    const registrationEndpoint = 'https://api.yourdomain.com/register'; // Replace with your actual registration API endpoint
+
+    try {
+      const response = await fetch(registrationEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: fullname,
+          username: username,
+          email: email,
+          password: password
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setIsRegistered(true);
+      } else {
+        throw new Error(data.error || 'Failed to register');
+      }
+    } catch (error) {
+      Alert.alert('Registration Error', error.toString());
+    }
   };
+
   if (isRegistered) {
     return <Landing />;
   }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -122,8 +147,8 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     borderRadius: 10,
     width: width * 0.9 * 0.95, // Set the width to 75% of the screen width
-},
-button: {
+  },
+  button: {
     backgroundColor: 'white',
     padding: 10,
     borderRadius: 10,

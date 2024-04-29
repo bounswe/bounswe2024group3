@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -7,49 +7,70 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 
 const {width} = Dimensions.get('window');
 
 const BookPage = ({query: initialQuery}) => {
   const [query, setQuery] = useState(initialQuery);
-  const [input, setInput] = useState(''); // New state variable for the TextInput
+  const [input, setInput] = useState('');
+  const [books, setBooks] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleQuery = () => {
-    // Here we send the query to backend.
-    console.log('Button pressed!', input);
-    setQuery(input); // Set the query to the current input when the button is pressed
+  const handleQuery = async () => {
+    setIsLoading(true);
+    const searchEndpoint = 'https://api.yourdomain.com/search'; // Replace with your actual search API endpoint
+
+    try {
+      const response = await fetch(`${searchEndpoint}?keyword=${encodeURIComponent(input)}`, {
+        method: 'GET',
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setBooks(data.data); // Assuming 'data.data' contains the books data
+        setQuery(input);
+      } else {
+        throw new Error(data.message || 'Failed to fetch results');
+      }
+    } catch (error) {
+      Alert.alert('Search Error', error.toString());
+    }
+    setIsLoading(false);
+  };
+
+  const renderBooks = () => {
+    return books.map((book, index) => (
+      <View key={index} style={styles.bookContainer}>
+        <Text style={styles.bookTitle}>{book.title}</Text>
+        <Text style={styles.bookAuthor}>{book.author}</Text>
+      </View>
+    ));
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.inputButtonRow}>
         <TextInput
-          value={input} // Use the new state variable here
+          value={input}
+          onChangeText={setInput}
           placeholder="Browse Books"
-          onChangeText={setInput} // Update the new state variable when the text changes
           style={styles.input}
         />
         <TouchableOpacity style={styles.button} onPress={handleQuery}>
           <Text style={styles.buttonText}>Browse!</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>{query}</Text>
-      </View>
-      <View style={styles.welcome}>
-        <Text style={styles.welcomeText}>
-          Welcome to the Profile Page for {query}!{' '}
-        </Text>
-        <Text style={styles.welcomeText}>
-          Here we will add the book information. Explore a world of literature
-          right at your fingertips. From timeless classics to modern
-          masterpieces, our extensive collection ensures there is something for
-          every reader. Delve into detailed descriptions, insightful reviews,
-          and author biographies, all designed to enhance your reading
-          experience.
-        </Text>
-      </View>
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <ScrollView style={styles.resultsContainer}>
+          {books.length > 0 ? renderBooks() : <Text>No books found. Try a different search!</Text>}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };

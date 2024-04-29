@@ -1,28 +1,32 @@
 import React, { useState } from "react";
 import axios from "axios";
 import FormInput from "../components/FormInput";
+import { useNavigate } from "react-router-dom";
+import { req } from "../utils/client";
 
 const RegisterPage = () => {
-  const [name, setName] = useState("");
-  const [surname, setSurname] = useState("");
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const [name, setName] = useState("asdd");
+  const [surname, setSurname] = useState("asdd");
+  const [email, setEmail] = useState("asdd@gmail.com");
+  const [username, setUsername] = useState("asd");
+  const [password, setPassword] = useState("asd");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     try {
-      const response = await axios.post(
-        process.env.REACT_APP_BACKEND_URL || "",
-        {
-          username: username,
-          password: password,
-        }
-      );
-      console.log("Login Successful", response.data);
-      // Handle further actions here after successful login
-    } catch (error) {
-      console.error("Login failed:", error);
+      await req("register", "post", {
+        name: name,
+        surname: surname,
+        email: email,
+        username: username,
+        password: password,
+      });
+      navigate("/login");
+    } catch (error: any) {
+      setError(error.message);
     }
   };
 
@@ -36,6 +40,7 @@ const RegisterPage = () => {
       <button type="submit" className="btn btn-primary mt-4">
         Register
       </button>
+      <p className="text-red-500">{error}</p>
     </form>
   );
 };

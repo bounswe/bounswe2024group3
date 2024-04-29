@@ -1,25 +1,24 @@
 import React, { useState } from "react";
 import axios from "axios";
 import FormInput from "../components/FormInput";
+import { req } from "../utils/client";
 
 const LoginPage = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("asd");
+  const [password, setPassword] = useState("asd");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        process.env.REACT_APP_BACKEND_URL + "/login",
-        {
-          username: username,
-          password: password,
-        }
-      );
+      let response = await req("login", "post", {
+        username: username,
+        password: password,
+      });
       console.log("Login Successful", response.data);
-      // Handle further actions here after successful login
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      setError(error.message);
     }
   };
 
@@ -30,6 +29,7 @@ const LoginPage = () => {
       <button type="submit" className="btn btn-primary mt-4">
         Login
       </button>
+      {error && <p className="text-red-500">{error}</p>}
     </form>
   );
 };

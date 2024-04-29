@@ -1,7 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
-import Cookies from "js-cookie";
-
 import SvgIcon from "../components/SvgIcon";
 import { req } from "../utils/client";
 

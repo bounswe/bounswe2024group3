@@ -36,7 +36,7 @@ const MainPage = () => {
       if (response.data.message === 'successfully fetched data') {
         console.log('search successful');
         console.log(response.data.data);
-        //setQueryResults(response.data.data);
+        setQueryResults(response.data.data);
       } else {
         console.log(response.data.message || 'Failed to search');
         throw new Error(response.data.message || 'Failed to search');

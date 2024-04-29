@@ -11,12 +11,14 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import axios from 'axios';
 
 const {width} = Dimensions.get('window');
 
-const BookPage = ({query: initialQuery, results}) => {
+const BookPage = ({query: initialQuery, results: initialResults}) => {
   const [query, setQuery] = useState(initialQuery);
   const [input, setInput] = useState('');
+  const [results, setResults] = useState(initialResults); // State to manage results
   const [isLoading, setIsLoading] = useState(false);
 
   const handleQuery = async () => {
@@ -35,7 +37,7 @@ const BookPage = ({query: initialQuery, results}) => {
       if (response.data.message === 'successfully fetched data') {
         console.log('search successful');
         console.log(response.data.data);
-        //results = response.data.data;
+        setResults(response.data.data); // Update results using setState
       } else {
         console.log(response.data.message || 'Failed to search');
         throw new Error(response.data.message || 'Failed to search');
@@ -50,14 +52,15 @@ const BookPage = ({query: initialQuery, results}) => {
   const renderBooks = () => {
     return results.map((book, index) => (
       <View key={index} style={styles.bookContainer}>
-        <Text style={styles.bookTitle}>{book.title}</Text>
-        <Text style={styles.bookAuthor}>{book.authors}</Text>
-        <Text style={styles.bookDescription}>{book.description}</Text>
-        <Text style={styles.bookPublicationYear}>Publication Year: {book.publicationYear}</Text>
-        <Text style={styles.bookISBN}>ISBN: {book.ISBN13}</Text>
+        <Text style={styles.bookTitle}>{book.title?.value || 'Title not available'}</Text>
+        <Text style={styles.bookAuthor}>{book.authors?.value || 'Author not available'}</Text>
+        <Text style={styles.bookDescription}>{book.description?.value || 'Description not available'}</Text>
+        <Text style={styles.bookPublicationYear}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
+        <Text style={styles.bookISBN}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
       </View>
     ));
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,7 +76,7 @@ const BookPage = ({query: initialQuery, results}) => {
         </TouchableOpacity>
       </View>
       {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="black" />
       ) : (
         <ScrollView style={styles.resultsContainer}>
           {results.length > 0 ? renderBooks() : <Text>No books found. Try a different search!</Text>}
@@ -91,6 +94,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: '#eb2727',
     width: width,
+  },
+  bookContainer: {
+    padding: 16,
+    margin: 8,
+    backgroundColor: 'white',
+    borderRadius: 10,
   },
   header: {
     alignSelf: 'center',

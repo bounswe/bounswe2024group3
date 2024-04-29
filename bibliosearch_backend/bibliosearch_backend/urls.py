@@ -20,7 +20,7 @@ from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/searchBook', views.search_book),
+    path('api/book/search/', views.search_book),
     path('api/login/', views.login),
     path('api/register/', views.register),
     path('api/logout/', views.logout),

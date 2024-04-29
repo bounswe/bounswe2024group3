@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import axios from "axios";
+import FormInput from "../components/FormInput";
 import { useNavigate } from "react-router-dom";
-import SvgIcon from "../components/SvgIcon";
 import { req } from "../utils/client";
 
 const RegisterPage = () => {
@@ -31,60 +32,11 @@ const RegisterPage = () => {
 
   return (
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>
-      <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon="user" />
-        <input
-          type="text"
-          className="grow"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </label>
-      <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon="user" />
-
-        <input
-          type="text"
-          className="grow"
-          placeholder="Surname"
-          value={surname}
-          onChange={(e) => setSurname(e.target.value)}
-        />
-      </label>
-      <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon="email" />
-
-        <input
-          type="text"
-          className="grow"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </label>
-      <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon="user" />
-
-        <input
-          type="text"
-          className="grow"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </label>
-      <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon="password" />
-
-        <input
-          type="password"
-          className="grow"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </label>
+      <FormInput icon= "user" type="text" placeholder ="Name" value ={name} onChange ={(e:any) => setName(e.target.value)} /> 
+      <FormInput icon= "user" type="text" placeholder ="Surname" value ={surname} onChange ={(e:any) => setSurname(e.target.value)} /> 
+      <FormInput icon= "email" type="text" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} /> 
+      <FormInput icon= "user" type="text" placeholder ="Username" value ={username} onChange ={(e:any) => setUsername(e.target.value)} /> 
+      <FormInput icon= "password" type="text" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} /> 
       <button type="submit" className="btn btn-primary mt-4">
         Register
       </button>

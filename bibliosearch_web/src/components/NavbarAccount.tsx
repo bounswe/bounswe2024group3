@@ -2,11 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 type NavbarAccountProps = {
-  registered: boolean;
+  username: string;
 };
 
-const NavbarAccount = ({ registered }: NavbarAccountProps) => {
-  if (registered) {
+const NavbarAccount = ({ username }: NavbarAccountProps) => {
+  if (username !== "") {
     return (
       <div className="dropdown dropdown-end">
         <div
@@ -15,7 +15,7 @@ const NavbarAccount = ({ registered }: NavbarAccountProps) => {
           className="btn btn-ghost btn-circle avatar"
         >
           <div className="w-10 rounded-full">
-            <img alt="Account" src="" />
+            <img alt={username} src="" />
           </div>
         </div>
         <ul

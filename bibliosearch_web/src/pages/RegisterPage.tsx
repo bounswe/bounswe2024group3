@@ -1,35 +1,38 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import SvgIcon from "../components/SvgIcon";
+import { req } from "../utils/client";
 
 const RegisterPage = () => {
-  const [name, setName] = useState("");
-  const [surname, setSurname] = useState("");
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+  const [name, setName] = useState("asdd");
+  const [surname, setSurname] = useState("asdd");
+  const [email, setEmail] = useState("asdd@gmail.com");
+  const [username, setUsername] = useState("asd");
+  const [password, setPassword] = useState("asd");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     try {
-      const response = await axios.post(
-        process.env.REACT_APP_BACKEND_URL || "",
-        {
-          username: username,
-          password: password,
-        }
-      );
-      console.log("Login Successful", response.data);
-      // Handle further actions here after successful login
-    } catch (error) {
-      console.error("Login failed:", error);
+      await req("register", "post", {
+        name: name,
+        surname: surname,
+        email: email,
+        username: username,
+        password: password,
+      });
+      navigate("/login");
+    } catch (error: any) {
+      setError(error.message);
     }
   };
 
   return (
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>
       <label className="input input-bordered flex items-center gap-2">
-        <SvgIcon icon = "user"/>
+        <SvgIcon icon="user" />
         <input
           type="text"
           className="grow"
@@ -39,7 +42,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "user"/>
+        <SvgIcon icon="user" />
 
         <input
           type="text"
@@ -50,7 +53,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "email"/>
+        <SvgIcon icon="email" />
 
         <input
           type="text"
@@ -61,7 +64,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "user"/>
+        <SvgIcon icon="user" />
 
         <input
           type="text"
@@ -72,7 +75,7 @@ const RegisterPage = () => {
         />
       </label>
       <label className="input input-bordered flex items-center gap-2">
-      <SvgIcon icon = "password"/>
+        <SvgIcon icon="password" />
 
         <input
           type="password"
@@ -85,6 +88,7 @@ const RegisterPage = () => {
       <button type="submit" className="btn btn-primary mt-4">
         Register
       </button>
+      <p className="text-red-500">{error}</p>
     </form>
   );
 };

@@ -20,5 +20,5 @@ from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('searchBook', views.search_book)
+    path('book/search', views.search_book)
 ]

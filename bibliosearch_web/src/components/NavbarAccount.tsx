@@ -31,7 +31,7 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
           className="btn btn-ghost btn-circle avatar"
         >
           <div className="w-10 rounded-full">
-            <img alt={username} src="" />
+            <img alt={username} src="https://i.pravatar.cc/300" />
           </div>
         </div>
         <ul

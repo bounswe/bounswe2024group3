@@ -5,11 +5,11 @@ import { req } from "../utils/client";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("asdd");
-  const [surname, setSurname] = useState("asdd");
-  const [email, setEmail] = useState("asdd@gmail.com");
-  const [username, setUsername] = useState("asd");
-  const [password, setPassword] = useState("asd");
+  const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ const RegisterPage = () => {
       <FormInput icon= "user" type="text" placeholder ="Surname" value ={surname} onChange ={(e:any) => setSurname(e.target.value)} /> 
       <FormInput icon= "email" type="text" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} /> 
       <FormInput icon= "user" type="text" placeholder ="Username" value ={username} onChange ={(e:any) => setUsername(e.target.value)} /> 
-      <FormInput icon= "password" type="text" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} /> 
+      <FormInput icon= "password" type="password" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} /> 
       <button type="submit" className="btn btn-primary mt-4">
         Register
       </button>

@@ -4,8 +4,8 @@ import { req } from "../utils/client";
 import { useUser } from "../providers/UserContest";
 
 const LoginPage = () => {
-  const [username, setUsername] = useState("asd");
-  const [password, setPassword] = useState("asd");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { setUsername: setGlobalUsername } = useUser();
 

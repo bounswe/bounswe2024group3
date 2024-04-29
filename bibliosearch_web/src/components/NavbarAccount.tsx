@@ -1,11 +1,27 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { req } from "../utils/client";
+import { useUser } from "../providers/UserContest";
 
 type NavbarAccountProps = {
   username: string;
 };
 
 const NavbarAccount = ({ username }: NavbarAccountProps) => {
+  const navigate = useNavigate();
+  const { setUsername, setError } = useUser();
+
+  const logout = async () => {
+    try {
+      await req("logout", "post", {});
+    } catch (error: any) {
+      console.error("Logout failed:", error);
+      setError(error.message);
+    }
+    setUsername("");
+    navigate("/");
+  };
+
   if (username !== "") {
     return (
       <div className="dropdown dropdown-end">
@@ -29,7 +45,9 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
             <Link to="/settings">Settings</Link>
           </li>
           <li>
-            <Link to="/">Logout</Link>
+            <Link to="/" onClick={logout}>
+              Logout
+            </Link>
           </li>
         </ul>
       </div>

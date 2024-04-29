@@ -21,6 +21,9 @@ export const req = async (url: string, method: string, data: any) => {
       "X-CSRFToken": Cookies.get("csrftoken"),
     },
   });
+  if (resp.status === 403) {
+    throw new Error("You are not authorized to perform this action");
+  }
   if (resp.data.error) {
     throw new Error(resp.data.error);
   }

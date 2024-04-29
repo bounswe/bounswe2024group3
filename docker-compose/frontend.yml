@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  frontend:
+    build: .
+    container_name: frontend
+    command: yarn start
+    volumes:
+      - .:/frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_BACKEND_URL: http://$HOST_URL/api
+      HOST: 0.0.0.0

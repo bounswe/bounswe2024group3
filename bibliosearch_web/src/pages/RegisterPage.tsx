@@ -13,7 +13,7 @@ const RegisterPage = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        process.env.REACT_APP_LOGIN_ENDPOINT || "",
+        process.env.REACT_APP_BACKEND_URL || "",
         {
           username: username,
           password: password,
@@ -33,7 +33,6 @@ const RegisterPage = () => {
       <FormInput icon= "email" type="text" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} /> 
       <FormInput icon= "user" type="text" placeholder ="Username" value ={username} onChange ={(e:any) => setUsername(e.target.value)} /> 
       <FormInput icon= "password" type="text" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} /> 
-
       <button type="submit" className="btn btn-primary mt-4">
         Register
       </button>

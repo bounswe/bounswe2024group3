@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -9,43 +9,55 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import axios from 'axios';
 import Landing from './Landing';
 
-const {width} = Dimensions.get('window'); // Get the width of the screen
+const { width } = Dimensions.get('window'); // Get the width of the screen
 
 const RegistrationScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullname, setFullname] = useState('');
+  const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
   const [username, setUsername] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
 
-  const handleRegistration = async () => {
-    const registrationEndpoint = 'https://api.yourdomain.com/register'; // Replace with your actual registration API endpoint
+    const handleRegistration = async () => {
+    const registrationEndpoint = 'http://207.154.246.225/api/';
 
     try {
-      const response = await fetch(registrationEndpoint, {
-        method: 'POST',
+      // Fetch the CSRF token
+      const csrfTokenResponse = await axios.get(registrationEndpoint + 'getToken/');
+      const csrfToken = csrfTokenResponse.data.csrf_token;
+      console.log('CSRF Token:', csrfToken);
+      
+      // Proceed with registration
+      const response = await axios.post(registrationEndpoint + 'register/', {
+        name: name,
+        surname: surname,
+        username: username,
+        email: email,
+        password: password,
+      }, {
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
         },
-        body: JSON.stringify({
-          name: fullname,
-          username: username,
-          email: email,
-          password: password
-        }),
+        withCredentials: true,
+        xsrfHeaderName: 'X-CSRFToken',
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (response.data.message === 'Registration successful') {
         setIsRegistered(true);
+        console.log('Registration successful');
       } else {
-        throw new Error(data.error || 'Failed to register');
+        console.log(response.data.message || 'Failed to register');
+        throw new Error(response.data.message || 'Failed to register');
       }
+
     } catch (error) {
-      Alert.alert('Registration Error', error.toString());
+      console.error('Registration Error:', error);
+      Alert.alert('Registration Error', error.message || 'An error occurred during registration');
     }
   };
 
@@ -59,10 +71,20 @@ const RegistrationScreen = () => {
         <Text style={styles.headerText}>Bibliosearch</Text>
       </View>
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Full Name:</Text>
+        <Text style={styles.label}>Name:</Text>
         <TextInput
-          value={fullname}
-          onChangeText={setFullname}
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter your full name"
+          style={styles.input}
+          autoCapitalize="none"
+        />
+      </View>
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Surname:</Text>
+        <TextInput
+          value={surname}
+          onChangeText={setSurname}
           placeholder="Enter your full name"
           style={styles.input}
           autoCapitalize="none"
@@ -107,7 +129,7 @@ const RegistrationScreen = () => {
 
 const styles = StyleSheet.create({
   header: {
-    marginTop: 80,
+    marginTop: 8,
     marginBottom: 80,
     alignSelf: 'center',
     justifyContent: 'flex-end',

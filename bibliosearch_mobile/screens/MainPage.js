@@ -8,9 +8,10 @@ import {
   Text,
   Dimensions,
   TouchableOpacity,
-  Alert
+  Alert,
 } from 'react-native';
 import BookPage from './BookPage';
+import axios from 'axios';
 
 const {width} = Dimensions.get('window'); // Get the width of the screen
 
@@ -21,22 +22,28 @@ const MainPage = () => {
 
   const handleQuery = async () => {
     setIsLoading(true);
-    const searchEndpoint = 'https://api.yourdomain.com/search'; // Replace with your actual search API endpoint
+    const searchEndpoint = 'http://207.154.246.225/api/'; 
 
     try {
-      const response = await fetch(`${searchEndpoint}?keyword=${encodeURIComponent(query)}`, {
-        method: 'GET'
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setQueryResults(data.data); // Assuming 'data.data' is the array of books or search results
+      // Fetch the CSRF token
+      const csrfTokenResponse = await axios.get(searchEndpoint + 'getToken/');
+      const csrfToken = csrfTokenResponse.data.csrf_token;
+      console.log('CSRF Token:', csrfToken);
+      
+      // Proceed with registration
+      const response = await axios.get(`${searchEndpoint}book/search/?keyword=${encodeURIComponent(query)}`);
+      
+      if (response.data.message === 'successfully fetched data') {
+        console.log('search successful');
+        console.log(response.data.data);
+        //setQueryResults(response.data.data);
       } else {
-        throw new Error(data.message || 'Failed to fetch results');
+        console.log(response.data.message || 'Failed to search');
+        throw new Error(response.data.message || 'Failed to search');
       }
     } catch (error) {
-      Alert.alert('Search Error', error.toString());
+      console.error('search Error:', error);
+      Alert.alert('search Error', error.message || 'An error occurred during search');
     }
     setIsLoading(false);
   };

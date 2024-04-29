@@ -14,39 +14,47 @@ import {
 
 const {width} = Dimensions.get('window');
 
-const BookPage = ({query: initialQuery}) => {
+const BookPage = ({query: initialQuery, results}) => {
   const [query, setQuery] = useState(initialQuery);
   const [input, setInput] = useState('');
-  const [books, setBooks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleQuery = async () => {
     setIsLoading(true);
-    const searchEndpoint = 'https://api.yourdomain.com/search'; // Replace with your actual search API endpoint
+    const searchEndpoint = 'http://207.154.246.225/api/'; 
 
     try {
-      const response = await fetch(`${searchEndpoint}?keyword=${encodeURIComponent(input)}`, {
-        method: 'GET',
-      });
-      const data = await response.json();
+      // Fetch the CSRF token
+      const csrfTokenResponse = await axios.get(searchEndpoint + 'getToken/');
+      const csrfToken = csrfTokenResponse.data.csrf_token;
+      console.log('CSRF Token:', csrfToken);
       
-      if (response.ok) {
-        setBooks(data.data); // Assuming 'data.data' contains the books data
-        setQuery(input);
+      // Proceed with registration
+      const response = await axios.get(`${searchEndpoint}book/search/?keyword=${encodeURIComponent(input)}`);
+      
+      if (response.data.message === 'successfully fetched data') {
+        console.log('search successful');
+        console.log(response.data.data);
+        //results = response.data.data;
       } else {
-        throw new Error(data.message || 'Failed to fetch results');
+        console.log(response.data.message || 'Failed to search');
+        throw new Error(response.data.message || 'Failed to search');
       }
     } catch (error) {
-      Alert.alert('Search Error', error.toString());
+      console.error('search Error:', error);
+      Alert.alert('search Error', error.message || 'An error occurred during search');
     }
     setIsLoading(false);
   };
 
   const renderBooks = () => {
-    return books.map((book, index) => (
+    return results.map((book, index) => (
       <View key={index} style={styles.bookContainer}>
         <Text style={styles.bookTitle}>{book.title}</Text>
-        <Text style={styles.bookAuthor}>{book.author}</Text>
+        <Text style={styles.bookAuthor}>{book.authors}</Text>
+        <Text style={styles.bookDescription}>{book.description}</Text>
+        <Text style={styles.bookPublicationYear}>Publication Year: {book.publicationYear}</Text>
+        <Text style={styles.bookISBN}>ISBN: {book.ISBN13}</Text>
       </View>
     ));
   };
@@ -68,7 +76,7 @@ const BookPage = ({query: initialQuery}) => {
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <ScrollView style={styles.resultsContainer}>
-          {books.length > 0 ? renderBooks() : <Text>No books found. Try a different search!</Text>}
+          {results.length > 0 ? renderBooks() : <Text>No books found. Try a different search!</Text>}
         </ScrollView>
       )}
     </SafeAreaView>

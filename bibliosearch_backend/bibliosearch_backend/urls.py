@@ -20,5 +20,9 @@ from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('book/search', views.search_book)
+    path('searchBook', views.search_book)
+    path('login/', views.login),
+    path('register/', views.register),
+    path('logout/', views.logout),
+    path('getToken/', views.csrf_token),
 ]

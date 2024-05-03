@@ -16,3 +16,7 @@ Our project Bibliosearch is dedicated to developing a platform that enables user
 - [Ahmet Burkay Kınık](https://github.com/bounswe/bounswe2024group3/wiki/Ahmet-Burkay-K%C4%B1n%C4%B1k)
 - [Yusuf Suat Polat](https://github.com/bounswe/bounswe2024group3/wiki/Yusuf-Suat-Polat)
 - [Batuhan Solmaz](https://github.com/bounswe/bounswe2024group3/wiki/Batuhan-Solmaz)
+
+## Milestone Reports
+- <a href="https://github.com/bounswe/bounswe2024group3/wiki/Milestone-Report-1">Milestone Report 1</a></li>
+- <a href="https://github.com/bounswe/bounswe2024group3/wiki/Milestone-Report-2">Milestone Report 2</a></li>

@@ -1,5 +1,5 @@
 import json
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 
@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
 from django.middleware.csrf import get_token
 
+
+from django.views.decorators.csrf import csrf_exempt
 
 from django.http import JsonResponse
 
@@ -20,7 +22,7 @@ from django.shortcuts import redirect
 from django.contrib.auth.models import User
 
 #import BiblioSearchUser
-from api.models import BiblioSearchUser
+from api.models import BiblioSearchUser, Book, BookList
 
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -119,6 +121,7 @@ def search_book(request):
 
 # create login view
 @require_http_methods(["POST"])
+@csrf_exempt
 def login(request):
         data = json.loads(request.body)
         username = data['username']
@@ -134,6 +137,7 @@ def login(request):
         
 
 @require_http_methods(["POST"])
+@csrf_exempt
 def register(request):
         # get the name, username, email, and password from the request body
         data = json.loads(request.body)
@@ -180,3 +184,127 @@ def logout(request):
 def csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrf_token': csrf_token})
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def create_booklist(request):
+    data = json.loads(request.body)
+    name = data.get('name', 'My Book List')  # Default name if none provided
+
+    # Create a new book list for the user
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+    booklist = user_profile.create_book_list(name=name)
+
+    return JsonResponse({'message': 'Booklist created successfully', 'booklist_id': booklist.id, 'booklist_name': booklist.name})
+
+
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def add_books_to_booklist(request):
+    data = json.loads(request.body)
+    booklist_id = data.get('booklist_id')
+    book_ids = data.get('book_ids', [])
+
+    if not booklist_id or not book_ids:
+        return JsonResponse({'error': 'Missing booklist_id or book_ids'}, status=400)
+
+    booklist = get_object_or_404(BookList, id=booklist_id, user__user=request.user)
+    if not booklist:
+        return JsonResponse({'error': 'Booklist not found'}, status=404)
+    
+    books = Book.objects.filter(id__in=book_ids)
+    if not books:
+        return JsonResponse({'error': 'Books not found'}, status=404)
+    
+
+    booklist.add_books(books)
+
+    return JsonResponse({'message': 'Books added successfully', 'booklist_id': booklist.id, 'book_ids': [book.id for book in books]})
+
+
+@require_http_methods(["GET"])
+@csrf_exempt
+def get_specific_booklist(request):
+    booklist_id = request.GET.get('booklist_id')
+
+    if not booklist_id:
+        return JsonResponse({'error': 'Missing booklist_id'}, status=400)
+
+    booklist = get_object_or_404(BookList, id=booklist_id)
+    if not booklist:
+        return JsonResponse({'error': 'Booklist not found'}, status=404)
+
+    books_data = [
+        {
+            'id': book.id,
+            'title': book.title,
+            'cover_url': book.cover_url,
+            'authors': [author.name + ' ' + author.surname for author in book.authors.all()],
+            'genres': [genre.name for genre in book.genres.all()],
+            'isbn': book.isbn,
+            'description': book.description,
+            'publication_date': book.publication_date,
+            'page_count': book.page_count
+        }
+        for book in booklist.books.all()
+    ]
+
+    return JsonResponse({
+        'message': 'Books retrieved successfully',
+        'booklist_id': booklist.id,
+        'books': books_data
+    })
+
+@require_http_methods(["GET"])
+@csrf_exempt
+def get_booklists_of_user(request):
+    user_id = request.GET.get('user_id')
+
+    if not user_id:
+        return JsonResponse({'error': 'Missing user_id'}, status=400)
+
+    user = get_object_or_404(BiblioSearchUser, id=user_id)
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    booklists_data = [
+        {
+            'booklist_name': booklist.name,
+            'booklist_id': booklist.id
+        }
+        for booklist in user.booklist_set.all()
+    ]
+
+    return JsonResponse({
+        'message': 'Booklists retrieved successfully',
+        'user_id': user.id,
+        'booklists': booklists_data
+    })
+
+@require_http_methods(["DELETE"])
+@login_required
+@csrf_exempt
+def remove_books_from_booklist(request):
+    data = json.loads(request.body)
+    booklist_id = data.get('booklist_id')
+    book_ids = data.get('book_ids', [])
+
+    if not booklist_id or not book_ids:
+        return JsonResponse({'error': 'Missing booklist_id or book_ids'}, status=400)
+
+    booklist = get_object_or_404(BookList, id=booklist_id, user__user=request.user)
+    if not booklist:
+        return JsonResponse({'error': 'Booklist not found'}, status=404)
+
+    books = Book.objects.filter(id__in=book_ids)
+    if not books:
+        return JsonResponse({'error': 'Books not found'}, status=404)
+
+    booklist.books.remove(*books)
+
+    return JsonResponse({'message': 'Books removed successfully', 'booklist_id': booklist.id, 'book_ids': [book.id for book in books]})

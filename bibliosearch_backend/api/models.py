@@ -16,13 +16,13 @@ class Genre(models.Model):
 # Book model with many-to-many relationships with Author and Genre
 class Book(models.Model):
     title = models.CharField(max_length=100)
-    cover_url = models.URLField()
-    authors = models.ManyToManyField(Author)
-    genres = models.ManyToManyField(Genre)
+    cover_url = models.URLField(blank=True, null=True)
+    authors = models.ManyToManyField(Author, blank=True, null=True)
+    genres = models.ManyToManyField(Genre, blank=True, null=True)
     isbn = models.CharField(max_length=13)
-    description = models.TextField()
-    publication_date = models.DateField()
-    page_count = models.IntegerField()
+    description = models.TextField(blank=True, null=True)
+    publication_date = models.DateField(blank=True, null=True)
+    page_count = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.title + " (" + self.publication_date + ")"

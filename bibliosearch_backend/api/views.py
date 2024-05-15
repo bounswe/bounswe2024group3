@@ -1,5 +1,5 @@
 import json
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 
@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
 from django.middleware.csrf import get_token
 
+
+from django.views.decorators.csrf import csrf_exempt
 
 from django.http import JsonResponse
 
@@ -20,7 +22,7 @@ from django.shortcuts import redirect
 from django.contrib.auth.models import User
 
 #import BiblioSearchUser
-from api.models import BiblioSearchUser
+from api.models import BiblioSearchUser, Book, BookList
 
 from django.views.decorators.http import require_http_methods
 
@@ -120,3 +122,38 @@ def logout(request):
 def csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrf_token': csrf_token})
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def create_booklist(request):
+    data = json.loads(request.body)
+    name = data.get('name', 'My Book List')  # Default name if none provided
+
+    # Create a new book list for the user
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+    booklist = user_profile.create_book_list(name=name)
+
+    return JsonResponse({'message': 'Booklist created successfully', 'booklist_id': booklist.id, 'booklist_name': booklist.name})
+
+
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def add_books_to_booklist(request):
+    data = json.loads(request.body)
+    booklist_id = data.get('booklist_id')
+    book_ids = data.get('book_ids', [])
+
+    if not booklist_id or not book_ids:
+        return JsonResponse({'error': 'Missing booklist_id or book_ids'}, status=400)
+
+    booklist = get_object_or_404(BookList, id=booklist_id, user__user=request.user)
+    books = Book.objects.filter(id__in=book_ids)
+
+    booklist.add_books(books)
+
+    return JsonResponse({'message': 'Books added successfully', 'booklist_id': booklist.id, 'book_ids': [book.id for book in books]})

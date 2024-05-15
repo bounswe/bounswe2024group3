@@ -19,7 +19,8 @@ class Book(models.Model):
     cover_url = models.URLField(blank=True, null=True)
     authors = models.ManyToManyField(Author, blank=True, null=True)
     genres = models.ManyToManyField(Genre, blank=True, null=True)
-    isbn = models.CharField(max_length=13)
+    #make isbn unique
+    isbn = models.CharField(max_length=13, unique=True)
     description = models.TextField(blank=True, null=True)
     publication_date = models.DateField(blank=True, null=True)
     page_count = models.IntegerField(blank=True, null=True)

@@ -26,4 +26,9 @@ urlpatterns = [
     path('api/register/', views.register),
     path('api/logout/', views.logout),
     path('api/getToken/', views.csrf_token),
+    path('api/create_booklist/', views.create_booklist),
+    path('api/add_books_to_booklist/', views.add_books_to_booklist),
+    path('api/get_specific_booklist/', views.get_specific_booklist),
+    path('api/get_booklists_of_user/', views.get_booklists_of_user),
+    path('api/remove_books_from_booklist/', views.remove_books_from_booklist),
 ]

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
 
 
 # Create your models here.
@@ -58,3 +59,22 @@ class BookList(models.Model):
         BiblioSearchUser,
         on_delete=models.CASCADE,
     )
+
+#
+class Post(models.Model):
+    content = models.TextField()
+    user = models.ForeignKey(
+        BiblioSearchUser,
+        on_delete=models.CASCADE,
+        related_name='book_posts'
+    )
+    book = models.ForeignKey(
+        'Book',  # Use the string name of the model if it's defined later in the same file or in another file
+        on_delete=models.CASCADE,
+        related_name='posts'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Post by {self.user.username} on {self.created_at.strftime('%Y-%m-%d')}"

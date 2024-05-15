@@ -308,3 +308,328 @@ def remove_books_from_booklist(request):
     booklist.books.remove(*books)
 
     return JsonResponse({'message': 'Books removed successfully', 'booklist_id': booklist.id, 'book_ids': [book.id for book in books]})
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def add_fav_author(request):
+    data = json.loads(request.body)
+    author_id = data.get('author_id')
+    if not author_id:
+        return JsonResponse({'error': 'Missing author_id'}, status=400)
+
+    author = get_object_or_404(Author, id=author_id)
+    if not author:
+        return JsonResponse({'error': 'Author not found'}, status=404)
+        
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+
+    if author in user_profile.fav_authors.all():
+        return JsonResponse({'error': 'Author already in favorites'}, status=400)
+
+    user_profile.fav_authors.add(author)
+
+    return JsonResponse({'message': 'Author added to favourites successfully', 'author_id': author.id})
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def add_fav_genre(request):
+    data = json.loads(request.body)
+    genre_id = data.get('genre_id')
+    if not genre_id:
+        return JsonResponse({'error': 'Missing genre_id'}, status=400)
+
+    genre = get_object_or_404(Genre, id=genre_id)
+    if not genre:
+        return JsonResponse({'error': 'Genre not found'}, status=404)
+
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+
+    if genre in user_profile.fav_genres.all():
+        return JsonResponse({'error': 'Genre already in favorites'}, status=400)
+
+    user_profile.fav_genres.add(genre)
+
+    return JsonResponse({'message': 'Genre added to favourites successfully', 'genre_id': genre.id})
+
+
+@require_http_methods(["GET"])
+def get_fav_authors(request):
+    user_id = request.GET.get('user_id')
+
+    if not user_id:
+        return JsonResponse({'error': 'Missing user_id'}, status=400)
+
+    user = get_object_or_404(BiblioSearchUser, id=user_id)
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    authors_data = [
+        {
+            'author_id': author.id,
+            'author_name': author.name,
+            'author_surname': author.surname
+        }
+        for author in user.fav_authors.all()
+    ]
+
+    return JsonResponse({
+        'message': 'Favorite authors retrieved successfully',
+        'user_id': user.id,
+        'authors': authors_data
+    })
+
+
+@require_http_methods(["GET"])
+def get_fav_genres(request):
+    user_id = request.GET.get('user_id')
+
+    if not user_id:
+        return JsonResponse({'error': 'Missing user_id'}, status=400)
+
+    user = get_object_or_404(BiblioSearchUser, id=user_id)
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    genres_data = [
+        {
+            'genre_id': genre.id,
+            'genre_name': genre.name
+        }
+        for genre in user.fav_genres.all()
+    ]
+
+
+    return JsonResponse({
+        'message': 'Favorite genres retrieved successfully',
+        'user_id': user.id,
+        'genres': genres_data
+    })
+
+
+@require_http_methods(["GET"])
+def get_all_genres(request):
+    # get all genres except null values and also return if the genre is a favorite of the user or not return all genres
+    genres = Genre.objects.exclude(name=None).exclude(name='').all()
+
+    # Check if user is authenticated and exists
+    if request.user.is_authenticated:
+        user = request.user
+        user_profile = BiblioSearchUser.objects.get(user=user)
+        fav_genres = user_profile.fav_genres.all()
+        genres_data = [
+            {
+                'genre_id': genre.id,
+                'genre_name': genre.name,
+                'is_favorite': genre in fav_genres
+            }
+            for genre in genres
+        ]
+    else:
+        genres_data = [
+            {
+                'genre_id': genre.id,
+                'genre_name': genre.name,
+            }
+            for genre in genres
+        ]
+    
+
+    return JsonResponse({'genres': genres_data})
+
+@require_http_methods(["GET"])
+def get_all_authors(request):
+    # get all authors except null values and also return if the author is a favorite of the user or not return all authors
+    authors = Author.objects.exclude(name=None).exclude(name='').all()
+
+    # Check if user is authenticated and exists
+    if request.user.is_authenticated:
+        user = request.user
+        user_profile = BiblioSearchUser.objects.get(user=user)
+        fav_authors = user_profile.fav_authors.all()
+        authors_data = [
+            {
+                'author_id': author.id,
+                'author_name': author.name,
+                'author_surname': author.surname,
+                'is_favorite': author in fav_authors
+            }
+            for author in authors
+        ]
+    else:
+        authors_data = [
+            {
+                'author_id': author.id,
+                'author_name': author.name,
+                'author_surname': author.surname,
+            }
+            for author in authors
+        ]
+    
+
+    return JsonResponse({'authors': authors_data})
+
+
+@require_http_methods(["DELETE"])
+@csrf_exempt
+def remove_genre_from_favorites(request):
+    data = json.loads(request.body)
+    genre_id = data.get('genre_id')
+    if not genre_id:
+        return JsonResponse({'error': 'Missing genre_id'}, status=400)
+
+    genre = get_object_or_404(Genre, id=genre_id)
+    if not genre:
+        return JsonResponse({'error': 'Genre not found'}, status=404)
+
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+
+    if genre not in user_profile.fav_genres.all():
+        return JsonResponse({'error': 'Genre not in favorites'}, status=400)
+
+    user_profile.fav_genres.remove(genre)
+
+    return JsonResponse({'message': 'Genre removed from favorites successfully', 'genre_id': genre.id})
+
+
+@require_http_methods(["DELETE"])
+@csrf_exempt
+def remove_author_from_favorites(request):
+    data = json.loads(request.body)
+    author_id = data.get('author_id')
+    if not author_id:
+        return JsonResponse({'error': 'Missing author_id'}, status=400)
+
+    author = get_object_or_404(Author, id=author_id)
+    if not author:
+        return JsonResponse({'error': 'Author not found'}, status=404)
+
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+
+    if author not in user_profile.fav_authors.all():
+        return JsonResponse({'error': 'Author not in favorites'}, status=400)
+
+    user_profile.fav_authors.remove(author)
+
+    return JsonResponse({'message': 'Author removed from favorites successfully', 'author_id': author.id})
+
+@require_http_methods(["GET"])
+def get_user_profile(request):
+    user_id = request.GET.get('user_id')
+    
+    if not user_id:
+        return JsonResponse({'error': 'Missing user_id'}, status=400)
+    
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid user_id'}, status=400)
+
+    user = get_object_or_404(User, id=user_id)
+    user_profile = get_object_or_404(BiblioSearchUser, user=user)
+
+
+    genres_json_response = get_fav_genres(request)
+    # extract json response from get_fav_genres
+    fav_genres_data = json.loads(genres_json_response.content)
+    fav_genres = fav_genres_data['genres']
+
+
+    authors_json_response = get_fav_authors(request)
+    # extract json response from get_fav_authors
+    fav_authors_data = json.loads(authors_json_response.content)
+    fav_authors = fav_authors_data['authors']
+
+    booklists_json_response = get_booklists_of_user(request)
+    # extract json response from get_booklists_of_user
+    booklists_data = json.loads(booklists_json_response.content)
+    booklists = booklists_data['booklists']
+
+
+
+    return JsonResponse({
+        'name': user_profile.name,
+        'surname': user_profile.surname,
+        'fav_authors': [
+            {'author_id': author["author_id"], 'author_name': f"{author["author_name"]} {author["author_surname"]}"} 
+            for author in fav_authors
+        ],
+        'fav_genres': [
+            {'genre_id': genre["genre_id"], 'genre_name': genre["genre_name"]} 
+            for genre in fav_genres
+        ],
+        'booklists': [
+            {'booklist_name': booklist["booklist_name"], 'booklist_id': booklist["booklist_id"]} 
+            for booklist in booklists
+        ]
+    })
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def update_user_profile(request):
+    # Load JSON data from the request body
+    data = json.loads(request.body)
+    
+    # Get the user from the request
+    user = request.user
+    
+    # Retrieve the username, name, surname, and email from the request data
+    username = data.get('username')
+    name = data.get('name')
+    surname = data.get('surname')
+    email = data.get('email')
+    
+    # Validate the provided data
+    if username is None or name is None or surname is None or email is None:
+        return JsonResponse({'error': 'Missing fields: username, name, surname, and email are required.'}, status=400)
+    
+    # Update the Django User model fields if they have changed
+    if username and username != user.username:
+        if User.objects.filter(username=username).exclude(pk=user.pk).exists():
+            return JsonResponse({'error': 'This username is already taken.'}, status=400)
+        user.username = username
+
+    if email and email != user.email:
+        if User.objects.filter(email=email).exclude(pk=user.pk).exists():
+            return JsonResponse({'error': 'This email is already in use.'}, status=400)
+        user.email = email
+    
+    # Save the changes to the User model
+    user.save()
+    
+    # Update the BiblioSearchUser model fields
+    user_profile = get_object_or_404(BiblioSearchUser, user=user)
+    user_profile.name = name
+    user_profile.surname = surname
+    
+    # Save the changes to the BiblioSearchUser model
+    user_profile.save()
+    
+    # Return a success response
+    return JsonResponse({
+        'message': 'Profile updated successfully',
+        'user': {
+            'username': user.username,
+            'name': user_profile.name,
+            'surname': user_profile.surname,
+            'email': user.email
+        }
+    })
+
+
+@require_http_methods(["DELETE"])
+@login_required
+@csrf_exempt
+def delete_user(request):
+    user = request.user
+    
+    # Delete the user and the BiblioSearchUser profile
+    user.delete()
+    
+    # Return a success response
+    return JsonResponse({'message': 'User deleted successfully'})

@@ -20,7 +20,8 @@ class Book(models.Model):
     cover_url = models.URLField(blank=True, null=True)
     authors = models.ManyToManyField(Author, blank=True, null=True)
     genres = models.ManyToManyField(Genre, blank=True, null=True)
-    isbn = models.CharField(max_length=13)
+    #make isbn unique
+    isbn = models.CharField(max_length=13, unique=True)
     description = models.TextField(blank=True, null=True)
     publication_date = models.DateField(blank=True, null=True)
     page_count = models.IntegerField(blank=True, null=True)
@@ -39,12 +40,17 @@ class BiblioSearchUser(models.Model):
     name = models.CharField(max_length=100, blank=False)
     surname = models.CharField(max_length=100, blank=False)
 
+    following = models.ManyToManyField('self', 
+                                       related_name='followers', 
+                                       symmetrical=False,
+                                       blank=True)
+
 
     fav_authors = models.ManyToManyField(Author, blank=True)
     fav_genres = models.ManyToManyField(Genre, blank=True)
 
-    def create_book_list(self, books=None):
-        bl = BookList(user=self)
+    def create_book_list(self,name, books=None):
+        bl = BookList(user=self, name =name)
         bl.save()
         if books:
             for book in books:
@@ -54,11 +60,18 @@ class BiblioSearchUser(models.Model):
 # BookList model with many-to-many relationship with Book
 # User will have many book lists
 class BookList(models.Model):
-    books = models.ManyToManyField(Book, blank=True)
-    user = models.ForeignKey(
-        BiblioSearchUser,
-        on_delete=models.CASCADE,
-    )
+    name = models.CharField(max_length=255, default='My Book List')
+    books = models.ManyToManyField('Book', blank=True)
+    user = models.ForeignKey('BiblioSearchUser', on_delete=models.CASCADE)
+    
+     def __str__(self):
+        return f"{self.name} by {self.user}"
+
+     def add_books(self, books):
+        """Add a list of books to the booklist."""
+        for book in books:
+            self.books.add(book)
+        self.save()
 
 #
 class Post(models.Model):
@@ -73,8 +86,15 @@ class Post(models.Model):
         on_delete=models.CASCADE,
         related_name='posts'
     )
-
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
 
     def __str__(self):
         return f"Post by {self.user.username} on {self.created_at.strftime('%Y-%m-%d')}"
+      
+    
+    @property
+    def total_likes(self):
+        return self.likes.count()
+

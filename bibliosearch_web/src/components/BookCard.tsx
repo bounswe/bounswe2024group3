@@ -1,5 +1,6 @@
 import React from "react";
 import { BookDetails } from "../pages/SearchPage";
+import { Link } from "react-router-dom";
 
 // BookCard component
 const BookCard = ({ book }: { book: BookDetails }) => {
@@ -21,6 +22,7 @@ const BookCard = ({ book }: { book: BookDetails }) => {
           <a href="https://qr.ekrembal.com" className="btn btn-primary">
             Details
           </a>
+          <Link to={`/book/${book.ISBN13}`} className="btn btn-primary"> Details </Link>
         </div>
       </div>
     </div>

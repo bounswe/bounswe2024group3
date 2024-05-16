@@ -100,23 +100,58 @@ def search_book(request):
 @require_http_methods(["POST"])
 @csrf_exempt
 def login(request):
-        data = json.loads(request.body)
-        username = data['username']
-        password = data['password']
-        user = authenticate(request, username=username, password=password)
+    data = json.loads(request.body)
+    username = data['username']
+    password = data['password']
+    user = authenticate(request, username=username, password=password)
 
-        if user is not None:
-            auth_login(request, user)
-            return JsonResponse({'message': 'Login successful', 'username': user.username , 'user_id' : user.id, 'name': user.name, 'surname': user.surname})
-        else:
-            return JsonResponse({'error': 'Invalid username or password'}, status=400)
+    if user is not None:
+        auth_login(request, user)
+
+        # Assuming that BiblioSearchUser has a one-to-one relation with Django's User model
+        try:
+            biblio_user = BiblioSearchUser.objects.get(user=user)
+            name = biblio_user.name
+            surname = biblio_user.surname
+        except BiblioSearchUser.DoesNotExist:
+            # Handle case where BiblioSearchUser does not exist for the authenticated user
+            name = ''
+            surname = ''
+
+        return JsonResponse({
+            'message': 'Login successful',
+            'username': user.username,
+            'user_id': user.id,
+            'name': name,
+            'surname': surname
+        })
+    else:
+        return JsonResponse({'error': 'Invalid username or password'}, status=400)
     
+
+@require_http_methods(["GET"])
 def get_user(request):
     if request.user.is_authenticated:
         user = request.user
-        return JsonResponse({'username': user.username, 'user_id': user.id, 'name': user.name, 'surname': user.surname ,'email': user.email})
+        try:
+            biblio_user = BiblioSearchUser.objects.get(user=user)
+            name = biblio_user.name
+            surname = biblio_user.surname
+        except BiblioSearchUser.DoesNotExist:
+            # Handle case where BiblioSearchUser does not exist for the authenticated user
+            name = ''
+            surname = ''
+
+        return JsonResponse({
+            'message': 'Login successful',
+            'username': user.username,
+            'user_id': user.id,
+            'name': name,
+            'surname': surname
+        })
     else:
-        return JsonResponse({'error': 'User is not authenticated'}, status=401)
+        return JsonResponse({'error': 'Invalid username or password'}, status=400)
+        
     
 
 @require_http_methods(["POST"])

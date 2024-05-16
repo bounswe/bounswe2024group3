@@ -50,5 +50,7 @@ urlpatterns = [
     path('api/check_user_follows_user/', views.check_user_follows_user),
     path('api/user_feed/', views.user_feed),
     path('api/like_unlike_post/', views.like_unlike_post),
+    path('api/search_users/', views.search_users),
+    path('api/search_posts/', views.search_posts),
 
 ]

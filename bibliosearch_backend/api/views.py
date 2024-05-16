@@ -2,11 +2,14 @@ import json
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
+from django.contrib.auth import get_user_model
+from django.db.models.functions import Concat
 
 #import auth_logout,auth_login,authenticate
 from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
 from django.middleware.csrf import get_token
 
+from django.db.models import Q, Value,TextField
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -840,3 +843,78 @@ def like_unlike_post(request):
         'liked_by_user': user in post.likes.all()
     })
 
+
+@require_http_methods(["GET"])
+def search_users(request):
+    query = request.GET.get('query', '').strip()
+    
+    if not query:
+        return JsonResponse({'error': 'Search query is missing'}, status=400)
+    
+    # Concatenate first name and last name for full name search
+    User = get_user_model()
+    users = User.objects.annotate(
+        full_name=Concat('bibliosearchuser__name', Value(' '), 'bibliosearchuser__surname')
+    )
+
+    # Split query into terms to allow searching for any term in username, full name, or individual fields
+    query_terms = query.split()
+    q_objects = Q()
+
+    for term in query_terms:
+        q_objects |= Q(username__icontains=term) | \
+                     Q(bibliosearchuser__name__icontains=term) | \
+                     Q(bibliosearchuser__surname__icontains=term) | \
+                     Q(full_name__icontains=term)  
+
+    matching_users = users.filter(q_objects).distinct()
+
+    users_data = [{
+        'user_id': user.id,
+        'username': user.username,
+        'name': user.bibliosearchuser.name,
+        'surname': user.bibliosearchuser.surname
+    } for user in matching_users]
+    
+    return JsonResponse({
+        'message': 'Users retrieved successfully',
+        'users': users_data
+    })
+
+
+
+
+@require_http_methods(["GET"])
+def search_posts(request):
+    query = request.GET.get('query', '').strip()
+    
+    if not query:
+        return JsonResponse({'error': 'Search query is missing'}, status=400)
+    
+    
+    posts = Post.objects.annotate(
+        search_text=Concat('content', Value(' '), 'book__title', output_field=TextField())
+    )
+    
+    query_terms = query.split()
+    q_objects = Q()
+    
+    for term in query_terms:
+        q_objects |= Q(search_text__icontains=term)
+
+    matching_posts = posts.filter(q_objects).distinct()
+
+    posts_data = [{
+        'post_id': post.id,
+        'content': post.content,
+        'book_title': post.book.title,
+        'user_id': post.user.user.id,
+        'username': post.user.user.username,
+        'created_at': post.created_at.isoformat(),
+        'total_likes': post.total_likes
+    } for post in matching_posts]
+    
+    return JsonResponse({
+        'message': 'Posts retrieved successfully',
+        'posts': posts_data
+    })

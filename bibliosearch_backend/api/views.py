@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
 from django.middleware.csrf import get_token
 
+from django.db.models import Q
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -839,3 +840,60 @@ def like_unlike_post(request):
         'liked_by_user': user in post.likes.all()
     })
 
+
+@require_http_methods(["GET"])
+def search_users(request):
+    query = request.GET.get('query', '').strip()
+    
+    if not query:
+        return JsonResponse({'error': 'Search query is missing'}, status=400)
+    
+    # Search in username, name, and surname fields
+    matching_users = BiblioSearchUser.objects.filter(
+        Q(user__username__icontains=query) |
+        Q(name__icontains=query) |
+        Q(surname__icontains=query)
+    )
+    
+    # Serialize the matching users data
+    users_data = [{
+        'user_id': user.user.id,
+        'username': user.user.username,
+        'name': user.name,
+        'surname': user.surname
+    } for user in matching_users]
+    
+    return JsonResponse({
+        'message': 'Users retrieved successfully',
+        'users': users_data
+    })
+
+
+@require_http_methods(["GET"])
+def search_posts(request):
+    query = request.GET.get('query', '').strip()
+    
+    if not query:
+        return JsonResponse({'error': 'Search query is missing'}, status=400)
+    
+    # Search in post content and related book title
+    matching_posts = Post.objects.filter(
+        Q(content__icontains=query) |
+        Q(book__title__icontains=query)
+    ).distinct()
+    
+    # Serialize the matching posts data
+    posts_data = [{
+        'post_id': post.id,
+        'content': post.content,
+        'book_title': post.book.title,
+        'user_id': post.user.user.id,
+        'username': post.user.user.username,
+        'created_at': post.created_at.isoformat(),
+        'total_likes': post.total_likes
+    } for post in matching_posts]
+    
+    return JsonResponse({
+        'message': 'Posts retrieved successfully',
+        'posts': posts_data
+    })

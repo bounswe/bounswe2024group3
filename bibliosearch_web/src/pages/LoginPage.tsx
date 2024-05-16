@@ -10,6 +10,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const { setUsername: setGlobalUsername } = useUser();
   const { setUserId: setGlobalUserId } = useUser();
+  const { setEmail: setGlobalEmail} = useUser();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,12 +23,15 @@ const LoginPage = () => {
       console.log("Login Successful", response.data);
       setGlobalUsername(username);
       setGlobalUserId(response.data.user_id);
+      setGlobalEmail(response.data.email);
       navigate("/feed");
     } catch (error: any) {
       console.error("Login failed:", error);
       setError(error.message);
     }
   };
+
+  
 
   return (
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>

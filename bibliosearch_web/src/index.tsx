@@ -29,7 +29,7 @@ root.render(
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/search/:query" element={<SearchPage />} />
             <Route path="/feed" element={<FeedPage />} />
-            <Route path = "/book/:ISBN13" element = {<BookPage />} />
+            <Route path="/get_book/" element={<BookPage />} />
           </Routes>
         </Layout>
       </UserProvider>

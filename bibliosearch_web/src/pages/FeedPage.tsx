@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
 import PostCard from "../components/PostCard";
 import PostPopup from "../components/PostPopUp";
+import { useUser } from "../providers/UserContest";
 
 export type PostDetails = {
   id: number;
@@ -16,6 +17,7 @@ export type PostDetails = {
 
 export const FeedPage = () => {
   const { query } = useParams();
+  const { username, setUsername } = useUser();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -29,13 +31,12 @@ export const FeedPage = () => {
       setError("");
       setPosts([]);
       try {
-        const feedQuery = `get/feed`;
+        const feedQuery = `user_feed/`;
         const response = await req(feedQuery, "get", {});
         console.log("Feed response:", response.data);
         const posts: PostDetails[] = response.data.data.map(
           (post: any, idx: number) => ({
-            id: idx,
-            imageUrl: post.imageUrl,
+            id: idx,     
             bookname: post.bookname,
             content: post.content,  
             author: post.author,
@@ -85,14 +86,11 @@ export const FeedPage = () => {
           />
         </p>
       )}
-      
-      {showCreateButton && <button  className="btn btn-primary fixed bottom-4 right-4" onClick={() => setShowPopup(true)}>Create a Post</button>
-      }
+      {username}
 
 
-      
-      {/* {showPopup && <PostPopup />} */}
 
+  
       <div className="flex flex-col gap-4">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />

@@ -31,7 +31,7 @@ root.render(
             <Route path="/search/:query" element={<SearchPage />} />
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/get_book/" element={<BookPage />} />
-            <Route path="/profile" element={<Profile />} />
+             <Route path="/profile" element={<Profile />} />
           </Routes>
         </Layout>
       </UserProvider>

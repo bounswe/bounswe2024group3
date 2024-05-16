@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useUser } from '../providers/UserContest'; 
+import { useUser } from '../providers/UserContest'; // Ensure correct import path
 
-interface FavoriteAuthor {
+interface Author {
   author_id: number;
   author_name: string;
 }
 
-interface FavoriteGenre {
+interface Genre {
   genre_id: number;
   genre_name: string;
 }
@@ -18,75 +18,111 @@ interface Booklist {
 }
 
 interface UserProfile {
-  username: string;
   name: string;
   surname: string;
-  email: string;
-  fav_authors: FavoriteAuthor[];
-  fav_genres: FavoriteGenre[];
+  username: string; // Assuming username is part of the profile
+  email: string; // Assuming email is also needed
+  fav_authors: Author[];
+  fav_genres: Genre[];
   booklists: Booklist[];
 }
 
-const Profile: React.FC = () => {
+const Profile = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-    const { userId } = useUser();
-    console.log(userId);
-
+  const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { userId } = useUser();
+  const { username } = useUser();
+  const { email } = useUser();
+  console.log(userId);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await axios.get(process.env.REACT_APP_BACKEND_URL + 'get_user_profile/?user_id=' + userId);
-        setProfile(response.data);
-      } catch (error) {
-        setError('Error fetching profile');
-        console.error('Error fetching profile:', error);
-      } finally {
+    if (userId) {
+      
+      setLoading(true);
+      axios.get(`${process.env.REACT_APP_BACKEND_URL}get_user_profile/?user_id=${userId}`)
+        .then(response => {
+          setProfile(response.data);
+          console.log(response.data);
+          setLoading(false);
+        })
+        .catch(error => {
+          setError('Failed to fetch profile');
+          setLoading(false);
+        });
+    }
+  }, [userId]);
+
+  console.log(999);
+  console.log(profile);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setProfile(prev => prev ? { ...prev, [name]: value } : null);
+  };
+
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!profile) return;
+
+    setLoading(true);
+    
+    axios.post(`${process.env.REACT_APP_BACKEND_URL}update_user_profile/`, profile, {    headers: {
+        'Content-Type': 'application/json',
+    },
+    withCredentials: true  // Ensures cookies are sent with the request})
+}).then(response => {
+        alert('Profile updated successfully!');
         setLoading(false);
-      }
-    };
+        setEditMode(false); // Turn off edit mode after successful update
+      })
+      .catch(error => {
+        setError('Failed to update profile');
+        setLoading(false);
+      });
+  };
 
-    fetchProfile();
-  }, []);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
-  }
-
-  if (!profile) {
-    return <div>Failed to load profile information.</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
       <h1>Profile</h1>
-      <p><strong>Name:</strong> {profile.name} </p>
-      <p><strong>Surname:</strong> {profile.surname}</p>
-      <h2>Favorite Authors</h2>
-      <ul>
-        {profile.fav_authors.map((author) => (
-          <li key={author.author_id}>{author.author_name}</li>
-        ))}
-      </ul>
-      <h2>Favorite Genres</h2>
-      <ul>
-        {profile.fav_genres.map((genre) => (
-          <li key={genre.genre_id}>{genre.genre_name}</li>
-        ))}
-      </ul>
-      <h2>Booklists</h2>
-      <ul>
-        {profile.booklists.map((booklist) => (
-          <li key={booklist.booklist_id}>{booklist.booklist_name}</li>
-        ))}
-      </ul>
+      {!editMode ? (
+        <>
+          <p><strong>Username:</strong> {username}</p>
+          <p><strong>Name:</strong> {profile?.name}</p>
+          <p><strong>Surname:</strong> {profile?.surname}</p>
+          <p><strong>Email:</strong> {email}</p>
+          <p><strong>Favorite Authors:</strong> {profile?.fav_authors.map(author => <span key={author.author_id}>{author.author_name}, </span>)}</p>
+          <p><strong>Favorite Genres:</strong> {profile?.fav_genres.map(genre => <span key={genre.genre_id}>{genre.genre_name}, </span>)}</p>
+          <p><strong>Booklists:</strong> {profile?.booklists.map(booklist => <span key={booklist.booklist_id}>{booklist.booklist_name}, </span>)}</p>
+          <button onClick={() => setEditMode(true)}>Edit Profile</button>
+        </>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <label>
+            Username:
+            <input type="text" name="username" value={profile?.username || ''} onChange={handleInputChange} />
+          </label>
+          <label>
+            Name:
+            <input type="text" name="name" value={profile?.name || ''} onChange={handleInputChange} />
+          </label>
+          <label>
+            Surname:
+            <input type="text" name="surname" value={profile?.surname || ''} onChange={handleInputChange} />
+          </label>
+          <label>
+            Email:
+            <input type="email" name="email" value={profile?.email || ''} onChange={handleInputChange} />
+          </label>
+          <button type="submit">Update Profile</button>
+          <button type="button" onClick={() => setEditMode(false)}>Cancel</button>
+        </form>
+      )}
     </div>
   );
 };

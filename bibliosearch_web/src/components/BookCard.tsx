@@ -21,7 +21,7 @@ const BookCard = ({ book }: { book: BookDetails }) => {
         <p>ISBN: {book.ISBN13}</p>
         <p>Author: {book.authors}</p>
         <div className="card-actions justify-end">
-          <Link to={`/book/${book.ISBN13}`} className="btn btn-primary">
+          <Link to={`/get_book/?isbn=${book.ISBN13}`} className="btn btn-primary">
             {" "}
             Details{" "}
           </Link>

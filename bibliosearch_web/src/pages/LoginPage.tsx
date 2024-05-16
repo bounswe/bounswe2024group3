@@ -20,7 +20,7 @@ const LoginPage = () => {
       });
       console.log("Login Successful", response.data);
       setGlobalUsername(username);
-      navigate("/");
+      navigate("/feed");
     } catch (error: any) {
       console.error("Login failed:", error);
       setError(error.message);

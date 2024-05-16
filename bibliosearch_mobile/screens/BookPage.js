@@ -52,11 +52,15 @@ const BookPage = ({query: initialQuery, results: initialResults}) => {
   const renderBooks = () => {
     return results.map((book, index) => (
       <View key={index} style={styles.bookContainer}>
-        <Text style={styles.bookTitle}>{book.title?.value || 'Title not available'}</Text>
-        <Text style={styles.bookAuthor}>{book.authors?.value || 'Author not available'}</Text>
-        <Text style={styles.bookDescription}>{book.description?.value || 'Description not available'}</Text>
-        <Text style={styles.bookPublicationYear}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
-        <Text style={styles.bookISBN}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
+        <Text style={styles.bookInfo}>{book.title?.value || 'Title not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>{book.authors?.value || 'Author not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>{book.description?.value || 'Description not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
       </View>
     ));
   };
@@ -147,6 +151,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center', // Center the button horizontally
     justifyContent: 'center', // Center text vertically
     marginTop: 10,
+    marginBottom: 10,
   },
   button: {
     backgroundColor: 'white', // Example blue background color
@@ -158,11 +163,28 @@ const styles = StyleSheet.create({
     alignSelf: 'center', // Center the button horizontally
     justifyContent: 'center', // Center text vertically
     marginTop: 10,
+    marginLeft: 5,
   },
   buttonText: {
     color: '#eb2727', // White text color
     fontSize: 16,
     fontWeight: 'bold',
+    shadowColor: 'black',
+    shadowOffset: { width: 1, height: 1 },
+    shadowRadius: 10,
+  },
+  bookInfo: {
+    fontSize: 16,
+    color: 'black',
+    fontWeight: 'bold',
+  },
+  line: {
+    height: 2,
+    backgroundColor: 'red',
+    marginVertical: 5,
+  },
+  resultsContainer: {
+    flex: 1,
   },
 });
 export default BookPage;

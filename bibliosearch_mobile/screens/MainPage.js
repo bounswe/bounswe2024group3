@@ -78,7 +78,7 @@ const MainPage = () => {
         </TouchableOpacity>
       </View>
       {isLoading && (
-        <ActivityIndicator size="large" color="#0000ff" style={styles.activityIndicator} />
+        <ActivityIndicator size="large" color="black" style={styles.activityIndicator} />
       )}
     </SafeAreaView>
   );
@@ -190,6 +190,9 @@ const styles = StyleSheet.create({
     color: '#eb2727', // White text color
     fontSize: 16,
     fontWeight: 'bold',
+    shadowColor: 'black',
+    shadowOffset: { width: 1, height: 1 },
+    shadowRadius: 10,
   },
 });
 export default App;

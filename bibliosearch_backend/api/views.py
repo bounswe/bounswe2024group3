@@ -107,7 +107,7 @@ def login(request):
 
         if user is not None:
             auth_login(request, user)
-            return JsonResponse({'message': 'Login successful', 'username': user.username})
+            return JsonResponse({'message': 'Login successful', 'username': user.username , 'user_id' : user.id, 'name': user.name, 'surname': user.surname})
         else:
             return JsonResponse({'error': 'Invalid username or password'}, status=400)
     

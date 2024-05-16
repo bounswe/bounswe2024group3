@@ -9,6 +9,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const { setUsername: setGlobalUsername } = useUser();
+  const { setUserId: setGlobalUserId } = useUser();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -20,6 +21,7 @@ const LoginPage = () => {
       });
       console.log("Login Successful", response.data);
       setGlobalUsername(username);
+      setGlobalUserId(response.data.user_id);
       navigate("/feed");
     } catch (error: any) {
       console.error("Login failed:", error);

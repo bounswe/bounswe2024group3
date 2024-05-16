@@ -904,6 +904,25 @@ def like_unlike_post(request):
         'liked_by_user': user in post.likes.all()
     })
 
+@require_http_methods(["GET"])
+def does_user_liked_post(request):
+    user = request.GET.get('user_id')
+    post = request.GET.get('post_id')
+
+    if not user or not post:
+        return JsonResponse({'error': 'Missing user_id or post_id'}, status=400)
+    
+    user = get_object_or_404(User, id=user)
+    post = get_object_or_404(Post, id=post)
+
+    return JsonResponse({
+        'message': 'Like status checked successfully',
+        'user_id': user.id,
+        'post_id': post.id,
+        'liked': user in post.likes.all()
+    })
+
+
 
 @require_http_methods(["GET"])
 def search_users(request):

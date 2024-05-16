@@ -22,6 +22,7 @@ const Landing = () => {
   const [registrationRequested, setRegReq] = useState(false);
 
   const handleLogin = async () => {
+    global.username = emailOrUsername;
     const loginEndpoint = 'http://207.154.246.225/api/'; // Your API endpoint
 
     try {

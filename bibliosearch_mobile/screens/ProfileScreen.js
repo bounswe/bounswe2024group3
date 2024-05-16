@@ -62,6 +62,7 @@ const ProfileScreen = () => {
     const fetchData = async () => {
       const endpoint = 'http://207.154.246.225/api/'; // Your API endpoint
       try {
+        //username = global.username; // use this to get the user's profile
         // const response = await axios.get(endpoint + 'get_user_profile/?user_id=1');
         // const { name, surname, fav_authors, fav_genres, booklists } = response.data;
         // lets create dummy values for the user's profile

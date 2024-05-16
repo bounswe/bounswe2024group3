@@ -23,7 +23,7 @@ export const BookPage = () => {
       setError("");
       setBook(undefined!);
       try {
-        const BookQuery = `get_book/?isbn=${ISBN13}`;
+        const BookQuery = `get_book/${ISBN13}`;
         const response = await req(BookQuery, "get", {});
         console.log("Book response:", response.data);
         setBook(book);

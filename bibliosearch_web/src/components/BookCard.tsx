@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { BookDetails } from "../pages/SearchPage";
 import { Link } from "react-router-dom";
+import PostPopup from "./PostPopUp";
 
 // BookCard component
 const BookCard = ({ book }: { book: BookDetails }) => {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="card bg-base-100 shadow-xl">
       {/* Conditional rendering for the image */}
@@ -19,11 +21,17 @@ const BookCard = ({ book }: { book: BookDetails }) => {
         <p>ISBN: {book.ISBN13}</p>
         <p>Author: {book.authors}</p>
         <div className="card-actions justify-end">
-          <a href="https://qr.ekrembal.com" className="btn btn-primary">
-            Details
-          </a>
-          <Link to={`/book/${book.ISBN13}`} className="btn btn-primary"> Details </Link>
+          <Link to={`/book/${book.ISBN13}`} className="btn btn-primary">
+            {" "}
+            Details{" "}
+          </Link>
+          <button className="btn btn-ghost"> Bookmark </button>
+          <button onClick={() => setIsOpen(true)} className="btn btn-ghost">
+            {" "}
+            Write Post{" "}
+          </button>
         </div>
+        <PostPopup book={book} isOpen={isOpen} setIsOpen={setIsOpen} />
       </div>
     </div>
   );

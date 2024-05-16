@@ -91,7 +91,7 @@ export const FeedPage = () => {
 
 
       
-      {showPopup && <PostPopup />}
+      {/* {showPopup && <PostPopup />} */}
 
       <div className="flex flex-col gap-4">
         {posts.map((post) => (

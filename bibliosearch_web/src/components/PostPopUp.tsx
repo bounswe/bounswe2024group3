@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import FormInput from './FormInput';
+import { BookDetails } from '../pages/SearchPage';
 
-function PostPopup() {
-    const [isOpen, setIsOpen] = useState(false);
+function PostPopup({ book, isOpen, setIsOpen }: { book: BookDetails, isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) {
 
     const handlePost = () => {
         // Add your logic to handle posting here
@@ -13,6 +13,7 @@ function PostPopup() {
         setIsOpen(false);
     };
 
+    if(!isOpen) return null;
     return (
         <div className="post-popup">
            
@@ -25,6 +26,7 @@ function PostPopup() {
                         // You can use state to capture the input value
                         // For example: value={postContent} onChange={(e) => setPostContent(e.target.value)}
                     />
+                    <div>{ JSON.stringify(book)}</div>
                     <div className="button-container">
                         <button className="btn btn-primary mt-4" onClick={handlePost}>Submit</button>
                         <button className="btn btn-primary mt-4" onClick={() => setIsOpen(false)}>Cancel</button>

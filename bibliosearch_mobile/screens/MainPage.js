@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -10,10 +12,15 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import BookPage from './BookPage';
 import axios from 'axios';
+import BookPage from './BookPage';
+import FeedPage from './FeedPage';
+import ProfileScreen from './ProfileScreen';
+
 
 const {width} = Dimensions.get('window'); // Get the width of the screen
+
+const Tab = createBottomTabNavigator();
 
 const MainPage = () => {
   const [query, setQuery] = useState('');
@@ -76,6 +83,36 @@ const MainPage = () => {
     </SafeAreaView>
   );
 };
+
+const App = () => {
+  return (
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIconStyle: { display: "none" },
+          tabBarActiveTintColor: 'black',
+          tabBarLabelPosition: "beside-icon",
+          tabBarInactiveTintColor: 'gray',
+          tabBarLabelStyle: {
+            fontSize: 16,
+            fontWeight: 'bold',
+          },
+          tabBarStyle: {
+            backgroundColor: 'white',
+            borderTopWidth: 1,
+            borderTopColor: 'black',
+            display: 'flex',
+          },
+        })}
+      >
+        <Tab.Screen name="Search" component={MainPage} options={{ headerShown: false }} />
+        <Tab.Screen name="Main" component={FeedPage} options={{ headerShown: false }} />
+        <Tab.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+};
+
 
 const styles = StyleSheet.create({
   container: {
@@ -155,4 +192,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-export default MainPage;
+export default App;

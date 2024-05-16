@@ -79,9 +79,27 @@ def create_book(data):
         book.save()
 
         if created_book:
-            return JsonResponse({'message': 'Book created successfully!'}, status=201), book
+            return JsonResponse({'message': 'Book created successfully!', 
+                                 'id' : book.id,
+                                'title': book.title,
+                                'cover_url': book.cover_url,
+                                'authors': [author.name + ' ' + author.surname for author in book.authors.all()],
+                                'genres': [genre.name for genre in book.genres.all()],
+                                'isbn': book.isbn,
+                                'description': book.description,
+                                'publication_date': book.publication_date,
+                                'page_count': book.page_count}, 
+                                status=201), book
         else:
-            return JsonResponse({'message': 'Book already exists!'}, status=200), book
+            return JsonResponse({'message': 'Book already exists!',  'id' : book.id,
+                                'title': book.title,
+                                'cover_url': book.cover_url,
+                                'authors': [author.name + ' ' + author.surname for author in book.authors.all()],
+                                'genres': [genre.name for genre in book.genres.all()],
+                                'isbn': book.isbn,
+                                'description': book.description,
+                                'publication_date': book.publication_date,
+                                'page_count': book.page_count}, status=200), book
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400), None

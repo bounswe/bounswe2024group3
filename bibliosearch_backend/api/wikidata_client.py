@@ -71,7 +71,7 @@ def search_book_by_keyword(keyword:str, limit:int=50, page:int=1):
     LIMIT {1}
     OFFSET {2}
 
-    """.format(keyword,limit , limit*(page-1) if page>=0 else 0)
+    """.format(keyword.lower(),limit , limit*(page-1) if page>=0 else 0)
     # Set the headers to return JSON
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',

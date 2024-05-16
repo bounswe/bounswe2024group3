@@ -3,21 +3,20 @@ import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
 import PostCard from "../components/PostCard";
 import PostPopup from "../components/PostPopUp";
-import { useUser } from "../providers/UserContest";
 
 export type PostDetails = {
   id: number;
   imageUrl: string | null;
   bookname: string;
   content: string;
-  author: string;
+  username: string;
   likes: number;
   dislikes: number;
+  created_at: Date,
 };
 
 export const FeedPage = () => {
   const { query } = useParams();
-  const { username, setUsername } = useUser();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,13 +33,13 @@ export const FeedPage = () => {
         const feedQuery = `user_feed/`;
         const response = await req(feedQuery, "get", {});
         console.log("Feed response:", response.data);
-        const posts: PostDetails[] = response.data.data.map(
+        const posts: PostDetails[] = response.data.posts.map(
           (post: any, idx: number) => ({
             id: idx,     
             bookname: post.bookname,
             content: post.content,  
-            author: post.author,
-            
+            username: post.username,
+            created_at: new Date(post.created_at),
           })
         );
         if (posts.length === 0) {
@@ -69,26 +68,9 @@ export const FeedPage = () => {
   return (
     <div className="flex flex-col justify-center items-center pt-5">
       {/* <h1>Search Page {query}</h1> */}
+      {<h1 className="text-2xl font-bold mb-4">Feed Page</h1>}
+
       {error && <p className="text-red-500">{error}</p>}
-      {error && (
-        <p className="text-black-500">
-          <PostCard
-            key={0}
-            post={{
-              id: 0,
-              imageUrl: null,
-              bookname: "Bookname",
-              content: "Content",
-              author: "Author",
-              likes: 0,
-              dislikes: 0,
-            }}
-          />
-        </p>
-      )}
-      {username}
-
-
 
   
       <div className="flex flex-col gap-4">

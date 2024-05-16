@@ -111,7 +111,13 @@ def login(request):
         else:
             return JsonResponse({'error': 'Invalid username or password'}, status=400)
     
-        
+def get_user(request):
+    if request.user.is_authenticated:
+        user = request.user
+        return JsonResponse({'username': user.username, 'user_id': user.id, 'name': user.name, 'surname': user.surname ,'email': user.email})
+    else:
+        return JsonResponse({'error': 'User is not authenticated'}, status=401)
+    
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -162,6 +168,52 @@ def csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrf_token': csrf_token})
 
+
+
+# def create_Book(request):
+#     data = json.loads(request.body)
+#     title = data.get('title')
+#     description = data.get('description')
+#     cover_url = data.get('cover_url')
+#     isbn = data.get('isbn')
+#     publication_date = data.get('publication_date')
+#     page_count = data.get('page_count')
+#     authors = data.get('authors', [])
+#     genres = data.get('genres', [])
+
+#     if not title or not isbn:
+#         return JsonResponse({'error': 'Title and ISBN are required'}, status=400)
+
+#     if not authors:
+#         return JsonResponse({'error': 'At least one author is required'}, status=400)
+
+#     if not genres:
+#         return JsonResponse({'error': 'At least one genre is required'}, status=400)
+
+#     try:
+#         publication_date = datetime.strptime(publication_date, '%Y-%m-%d')
+#     except ValueError:
+#         return JsonResponse({'error': 'Invalid publication date format. Use YYYY-MM-DD'}, status=400)
+
+#     book = Book.objects.create(
+#         title=title,
+#         description=description,
+#         cover_url=cover_url,
+#         isbn=isbn,
+#         publication_date=publication_date,
+#         page_count=page_count
+#     )
+
+#     authors = [Author.objects.get_or_create(name=author['name'], surname=author['surname'])[0] for author in authors]
+#     genres = [Genre.objects.get_or_create(name=genre)[0] for genre in genres]
+
+#     book.authors.add(*authors)
+#     book.genres.add(*genres)
+
+#     return JsonResponse({'message': 'Book created successfully', 'book_id': book.id}, status=201)
+
+
+
 @require_http_methods(["GET"])
 def get_book(request):
 
@@ -175,6 +227,7 @@ def get_book(request):
     book = get_object_or_404(Book, isbn=isbn)
     
     return JsonResponse({
+        'id' : book.id,
         'title': book.title,
         'cover_url': book.cover_url,
         'authors': [author.name + ' ' + author.surname for author in book.authors.all()],
@@ -786,20 +839,20 @@ def user_feed(request):
     if not user.is_authenticated:
         return JsonResponse({'error': 'User is not authenticated'}, status=401)
 
+    # Get the BiblioSearchUser associated with the request.user
     user_profile = get_object_or_404(BiblioSearchUser, user=user)
     
-    # Get the user's followings and include the user themselves
-    followings = user_profile.following.all()
-    following_users = [following.user for following in followings]  # Extract User instances
-    following_users.append(user)  # Include the requesting user
+    # Get the BiblioSearchUser instances for followings and include the user_profile itself
+    followings = list(user_profile.following.all())  # This already returns BiblioSearchUser instances
+    followings.append(user_profile)  # user_profile is a BiblioSearchUser instance
 
     # Get the posts of the user and their followings
-    posts = Post.objects.filter(user__in=following_users).order_by('-created_at')
+    posts = Post.objects.filter(user__in=followings).order_by('-created_at')
 
     posts_data = [
         {
-            'user_id': post.user.id,
-            'username': post.user.username,
+            'user_id': post.user.user.id,  # Ensure you are accessing the Django User id correctly
+            'username': post.user.user.username,  # Access the username from the Django User model
             'content': post.content,
             'created_at': post.created_at.isoformat(),  
             'is_liked_by_user': user in post.likes.all(), 

@@ -26,10 +26,12 @@ urlpatterns = [
     path('api/register/', views.register),
     path('api/logout/', views.logout),
     path('api/getToken/', views.csrf_token),
+    path('api/get_book/', views.get_book),
     path('api/create_booklist/', views.create_booklist),
     path('api/add_books_to_booklist/', views.add_books_to_booklist),
     path('api/get_specific_booklist/', views.get_specific_booklist),
     path('api/get_booklists_of_user/', views.get_booklists_of_user),
+    path('api/check_book_in_booklist/', views.check_book_in_booklist),
     path('api/remove_books_from_booklist/', views.remove_books_from_booklist),
     path('api/add_fav_author/', views.add_fav_author),
     path('api/add_fav_genre/', views.add_fav_genre),
@@ -45,5 +47,7 @@ urlpatterns = [
     path('api/follow_unfollow_user/', views.follow_unfollow_user),
     path('api/get_all_followings/', views.get_all_followings),
     path('api/get_all_followers/', views.get_all_followers),
+    path('api/check_user_follows_user/', views.check_user_follows_user),
+    path('api/user_feed/', views.user_feed),
 
 ]

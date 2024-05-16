@@ -185,6 +185,30 @@ def csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrf_token': csrf_token})
 
+@require_http_methods(["GET"])
+def get_book(request):
+
+    isbn = request.GET.get('isbn')
+
+    isbn = isbn.replace('-', '')
+
+    if not isbn:
+        return JsonResponse({'error': 'Missing ISBN'}, status=400)
+
+    book = get_object_or_404(Book, isbn=isbn)
+    
+    return JsonResponse({
+        'title': book.title,
+        'cover_url': book.cover_url,
+        'authors': [author.name + ' ' + author.surname for author in book.authors.all()],
+        'genres': [genre.name for genre in book.genres.all()],
+        'isbn': book.isbn,
+        'description': book.description,
+        'publication_date': book.publication_date,
+        'page_count': book.page_count
+    })
+
+
 
 @require_http_methods(["POST"])
 @login_required
@@ -285,6 +309,30 @@ def get_booklists_of_user(request):
         'user_id': user.id,
         'booklists': booklists_data
     })
+
+@require_http_methods(["GET"])
+def check_book_in_booklist(request):
+    booklist_id = request.GET.get('booklist_id')
+    book_id = request.GET.get('book_id')
+
+    if not booklist_id or not book_id:
+        return JsonResponse({'error': 'Missing booklist_id or book_id'}, status=400)
+
+    booklist = get_object_or_404(BookList, id=booklist_id)
+    if not booklist:
+        return JsonResponse({'error': 'Booklist not found'}, status=404)
+
+    book = get_object_or_404(Book, id=book_id)
+    if not book:
+        return JsonResponse({'error': 'Book not found'}, status=404)
+
+    if book in booklist.books.all():
+        return JsonResponse({'message': 'Book is in the booklist', 'booklist_id': booklist.id, 'book_id': book.id, 'is_in_booklist': True})
+    else:
+        return JsonResponse({'message': 'Book is not in the booklist', 'booklist_id': booklist.id, 'book_id': book.id,'is_in_booklist': False})
+    
+
+
 
 @require_http_methods(["DELETE"])
 @login_required
@@ -732,3 +780,54 @@ def get_all_followers(request):
         'user_id': user_id,
         'followers': followers_data
     })
+
+@require_http_methods(["GET"])
+def check_user_follows_user(request):
+    user = request.user
+    target_user_id = request.GET.get('target_user_id')
+    
+    if not user or not target_user_id:
+        return JsonResponse({'error': 'Missing user_id or target_user_id'}, status=400)
+    
+    user_profile = get_object_or_404(BiblioSearchUser, user_id=user.id)
+    target_user_profile = get_object_or_404(BiblioSearchUser, user_id=target_user_id)
+    
+    # Check if the user follows the target user
+    follows = user_profile.following.filter(id=target_user_profile.id).exists()
+    
+    return JsonResponse({
+        'message': 'Follow status checked successfully',
+        'user_id': user.id,
+        'target_user_id': target_user_id,
+        'follows': follows
+    })
+
+
+@require_http_methods(["GET"])
+def user_feed(request):
+    user = request.user
+    if not user.is_authenticated:
+        return JsonResponse({'error': 'User is not authenticated'}, status=401)
+
+    user_profile = get_object_or_404(BiblioSearchUser, user=user)
+    
+    # Get the user's followings and include the user themselves
+    followings = user_profile.following.all()
+    following_users = [following.user for following in followings]  # Extract User instances
+    following_users.append(user)  # Include the requesting user
+
+    # Get the posts of the user and their followings
+    posts = Post.objects.filter(user__in=following_users).order_by('-created_at')
+
+    posts_data = [
+        {
+            'user_id': post.user.id,
+            'username': post.user.username,
+            'content': post.content,
+            'created_at': post.created_at.isoformat(),  
+            'total_likes': post.total_likes,  
+        }
+        for post in posts
+    ]
+        
+    return JsonResponse({'posts': posts_data})

@@ -42,4 +42,8 @@ urlpatterns = [
     path('api/get_user_profile/', views.get_user_profile),
     path('api/update_user_profile/', views.update_user_profile),
     path('api/delete_user/', views.delete_user),
+    path('api/follow_unfollow_user/', views.follow_unfollow_user),
+    path('api/get_all_followings/', views.get_all_followings),
+    path('api/get_all_followers/', views.get_all_followers),
+
 ]

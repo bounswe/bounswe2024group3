@@ -636,3 +636,99 @@ def delete_user(request):
 
 
 
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def follow_unfollow_user(request):
+    # Parse the incoming data
+    data = json.loads(request.body)
+    target_user_id = data.get('target_user_id')
+
+    #make target_user_id an integer
+    try:
+        target_user_id = int(target_user_id)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid target_user_id'}, status=400)
+    
+
+    if not target_user_id:
+        return JsonResponse({'error': 'Missing target_user_id'}, status=400)
+    
+    if request.user.id == target_user_id:
+        return JsonResponse({'error': 'You cannot follow yourself'}, status=400)
+    
+    user_profile = get_object_or_404(BiblioSearchUser, user=request.user)
+
+    target_user_profile = get_object_or_404(BiblioSearchUser, user_id=target_user_id)
+    
+    # Check if the current user is already following the target user
+    if user_profile.following.filter(id=target_user_profile.id).exists():
+        # If yes, unfollow them
+        user_profile.following.remove(target_user_profile)
+        action = 'unfollowed'
+    else:
+        # If no, follow them
+        user_profile.following.add(target_user_profile)
+        action = 'followed'
+    
+    return JsonResponse({
+        'message': f'Successfully {action} user',
+        'target_user_id': target_user_id,
+        'action': action
+    })
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_all_followings(request):
+    user_id = request.GET.get('user_id')
+    
+    if not user_id:
+        return JsonResponse({'error': 'Missing user_id'}, status=400)
+    
+    user_profile = get_object_or_404(BiblioSearchUser, user_id=user_id)
+    
+    # Get all followings
+    followings = user_profile.following.all()
+
+    # Serialize the followings data
+    followings_data = [{
+        'user_id': following.user.id,
+        'username': following.user.username,
+        'name': following.name,
+        'surname': following.surname
+    } for following in followings]
+
+    return JsonResponse({
+        'message': 'Followings retrieved successfully',
+        'user_id': user_id,
+        'followings': followings_data
+    })
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_all_followers(request):
+    user_id = request.GET.get('user_id')
+    
+    if not user_id:
+        return JsonResponse({'error': 'Missing user_id'}, status=400)
+    
+    user_profile = get_object_or_404(BiblioSearchUser, user_id=user_id)
+    
+    # Get all followers
+    followers = user_profile.followers.all()
+
+    # Serialize the followers data
+    followers_data = [{
+        'user_id': follower.user.id,
+        'username': follower.user.username,
+        'name': follower.name,
+        'surname': follower.surname
+    } for follower in followers]
+
+    return JsonResponse({
+        'message': 'Followers retrieved successfully',
+        'user_id': user_id,
+        'followers': followers_data
+    })

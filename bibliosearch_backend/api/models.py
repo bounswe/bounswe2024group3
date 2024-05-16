@@ -39,6 +39,11 @@ class BiblioSearchUser(models.Model):
     name = models.CharField(max_length=100, blank=False)
     surname = models.CharField(max_length=100, blank=False)
 
+    following = models.ManyToManyField('self', 
+                                       related_name='followers', 
+                                       symmetrical=False,
+                                       blank=True)
+
 
     fav_authors = models.ManyToManyField(Author, blank=True)
     fav_genres = models.ManyToManyField(Genre, blank=True)

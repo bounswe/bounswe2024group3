@@ -220,48 +220,6 @@ def csrf_token(request):
 
 
 
-# def create_Book(request):
-#     data = json.loads(request.body)
-#     title = data.get('title')
-#     description = data.get('description')
-#     cover_url = data.get('cover_url')
-#     isbn = data.get('isbn')
-#     publication_date = data.get('publication_date')
-#     page_count = data.get('page_count')
-#     authors = data.get('authors', [])
-#     genres = data.get('genres', [])
-
-#     if not title or not isbn:
-#         return JsonResponse({'error': 'Title and ISBN are required'}, status=400)
-
-#     if not authors:
-#         return JsonResponse({'error': 'At least one author is required'}, status=400)
-
-#     if not genres:
-#         return JsonResponse({'error': 'At least one genre is required'}, status=400)
-
-#     try:
-#         publication_date = datetime.strptime(publication_date, '%Y-%m-%d')
-#     except ValueError:
-#         return JsonResponse({'error': 'Invalid publication date format. Use YYYY-MM-DD'}, status=400)
-
-#     book = Book.objects.create(
-#         title=title,
-#         description=description,
-#         cover_url=cover_url,
-#         isbn=isbn,
-#         publication_date=publication_date,
-#         page_count=page_count
-#     )
-
-#     authors = [Author.objects.get_or_create(name=author['name'], surname=author['surname'])[0] for author in authors]
-#     genres = [Genre.objects.get_or_create(name=genre)[0] for genre in genres]
-
-#     book.authors.add(*authors)
-#     book.genres.add(*genres)
-
-#     return JsonResponse({'message': 'Book created successfully', 'book_id': book.id}, status=201)
-
 
 
 @require_http_methods(["GET"])

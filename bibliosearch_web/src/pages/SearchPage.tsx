@@ -34,6 +34,7 @@ export const SearchPage = () => {
             title: book.title.value,
             authors: book.authors.value,
             coverImageUrl: book.cover?.value,
+            book_data: book
           })
         );
         if (books.length === 0) {

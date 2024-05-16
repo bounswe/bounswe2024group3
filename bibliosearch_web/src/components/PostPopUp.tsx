@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
 import FormInput from './FormInput';
 import { BookDetails } from '../pages/SearchPage';
+import { req } from '../utils/client';
 
-function PostPopup({ book, isOpen, setIsOpen }: { book: BookDetails, isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) {
+function PostPopup({ book, isOpen, setIsOpen }: { book: any, isOpen: boolean, setIsOpen: (isOpen: boolean) => void }) {
 
-    const handlePost = () => {
+    const [error, setError] = useState("");
+    const [content, setContent] = useState("");
+    
+
+
+    const handlePost = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        try {
+            await req("create_post", "post", {
+              book_data: book.book_data,
+              content: content
+            });
+            console.log('Post submitted');
+          } catch (error: any) {
+            setError(error.message);
+          }
         // Add your logic to handle posting here
         // For example, you can send a request to your backend API
         // to save the post data
-        console.log('Post submitted');
+        
         // Close the popup after posting
-        setIsOpen(false);
+        // setIsOpen(false);
     };
 
     if(!isOpen) return null;
@@ -19,18 +36,13 @@ function PostPopup({ book, isOpen, setIsOpen }: { book: BookDetails, isOpen: boo
            
             {(
                 <div className="card bg-base-100 shadow-xl">
-                    <FormInput
-                        placeholder="Write your post..."
-                        type="text"
-                        
-                        // You can use state to capture the input value
-                        // For example: value={postContent} onChange={(e) => setPostContent(e.target.value)}
-                    />
-                    <div>{ JSON.stringify(book)}</div>
+                          <FormInput  type="text" placeholder ="Write your post" value ={content} onChange ={(e:any) => setContent(e.target.value)} /> 
+                    <div>{ JSON.stringify(book.book_data)}</div>
                     <div className="button-container">
                         <button className="btn btn-primary mt-4" onClick={handlePost}>Submit</button>
                         <button className="btn btn-primary mt-4" onClick={() => setIsOpen(false)}>Cancel</button>
                     </div>
+                    <p className="text-red-500">{error}</p>
                 </div>
             )}
         </div>

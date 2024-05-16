@@ -14,6 +14,9 @@ class Author(models.Model):
 class Genre(models.Model):
     name = models.CharField(max_length=100)
 
+class Subject(models.Model):
+    name = models.CharField(max_length=100)
+
 # Book model with many-to-many relationships with Author and Genre
 class Book(models.Model):
     title = models.CharField(max_length=100)
@@ -25,6 +28,8 @@ class Book(models.Model):
     description = models.TextField(blank=True, null=True)
     publication_date = models.DateField(blank=True, null=True)
     page_count = models.IntegerField(blank=True, null=True)
+
+    subjects = models.ManyToManyField(Subject, blank=True, null=True)
 
     def __str__(self):
         return self.title + " (" + self.publication_date + ")"

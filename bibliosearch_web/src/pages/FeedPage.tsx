@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
 import PostCard from "../components/PostCard";
+import PostPopup from "../components/PostPopUp";
 
 export type PostDetails = {
   id: number;
@@ -18,6 +19,8 @@ export const FeedPage = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  const [showCreateButton, setShowCreateButton] = useState(true);
   const [posts, setPosts] = useState<PostDetails[]>([]);
 
   useEffect(() => {
@@ -60,13 +63,35 @@ export const FeedPage = () => {
     );
   }
 
+  
+
   return (
     <div className="flex flex-col justify-center items-center pt-5">
       {/* <h1>Search Page {query}</h1> */}
       {error && <p className="text-red-500">{error}</p>}
-      {error && <p className="text-black-500">{      <PostCard key={0} post={{ id: 0, imageUrl: null, bookname: "Bookname", content: "Content", author: "Author", likes: 0, dislikes: 0 }} />}</p>}
+      {error && (
+        <p className="text-black-500">
+          <PostCard
+            key={0}
+            post={{
+              id: 0,
+              imageUrl: null,
+              bookname: "Bookname",
+              content: "Content",
+              author: "Author",
+              likes: 0,
+              dislikes: 0,
+            }}
+          />
+        </p>
+      )}
+      
+      {showCreateButton && <button  className="btn btn-primary fixed bottom-4 right-4" onClick={() => setShowPopup(true)}>Create a Post</button>
+      }
 
-      {/* {JSON.stringify(posts, null, 2)} */}
+
+      
+      {showPopup && <PostPopup />}
 
       <div className="flex flex-col gap-4">
         {posts.map((post) => (

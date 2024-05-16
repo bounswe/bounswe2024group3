@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FormInput from './FormInput';
 
 function PostPopup() {
     const [isOpen, setIsOpen] = useState(false);
@@ -14,20 +15,20 @@ function PostPopup() {
 
     return (
         <div className="post-popup">
-            <button className="post-popup-btn" onClick={() => setIsOpen(true)}>
-                Post
-            </button>
-            {isOpen && (
-                <div className="post-popup-card">
-                    <textarea
+           
+            {(
+                <div className="card bg-base-100 shadow-xl">
+                    <FormInput
                         placeholder="Write your post..."
-                        rows={4} 
-                        cols={50}
+                        type="text"
+                        
                         // You can use state to capture the input value
                         // For example: value={postContent} onChange={(e) => setPostContent(e.target.value)}
                     />
-                    <button onClick={handlePost}>Submit</button>
-                    <button onClick={() => setIsOpen(false)}>Cancel</button>
+                    <div className="button-container">
+                        <button className="btn btn-primary mt-4" onClick={handlePost}>Submit</button>
+                        <button className="btn btn-primary mt-4" onClick={() => setIsOpen(false)}>Cancel</button>
+                    </div>
                 </div>
             )}
         </div>

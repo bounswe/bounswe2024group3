@@ -642,6 +642,8 @@ def get_user_profile(request):
     return JsonResponse({
         'name': user_profile.name,
         'surname': user_profile.surname,
+        'username': user.username,
+        'email': user.email,
         'fav_authors': [
             {'author_id': author['author_id'], 'author_name': f"{author['author_name']} {author['author_surname']}"} 
             for author in fav_authors

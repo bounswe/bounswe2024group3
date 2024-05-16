@@ -84,47 +84,64 @@ const Profile = () => {
       });
   };
 
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete your profile? This action cannot be undone.")) {
+      setLoading(true);
+      axios.delete(`${process.env.REACT_APP_BACKEND_URL}delete_user/`, {
+        withCredentials: true
+      }).then(response => {
+        alert('User deleted successfully');
+        // Handle post-deletion logic, e.g., redirect to login page
+      }).catch(error => {
+        setError('Failed to delete profile');
+        setLoading(false);
+      });
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div>
-      <h1>Profile</h1>
-      {!editMode ? (
-        <>
-          <p><strong>Username:</strong> {username}</p>
-          <p><strong>Name:</strong> {profile?.name}</p>
-          <p><strong>Surname:</strong> {profile?.surname}</p>
-          <p><strong>Email:</strong> {email}</p>
-          <p><strong>Favorite Authors:</strong> {profile?.fav_authors.map(author => <span key={author.author_id}>{author.author_name}, </span>)}</p>
-          <p><strong>Favorite Genres:</strong> {profile?.fav_genres.map(genre => <span key={genre.genre_id}>{genre.genre_name}, </span>)}</p>
-          <p><strong>Booklists:</strong> {profile?.booklists.map(booklist => <span key={booklist.booklist_id}>{booklist.booklist_name}, </span>)}</p>
-          <button onClick={() => setEditMode(true)}>Edit Profile</button>
-        </>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          <label>
-            Username:
-            <input type="text" name="username" value={profile?.username || ''} onChange={handleInputChange} />
-          </label>
-          <label>
-            Name:
-            <input type="text" name="name" value={profile?.name || ''} onChange={handleInputChange} />
-          </label>
-          <label>
-            Surname:
-            <input type="text" name="surname" value={profile?.surname || ''} onChange={handleInputChange} />
-          </label>
-          <label>
-            Email:
-            <input type="email" name="email" value={profile?.email || ''} onChange={handleInputChange} />
-          </label>
-          <button type="submit">Update Profile</button>
-          <button type="button" onClick={() => setEditMode(false)}>Cancel</button>
-        </form>
-      )}
-    </div>
-  );
+  <div>
+    <h1>Profile</h1>
+    {!editMode ? (
+      <>
+        <p><strong>Username:</strong> {profile?.username}</p>
+        <p><strong>Name:</strong> {profile?.name}</p>
+        <p><strong>Surname:</strong> {profile?.surname}</p>
+        <p><strong>Email:</strong> {profile?.email}</p>
+        <p><strong>Favorite Authors:</strong> {profile?.fav_authors.map(author => <span key={author.author_id}>{author.author_name}, </span>)}</p>
+        <p><strong>Favorite Genres:</strong> {profile?.fav_genres.map(genre => <span key={genre.genre_id}>{genre.genre_name}, </span>)}</p>
+        <p><strong>Booklists:</strong> {profile?.booklists.map(booklist => <span key={booklist.booklist_id}>{booklist.booklist_name}, </span>)}</p>
+        <button onClick={() => setEditMode(true)}>Edit Profile</button>
+        <button onClick={handleDelete} style={{ marginLeft: '10px', backgroundColor: 'red', color: 'white' }}>Delete Profile</button>
+      </>
+    ) : (
+      <form onSubmit={handleSubmit}>
+        <label>
+          Username:
+          <input type="text" name="username" value={profile?.username || ''} onChange={handleInputChange} />
+        </label>
+        <label>
+          Name:
+          <input type="text" name="name" value={profile?.name || ''} onChange={handleInputChange} />
+        </label>
+        <label>
+          Surname:
+          <input type="text" name="surname" value={profile?.surname || ''} onChange={handleInputChange} />
+        </label>
+        <label>
+          Email:
+          <input type="email" name="email" value={profile?.email || ''} onChange={handleInputChange} />
+        </label>
+        <button type="submit">Update Profile</button>
+        <button type="button" onClick={() => setEditMode(false)}>Cancel</button>
+      </form>
+    )}
+  </div>
+);
+
 };
 
 export default Profile;

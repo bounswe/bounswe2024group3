@@ -138,7 +138,8 @@ def login(request):
             'username': user.username,
             'user_id': user.id,
             'name': name,
-            'surname': surname
+            'surname': surname,
+            'email' : user.email
         })
     else:
         return JsonResponse({'error': 'Invalid username or password'}, status=400)
@@ -162,7 +163,9 @@ def get_user(request):
             'username': user.username,
             'user_id': user.id,
             'name': name,
-            'surname': surname
+            'surname': surname,
+            'email' : user.email
+
         })
     else:
         return JsonResponse({'error': 'Invalid username or password'}, status=400)

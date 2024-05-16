@@ -19,9 +19,6 @@ const BookCard = ({ book }: { book: BookDetails }) => {
         <p>ISBN: {book.ISBN13}</p>
         <p>Author: {book.authors}</p>
         <div className="card-actions justify-end">
-          <a href="https://qr.ekrembal.com" className="btn btn-primary">
-            Details
-          </a>
           <Link to={`/book/${book.ISBN13}`} className="btn btn-primary"> Details </Link>
         </div>
       </div>

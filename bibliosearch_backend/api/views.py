@@ -575,15 +575,15 @@ def get_user_profile(request):
         'name': user_profile.name,
         'surname': user_profile.surname,
         'fav_authors': [
-            {'author_id': author["author_id"], 'author_name': f"{author["author_name"]} {author["author_surname"]}"} 
+            {'author_id': author['author_id'], 'author_name': f"{author['author_name']} {author['author_surname']}"} 
             for author in fav_authors
         ],
         'fav_genres': [
-            {'genre_id': genre["genre_id"], 'genre_name': genre["genre_name"]} 
+            {'genre_id': genre['genre_id'], 'genre_name': genre['genre_name']} 
             for genre in fav_genres
         ],
         'booklists': [
-            {'booklist_name': booklist["booklist_name"], 'booklist_id': booklist["booklist_id"]} 
+            {'booklist_name': booklist['booklist_name'], 'booklist_id': booklist['booklist_id']} 
             for booklist in booklists
         ]
     })
@@ -838,3 +838,4 @@ def like_unlike_post(request):
         'total_likes': post.total_likes,
         'liked_by_user': user in post.likes.all()
     })
+

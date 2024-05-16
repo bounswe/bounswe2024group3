@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/create_post/', views.create_post),
     path('api/login/', views.login),
     path('api/register/', views.register),
+    path('api/get_user/', views.get_user),
     path('api/logout/', views.logout),
     path('api/getToken/', views.csrf_token),
     path('api/get_book/', views.get_book),

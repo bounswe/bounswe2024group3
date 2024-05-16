@@ -84,7 +84,7 @@ const ProfileScreen = () => {
 
 
   return (
-    <ScrollView style={{backgroundColor:'#eb2727'}}>
+    <ScrollView style={{backgroundColor:colors.third}}>
       <View style={styles.profileContainer}>
         <Text style={styles.profileText}>Profile</Text>
         <View style={styles.line}></View>
@@ -106,7 +106,7 @@ const ProfileScreen = () => {
           <Text style={styles.subText} key={booklist.booklist_id}>{booklist.booklist_name}</Text>
         ))}
       </View>
-      <View style={{ height: 20, backgroundColor: '#eb2727' }}></View> 
+      <View style={{ height: 20, backgroundColor: colors.third }}></View> 
     <View style={styles.container}>
       <Text style={styles.text}>Update Profile</Text>
       <TextInput
@@ -143,86 +143,91 @@ const ProfileScreen = () => {
     </ScrollView>
   );
 };
+
+const colors = {
+  primary: '#F8F4E1',
+  secondary: '#AF8F6F',
+  third: '#74512D',
+  fourth: '#543310',
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#eb2727',
+    backgroundColor: colors.third,
   },
   text: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'black',
-    textShadowOffset: { width: 1, height: 1 },
+    color: colors.primary,
+    fontFamily: 'times new roman',
+    textShadowColor: colors.fourth,
+    textShadowOffset: { width: 10, height: 10 },
     textShadowRadius: 10,
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: colors.secondary,
     borderWidth: 1,
     marginTop: 10,
     width: '80%',
     padding: 10,
-    backgroundColor: 'white',
+    backgroundColor: colors.primary,
     borderRadius: 5,
   },
   button: {
     marginTop: 20,
     marginBottom: 20,
     padding: 10,
-    backgroundColor: 'white',
+    backgroundColor: colors.primary,
     borderRadius: 5,
   },
   buttonText: {
-    color: '#eb2727', 
+    color: colors.fourth, 
     fontSize: 16,
     fontWeight: 'bold',
-    shadowColor: 'black',
-    shadowOffset: { width: 1, height: 1 },
-    shadowRadius: 10,
+    fontFamily: 'times new roman',
+    textShadowColor: colors.secondary,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   regularText: {
-    color: 'black',
+    color: colors.third,
     fontSize: 20,
     fontWeight: 'bold',
-    // textShadowColor: 'red',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    fontFamily: 'courier new',
     alignSelf: 'flex-start',
-    marginVertical: 10,
+    marginVertical: 5,
     marginLeft: 10,
   },
   subText: {
-    color: 'black',
+    color: colors.third,
     fontSize: 16,
     fontWeight: 'bold',
-    // textShadowColor: 'red',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    fontFamily: 'courier new',
     alignSelf: 'flex-end',
     marginTop: 5,
     marginRight: 10,
   },
   profileContainer: {
     padding: 16,
-    margin: 8,
-    backgroundColor: 'white',
+    marginTop: 16,
+    marginHorizontal: 8,
+    backgroundColor: colors.primary,
     borderRadius: 10,
   },
   line: {
     height: 3,
-    backgroundColor: 'red',
+    backgroundColor: colors.secondary,
     marginVertical: 5,
   },
   profileText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: 'black',
-    // textShadowColor: 'red',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 10,
+    color: colors.third,
+    fontFamily: 'times new roman',
     marginLeft: 10,
     marginBottom: 10,
   },

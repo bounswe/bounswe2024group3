@@ -90,17 +90,23 @@ const App = () => {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIconStyle: { display: "none" },
-          tabBarActiveTintColor: 'black',
+          tabBarActiveTintColor: colors.primary,
           tabBarLabelPosition: "beside-icon",
-          tabBarInactiveTintColor: 'gray',
+          tabBarInactiveTintColor: colors.fourth,
           tabBarLabelStyle: {
-            fontSize: 16,
+            fontSize: 19,
             fontWeight: 'bold',
+            textShadowColor: colors.fourth,
+            textShadowOffset: { width: 1, height: 1 },
+            textShadowRadius: 1,
+            fontFamily: 'times new roman',
+            letterSpacing: 1,
+            marginLeft: 0,
           },
           tabBarStyle: {
-            backgroundColor: 'white',
+            backgroundColor: colors.secondary,
             borderTopWidth: 1,
-            borderTopColor: 'black',
+            borderTopColor: colors.fourth,
             display: 'flex',
           },
         })}
@@ -113,6 +119,13 @@ const App = () => {
   );
 };
 
+const colors = {
+  primary: '#F8F4E1',
+  secondary: '#AF8F6F',
+  third: '#74512D',
+  fourth: '#543310',
+};
+
 
 const styles = StyleSheet.create({
   container: {
@@ -120,19 +133,8 @@ const styles = StyleSheet.create({
     padding: 16,
     alignContent: 'center',
     alignSelf: 'center',
-    backgroundColor: '#eb2727',
+    backgroundColor: colors.third,
     width: width,
-  },
-  header: {
-    alignSelf: 'center',
-    justifyContent: 'flex-end',
-    width: width,
-  },
-  headerText: {
-    marginLeft: 20,
-    fontSize: 35, // Larger text for the app name
-    fontWeight: 'bold',
-    color: 'white',
   },
   welcome: {
     alignSelf: 'center',
@@ -140,28 +142,18 @@ const styles = StyleSheet.create({
     width: width,
   },
   welcomeText: {
-    marginLeft: 20,
-    fontSize: 18, // Larger text for the app name
+    fontSize: 18, 
     fontWeight: 'bold',
-    color: 'white',
-  },
-  numberone: {
+    color: colors.primary,
+    fontFamily: 'times new roman',
     alignSelf: 'center',
-    justifyContent: 'flex-end',
-    width: width,
-  },
-  numberoneText: {
-    marginLeft: 20,
-    fontSize: 10, // Larger text for the app name
-    fontWeight: 'bold',
-    color: 'white',
   },
   input: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: colors.primary,
     height: 40,
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: colors.fourth,
     borderRadius: 10,
     width: width * 0.9 * 0.95, // Set the width to 75% of the screen width
     alignSelf: 'center',
@@ -176,23 +168,25 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   button: {
-    backgroundColor: 'white', // Example blue background color
+    backgroundColor: colors.primary, // Example blue background color
     padding: 10,
     borderRadius: 10,
-    borderColor: 'gray',
+    borderColor: colors.fourth,
     borderWidth: 1,
     alignItems: 'center', // Center text horizontally
     alignSelf: 'center', // Center the button horizontally
     justifyContent: 'center', // Center text vertically
     marginTop: 10,
+    marginLeft: 5,
   },
   buttonText: {
-    color: '#eb2727', // White text color
+    color: colors.third, // White text color
     fontSize: 16,
+    fontFamily: 'times new roman',
     fontWeight: 'bold',
-    shadowColor: 'black',
-    shadowOffset: { width: 1, height: 1 },
-    shadowRadius: 10,
+    textShadowColor: colors.secondary,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
 });
 export default App;

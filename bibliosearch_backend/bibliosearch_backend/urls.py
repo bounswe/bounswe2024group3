@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/book/search/', views.search_book),
     path('api/create_post/', views.create_post),
+    path('api/create_book/', views.create_book_endpoint),
     path('api/login/', views.login),
     path('api/register/', views.register),
     path('api/get_user/', views.get_user),
@@ -51,6 +52,7 @@ urlpatterns = [
     path('api/check_user_follows_user/', views.check_user_follows_user),
     path('api/user_feed/', views.user_feed),
     path('api/like_unlike_post/', views.like_unlike_post),
+    path('api/does_user_liked_post/', views.does_user_liked_post),
     path('api/search_users/', views.search_users),
     path('api/search_posts/', views.search_posts),
 

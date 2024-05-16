@@ -43,6 +43,21 @@ from datetime import datetime
 from api.wikidata_client import search_book_by_keyword
 
 @csrf_exempt
+def create_book_endpoint(request):
+    try:
+        data = json.loads(request.body)
+        
+        book_data = data.get('book_data')
+        create_book_response, book = create_book(book_data)
+
+        return create_book_response
+    except KeyError as e:
+        return JsonResponse({'error': f'Missing key in request data: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
 def create_post(request):
     try:
         data = json.loads(request.body)
@@ -123,7 +138,8 @@ def login(request):
             'username': user.username,
             'user_id': user.id,
             'name': name,
-            'surname': surname
+            'surname': surname,
+            'email' : user.email
         })
     else:
         return JsonResponse({'error': 'Invalid username or password'}, status=400)
@@ -147,7 +163,9 @@ def get_user(request):
             'username': user.username,
             'user_id': user.id,
             'name': name,
-            'surname': surname
+            'surname': surname,
+            'email' : user.email
+
         })
     else:
         return JsonResponse({'error': 'Invalid username or password'}, status=400)
@@ -204,48 +222,6 @@ def csrf_token(request):
     return JsonResponse({'csrf_token': csrf_token})
 
 
-
-# def create_Book(request):
-#     data = json.loads(request.body)
-#     title = data.get('title')
-#     description = data.get('description')
-#     cover_url = data.get('cover_url')
-#     isbn = data.get('isbn')
-#     publication_date = data.get('publication_date')
-#     page_count = data.get('page_count')
-#     authors = data.get('authors', [])
-#     genres = data.get('genres', [])
-
-#     if not title or not isbn:
-#         return JsonResponse({'error': 'Title and ISBN are required'}, status=400)
-
-#     if not authors:
-#         return JsonResponse({'error': 'At least one author is required'}, status=400)
-
-#     if not genres:
-#         return JsonResponse({'error': 'At least one genre is required'}, status=400)
-
-#     try:
-#         publication_date = datetime.strptime(publication_date, '%Y-%m-%d')
-#     except ValueError:
-#         return JsonResponse({'error': 'Invalid publication date format. Use YYYY-MM-DD'}, status=400)
-
-#     book = Book.objects.create(
-#         title=title,
-#         description=description,
-#         cover_url=cover_url,
-#         isbn=isbn,
-#         publication_date=publication_date,
-#         page_count=page_count
-#     )
-
-#     authors = [Author.objects.get_or_create(name=author['name'], surname=author['surname'])[0] for author in authors]
-#     genres = [Genre.objects.get_or_create(name=genre)[0] for genre in genres]
-
-#     book.authors.add(*authors)
-#     book.genres.add(*genres)
-
-#     return JsonResponse({'message': 'Book created successfully', 'book_id': book.id}, status=201)
 
 
 
@@ -930,6 +906,25 @@ def like_unlike_post(request):
         'total_likes': post.total_likes,
         'liked_by_user': user in post.likes.all()
     })
+
+@require_http_methods(["GET"])
+def does_user_liked_post(request):
+    user = request.GET.get('user_id')
+    post = request.GET.get('post_id')
+
+    if not user or not post:
+        return JsonResponse({'error': 'Missing user_id or post_id'}, status=400)
+    
+    user = get_object_or_404(User, id=user)
+    post = get_object_or_404(Post, id=post)
+
+    return JsonResponse({
+        'message': 'Like status checked successfully',
+        'user_id': user.id,
+        'post_id': post.id,
+        'liked': user in post.likes.all()
+    })
+
 
 
 @require_http_methods(["GET"])

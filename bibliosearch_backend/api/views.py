@@ -43,6 +43,21 @@ from datetime import datetime
 from api.wikidata_client import search_book_by_keyword
 
 @csrf_exempt
+def create_book_endpoint(request):
+    try:
+        data = json.loads(request.body)
+        
+        book_data = data.get('book_data')
+        create_book_response, book = create_book(book_data)
+
+        return create_book_response
+    except KeyError as e:
+        return JsonResponse({'error': f'Missing key in request data: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
 def create_post(request):
     try:
         data = json.loads(request.body)

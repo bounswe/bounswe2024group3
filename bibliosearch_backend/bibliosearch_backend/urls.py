@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/book/search/', views.search_book),
     path('api/create_post/', views.create_post),
+    path('api/create_book/', views.create_book_endpoint),
     path('api/login/', views.login),
     path('api/register/', views.register),
     path('api/get_user/', views.get_user),

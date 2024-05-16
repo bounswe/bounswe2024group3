@@ -30,7 +30,7 @@ from django.views.decorators.csrf import csrf_exempt
 #import decorators
 from django.contrib.auth.decorators import login_required  
 
-from .models import Book, Author, Genre
+from .models import Book, Author, Genre, Post
 from datetime import datetime
 
 # Create your views here.
@@ -633,3 +633,6 @@ def delete_user(request):
     
     # Return a success response
     return JsonResponse({'message': 'User deleted successfully'})
+
+
+

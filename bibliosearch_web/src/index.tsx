@@ -13,6 +13,8 @@ import { UserProvider } from "./providers/UserContest";
 import { SearchPage } from "./pages/SearchPage";
 import { FeedPage } from "./pages/FeedPage";
 import { BookPage } from "./pages/BookPage";
+import { SearchUserPage } from "./pages/SearchUserPage";
+
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -28,6 +30,7 @@ root.render(
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/search/:query" element={<SearchPage />} />
+            <Route path="/search_users/:query" element={<SearchUserPage />} />
             <Route path="/feed" element={<FeedPage />} />
             <Route path="/get_book/" element={<BookPage />} />
           </Routes>

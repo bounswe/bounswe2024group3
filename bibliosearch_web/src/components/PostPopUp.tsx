@@ -27,7 +27,7 @@ function PostPopup({ book, isOpen, setIsOpen }: { book: any, isOpen: boolean, se
         // to save the post data
         
         // Close the popup after posting
-        // setIsOpen(false);
+        setIsOpen(false);
     };
 
     if(!isOpen) return null;
@@ -37,7 +37,6 @@ function PostPopup({ book, isOpen, setIsOpen }: { book: any, isOpen: boolean, se
             {(
                 <div className="card bg-base-100 shadow-xl">
                           <FormInput  type="text" placeholder ="Write your post" value ={content} onChange ={(e:any) => setContent(e.target.value)} /> 
-                    <div>{ JSON.stringify(book.book_data)}</div>
                     <div className="button-container">
                         <button className="btn btn-primary mt-4" onClick={handlePost}>Submit</button>
                         <button className="btn btn-primary mt-4" onClick={() => setIsOpen(false)}>Cancel</button>

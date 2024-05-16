@@ -44,7 +44,8 @@ from api.wikidata_client import search_book_by_keyword
 def create_post(request):
     try:
         data = json.loads(request.body)
-        create_book_response, book = create_book(data)
+        book_data = data.get('book_data')
+        create_book_response, book = create_book(book_data)
 
         if create_book_response.status_code == 400:
             return create_book_response

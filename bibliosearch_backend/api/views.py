@@ -67,13 +67,6 @@ def create_post(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-
-        
-    
-
-
-
-
 @require_http_methods(["GET"])
 def search_book(request):
     keyword = request.GET.get('keyword')
@@ -805,9 +798,43 @@ def user_feed(request):
             'username': post.user.username,
             'content': post.content,
             'created_at': post.created_at.isoformat(),  
+            'is_liked_by_user': user in post.likes.all(), 
             'total_likes': post.total_likes,  
         }
         for post in posts
     ]
         
     return JsonResponse({'posts': posts_data})
+
+
+@require_http_methods(["POST"])
+@login_required
+@csrf_exempt
+def like_unlike_post(request):
+
+    user = request.user
+
+    # Parse the incoming data
+    data = json.loads(request.body)
+    post_id = data.get('post_id')
+    
+    if not post_id:
+        return JsonResponse({'error': 'Missing post_id'}, status=400)
+    
+    post = get_object_or_404(Post, id=post_id)
+    
+    
+    # Toggle like or unlike
+    if user in post.likes.all():
+        post.likes.remove(user)
+        action = 'unliked'
+    else:
+        post.likes.add(user)
+        action = 'liked'
+    
+    return JsonResponse({
+        'message': f'Post successfully {action}',
+        'post_id': post_id,
+        'total_likes': post.total_likes,
+        'liked_by_user': user in post.likes.all()
+    })

@@ -64,10 +64,10 @@ class BookList(models.Model):
     books = models.ManyToManyField('Book', blank=True)
     user = models.ForeignKey('BiblioSearchUser', on_delete=models.CASCADE)
     
-     def __str__(self):
+    def __str__(self):
         return f"{self.name} by {self.user}"
 
-     def add_books(self, books):
+    def add_books(self, books):
         """Add a list of books to the booklist."""
         for book in books:
             self.books.add(book)

@@ -52,11 +52,15 @@ const BookPage = ({query: initialQuery, results: initialResults}) => {
   const renderBooks = () => {
     return results.map((book, index) => (
       <View key={index} style={styles.bookContainer}>
-        <Text style={styles.bookTitle}>{book.title?.value || 'Title not available'}</Text>
-        <Text style={styles.bookAuthor}>{book.authors?.value || 'Author not available'}</Text>
-        <Text style={styles.bookDescription}>{book.description?.value || 'Description not available'}</Text>
-        <Text style={styles.bookPublicationYear}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
-        <Text style={styles.bookISBN}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
+        <Text style={styles.bookInfo}>{book.title?.value || 'Title not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>{book.authors?.value || 'Author not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>{book.description?.value || 'Description not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
+        <View style={styles.line}></View>
+        <Text style={styles.bookInfo}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
       </View>
     ));
   };
@@ -86,55 +90,34 @@ const BookPage = ({query: initialQuery, results: initialResults}) => {
   );
 };
 
+const colors = {
+  primary: '#F8F4E1',
+  secondary: '#AF8F6F',
+  third: '#74512D',
+  fourth: '#543310',
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
     alignContent: 'center',
     alignSelf: 'center',
-    backgroundColor: '#eb2727',
+    backgroundColor: colors.third,
     width: width,
   },
   bookContainer: {
     padding: 16,
     margin: 8,
-    backgroundColor: 'white',
+    backgroundColor: colors.primary,
     borderRadius: 10,
-  },
-  header: {
-    alignSelf: 'center',
-    justifyContent: 'flex-end',
-    width: width,
-    backgroundColor: 'black',
-    marginTop: 10,
-    marginBottom: 10,
-    paddingVertical: 10,
-  },
-  headerText: {
-    marginLeft: 20,
-    fontSize: 25, // Larger text for the app name
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  welcome: {
-    alignSelf: 'center',
-    justifyContent: 'flex-end',
-    width: width,
-  },
-  welcomeText: {
-    marginLeft: 20,
-    marginBottom: 10,
-    marginTop: 10,
-    fontSize: 18, // Larger text for the app name
-    fontWeight: 'bold',
-    color: 'white',
   },
   input: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: colors.primary,
     height: 40,
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: colors.fourth,
     borderRadius: 10,
     width: width * 0.9 * 0.95, // Set the width to 75% of the screen width
     alignSelf: 'center',
@@ -147,22 +130,42 @@ const styles = StyleSheet.create({
     alignSelf: 'center', // Center the button horizontally
     justifyContent: 'center', // Center text vertically
     marginTop: 10,
+    marginBottom: 10,
   },
   button: {
-    backgroundColor: 'white', // Example blue background color
+    backgroundColor: colors.primary, // Example blue background color
     padding: 10,
     borderRadius: 10,
-    borderColor: 'gray',
+    borderColor: colors.fourth,
     borderWidth: 1,
     alignItems: 'center', // Center text horizontally
     alignSelf: 'center', // Center the button horizontally
     justifyContent: 'center', // Center text vertically
     marginTop: 10,
+    marginLeft: 5,
   },
   buttonText: {
-    color: '#eb2727', // White text color
+    color: colors.third, // White text color
     fontSize: 16,
+    fontFamily: 'times new roman',
     fontWeight: 'bold',
+    textShadowColor: colors.secondary,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  bookInfo: {
+    fontSize: 16,
+    color: colors.fourth,
+    fontFamily: 'courier new',
+    fontWeight: 'bold',
+  },
+  line: {
+    height: 2,
+    backgroundColor: colors.fourth,
+    marginVertical: 5,
+  },
+  resultsContainer: {
+    flex: 1,
   },
 });
 export default BookPage;

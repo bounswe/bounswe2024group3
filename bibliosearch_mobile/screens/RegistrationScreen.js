@@ -22,6 +22,10 @@ const RegistrationScreen = () => {
   const [username, setUsername] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
 
+  const goToLanding = () => {
+    setIsRegistered(true);
+  };
+
     const handleRegistration = async () => {
     const registrationEndpoint = 'http://207.154.246.225/api/';
 
@@ -123,30 +127,44 @@ const RegistrationScreen = () => {
       <TouchableOpacity style={styles.button} onPress={handleRegistration}>
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={goToLanding}>
+        <Text style={styles.buttonText}>Go Back</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
+};
+
+const colors = {
+  primary: '#F8F4E1',
+  secondary: '#AF8F6F',
+  third: '#74512D',
+  fourth: '#543310',
 };
 
 const styles = StyleSheet.create({
   header: {
     marginTop: 8,
-    marginBottom: 80,
+    marginBottom: 60,
     alignSelf: 'center',
     justifyContent: 'flex-end',
     width: width,
   },
   headerText: {
     marginLeft: 20,
-    fontSize: width * 0.15, // Larger text for the app name
+    fontSize: 54,
     fontWeight: 'bold',
-    color: 'white',
+    color: colors.third,
+    fontFamily: 'times new roman',
+    textShadowColor: colors.secondary,
+    textShadowOffset: {width: 2, height: 2},
+    textShadowRadius: 3,
   },
   container: {
     flex: 1,
     padding: 16,
     alignContent: 'center',
     alignSelf: 'center',
-    backgroundColor: '#eb2727',
+    backgroundColor: colors.primary,
   },
   inputContainer: {
     alignContent: 'center',
@@ -156,9 +174,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 20,
+    fontFamily: 'times new roman',
     marginBottom: 6,
     textAlign: 'left',
-    color: 'white',
+    color: colors.third,
     fontWeight: 'bold',
   },
   input: {
@@ -171,21 +190,22 @@ const styles = StyleSheet.create({
     width: width * 0.9 * 0.95, // Set the width to 75% of the screen width
   },
   button: {
-    backgroundColor: 'white',
+    backgroundColor: colors.third, // Example blue background color
     padding: 10,
     borderRadius: 10,
-    borderColor: 'gray',
+    borderColor: colors.fourth,
     borderWidth: 1,
     width: 300, // Match the input fields
     alignItems: 'center', // Center text horizontally
     alignSelf: 'center', // Center the button horizontally
     justifyContent: 'center', // Center text vertically
-    marginTop: 50,
+    marginTop: 10,
   },
   buttonText: {
-    color: 'red', // White text color
-    fontSize: 16,
+    color: colors.primary, // White text color
+    fontSize: 18,
     fontWeight: 'bold',
+    fontFamily: 'times new roman',
   },
 });
 

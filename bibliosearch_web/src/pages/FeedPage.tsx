@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
 import PostCard from "../components/PostCard";
 import PostPopup from "../components/PostPopUp";
+import { BookDetails } from "./SearchPage";
 
 export type PostDetails = {
   id: number;
@@ -13,6 +14,7 @@ export type PostDetails = {
   likes: number;
   dislikes: number;
   created_at: Date,
+  book: BookDetails;
 };
 
 export const FeedPage = () => {
@@ -36,7 +38,7 @@ export const FeedPage = () => {
         const posts: PostDetails[] = response.data.posts.map(
           (post: any, idx: number) => ({
             id: idx,     
-            bookname: post.bookname,
+            book: post.book,
             content: post.content,  
             username: post.username,
             created_at: new Date(post.created_at),

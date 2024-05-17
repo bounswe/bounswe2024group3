@@ -15,9 +15,12 @@ const PostCard = ({ post }: { post: PostDetails }) => {
       </figure>
       <div className="card-body">
         <h2 className="card-title">{post.username}</h2>
-        <p>{post.bookname}</p>
+        <p>about <em>{post.book.title}</em></p>
+        <div className="card-body">
         <p>{post.content}</p>
-        <p>{new Date(post.created_at).toLocaleString()}</p>
+        </div>
+        
+        <p className="right align">{new Date(post.created_at).toLocaleString()}</p>
         
         {/* <div className="card-actions justify-end">
             

@@ -871,7 +871,7 @@ def user_feed(request):
             'is_liked_by_user': user in post.likes.all(), 
             'total_likes': post.total_likes,  
             'book': {
-                'id': post.book.id,
+                'id':  post.book.id,
                 'title': post.book.title,
                 'cover_url': post.book.cover_url,
                 'authors': [author.name + ' ' + author.surname for author in post.book.authors.all()],

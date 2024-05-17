@@ -20,8 +20,8 @@ interface Booklist {
 interface UserProfile {
   name: string;
   surname: string;
-  username: string; // Assuming username is part of the profile
-  email: string; // Assuming email is also needed
+  username: string;
+  email: string;
   fav_authors: Author[];
   fav_genres: Genre[];
   booklists: Booklist[];
@@ -33,18 +33,13 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { userId } = useUser();
-  const { username } = useUser();
-  const { email } = useUser();
-  console.log(userId);
 
   useEffect(() => {
     if (userId) {
-      
       setLoading(true);
       axios.get(`${process.env.REACT_APP_BACKEND_URL}get_user_profile/?user_id=${userId}`)
         .then(response => {
           setProfile(response.data);
-          console.log(response.data);
           setLoading(false);
         })
         .catch(error => {
@@ -54,29 +49,23 @@ const Profile = () => {
     }
   }, [userId]);
 
-  console.log(999);
-  console.log(profile);
-
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setProfile(prev => prev ? { ...prev, [name]: value } : null);
   };
-
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!profile) return;
 
     setLoading(true);
-    
-    axios.post(`${process.env.REACT_APP_BACKEND_URL}update_user_profile/`, profile, {    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true  // Ensures cookies are sent with the request})
-}).then(response => {
+    axios.post(`${process.env.REACT_APP_BACKEND_URL}update_user_profile/`, profile, {
+      headers: { 'Content-Type': 'application/json' },
+      withCredentials: true
+    }).then(response => {
         alert('Profile updated successfully!');
         setLoading(false);
-        setEditMode(false); // Turn off edit mode after successful update
+        setEditMode(false);
       })
       .catch(error => {
         setError('Failed to update profile');
@@ -87,15 +76,14 @@ const Profile = () => {
   const handleDelete = () => {
     if (window.confirm("Are you sure you want to delete your profile? This action cannot be undone.")) {
       setLoading(true);
-      axios.delete(`${process.env.REACT_APP_BACKEND_URL}delete_user/`, {
-        withCredentials: true
-      }).then(response => {
-        alert('User deleted successfully');
-        // Handle post-deletion logic, e.g., redirect to login page
-      }).catch(error => {
-        setError('Failed to delete profile');
-        setLoading(false);
-      });
+      axios.delete(`${process.env.REACT_APP_BACKEND_URL}delete_user/`, { withCredentials: true })
+        .then(response => {
+          alert('User deleted successfully');
+          // Handle post-deletion logic, e.g., redirect to login page
+        }).catch(error => {
+          setError('Failed to delete profile');
+          setLoading(false);
+        });
     }
   };
 
@@ -103,45 +91,78 @@ const Profile = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-  <div>
-    <h1>Profile</h1>
-    {!editMode ? (
-      <>
-        <p><strong>Username:</strong> {profile?.username}</p>
-        <p><strong>Name:</strong> {profile?.name}</p>
-        <p><strong>Surname:</strong> {profile?.surname}</p>
-        <p><strong>Email:</strong> {profile?.email}</p>
-        <p><strong>Favorite Authors:</strong> {profile?.fav_authors.map(author => <span key={author.author_id}>{author.author_name}, </span>)}</p>
-        <p><strong>Favorite Genres:</strong> {profile?.fav_genres.map(genre => <span key={genre.genre_id}>{genre.genre_name}, </span>)}</p>
-        <p><strong>Booklists:</strong> {profile?.booklists.map(booklist => <span key={booklist.booklist_id}>{booklist.booklist_name}, </span>)}</p>
-        <button onClick={() => setEditMode(true)}>Edit Profile</button>
-        <button onClick={handleDelete} style={{ marginLeft: '10px', backgroundColor: 'red', color: 'white' }}>Delete Profile</button>
-      </>
-    ) : (
-      <form onSubmit={handleSubmit}>
-        <label>
-          Username:
-          <input type="text" name="username" value={profile?.username || ''} onChange={handleInputChange} />
-        </label>
-        <label>
-          Name:
-          <input type="text" name="name" value={profile?.name || ''} onChange={handleInputChange} />
-        </label>
-        <label>
-          Surname:
-          <input type="text" name="surname" value={profile?.surname || ''} onChange={handleInputChange} />
-        </label>
-        <label>
-          Email:
-          <input type="email" name="email" value={profile?.email || ''} onChange={handleInputChange} />
-        </label>
-        <button type="submit">Update Profile</button>
-        <button type="button" onClick={() => setEditMode(false)}>Cancel</button>
-      </form>
-    )}
+    <div>
+      <h1 style={{ color: '#333', fontSize: '24px', borderBottom: '2px solid #999', paddingBottom: '10px' }}>Profile</h1>
+      {!editMode ? (
+        <div style={{ color: '#666', marginTop: '20px' }}>
+          <p><strong>Username:</strong> {profile?.username}</p>
+          <p><strong>Name:</strong> {profile?.name}</p>
+          <p><strong>Surname:</strong> {profile?.surname}</p>
+          <p><strong>Email:</strong> {profile?.email}</p>
+          <div>
+            <strong>Favorite Authors:</strong>
+            <ul>
+              {profile?.fav_authors.map(author => <li key={author.author_id} style={{ listStyleType: 'none' }}>{author.author_name}</li>)}
+            </ul>
+          </div>
+          <div>
+            <strong>Favorite Genres:</strong>
+            <ul>
+              {profile?.fav_genres.map(genre => <li key={genre.genre_id} style={{ listStyleType: 'none' }}>{genre.genre_name}</li>)}
+            </ul>
+          </div>
+          <div>
+            <strong>Booklists:</strong>
+            <ul>
+              {profile?.booklists.map(booklist => <li key={booklist.booklist_id} style={{ listStyleType: 'none' }}>{booklist.booklist_name}</li>)}
+            </ul>
+          </div>
+           <div className="button-container" style={{ marginTop: '20px' }}>
+            <div>
+              <button onClick={() => setEditMode(true)} className="btn btn-secondary" style={{ width: '100%', marginBottom: '10px' }}>Edit Profile</button>
+            </div>
+            <div>
+              <button onClick={handleDelete} className="btn btn-danger" style={{ width: '100%' }}>Delete Profile</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} style={{ color: '#666', marginTop: '20px' }}>
+  <div style={{ marginBottom: '10px' }}>
+    <label>
+      Username:
+      <input type="text" name="username" value={profile?.username || ''} onChange={handleInputChange} style={{ display: 'block', width: '100%' }} />
+    </label>
   </div>
-);
+  <div style={{ marginBottom: '10px' }}>
+    <label>
+      Name:
+      <input type="text" name="name" value={profile?.name || ''} onChange={handleInputChange} style={{ display: 'block', width: '100%' }} />
+    </label>
+  </div>
+  <div style={{ marginBottom: '10px' }}>
+    <label>
+      Surname:
+      <input type="text" name="surname" value={profile?.surname || ''} onChange={handleInputChange} style={{ display: 'block', width: '100%' }} />
+    </label>
+  </div>
+  <div style={{ marginBottom: '10px' }}>
+    <label>
+      Email:
+      <input type="email" name="email" value={profile?.email || ''} onChange={handleInputChange} style={{ display: 'block', width: '100%' }} />
+    </label>
+  </div>
+  <div>
+    <button type="submit" className="btn btn-primary" style={{ width: '100%', marginBottom: '10px' }}>Update Profile</button>
+  </div>
+  <div>
+    <button type="button" onClick={() => setEditMode(false)} className="btn btn-secondary" style={{ width: '100%' }}>Cancel</button>
+  </div>
+</form>
 
+      )}
+    </div>
+  );
 };
 
 export default Profile;

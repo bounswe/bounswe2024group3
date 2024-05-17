@@ -86,6 +86,25 @@ const Profile = () => {
         });
     }
   };
+  
+  const handleNewBooklist = () => {
+    const booklistName = window.prompt('Enter a name for the new booklist');
+    if (booklistName) {
+      setLoading(true);
+      axios.post(`${process.env.REACT_APP_BACKEND_URL}create_booklist/`, { name: booklistName }, {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true
+      }).then(response => {
+          alert('Booklist created successfully!');
+          setLoading(false);
+          setProfile(prev => prev ? { ...prev, booklists: [...prev.booklists, response.data] } : null);
+        })
+        .catch(error => {
+          setError('Failed to create booklist');
+          setLoading(false);
+        });
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -122,7 +141,10 @@ const Profile = () => {
               <button onClick={() => setEditMode(true)} className="btn btn-secondary" style={{ width: '100%', marginBottom: '10px' }}>Edit Profile</button>
             </div>
             <div>
-              <button onClick={handleDelete} className="btn btn-danger" style={{ width: '100%' }}>Delete Profile</button>
+              <button onClick={handleDelete} className="btn btn-danger mb-2" style={{ width: '100%' }}>Delete Profile</button>
+            </div>
+            <div>
+              <button onClick={handleNewBooklist} className="btn btn-danger" style={{ width: '100%' }}>Create a Booklist</button>
             </div>
           </div>
         </div>

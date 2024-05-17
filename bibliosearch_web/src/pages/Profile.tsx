@@ -12,7 +12,7 @@ interface Genre {
   genre_name: string;
 }
 
-interface Booklist {
+export interface Booklist {
   booklist_id: number;
   booklist_name: string;
 }

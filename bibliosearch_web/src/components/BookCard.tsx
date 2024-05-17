@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { BookDetails } from "../pages/SearchPage";
 import { Link } from "react-router-dom";
 import PostPopup from "./PostPopUp";
+import AddToBooklist from "./AddToBooklist";
 
 // BookCard component
 const BookCard = ({ book }: { book: BookDetails }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isBookListOpen, setIsBookListOpen] = useState(false);
   return (
     <div className="card bg-base-100 shadow-xl">
       {/* Conditional rendering for the image */}
@@ -25,13 +27,14 @@ const BookCard = ({ book }: { book: BookDetails }) => {
             {" "}
             Details{" "}
           </Link>
-          <button className="btn btn-ghost"> Bookmark </button>
+          <button className="btn btn-ghost" onClick={() => setIsBookListOpen(true)}> Bookmark </button>
           <button onClick={() => setIsOpen(true)} className="btn btn-ghost">
             {" "}
             Write Post{" "}
           </button>
         </div>
         <PostPopup book={book} isOpen={isOpen} setIsOpen={setIsOpen} />
+        <AddToBooklist book={book} isOpen={isBookListOpen} setIsOpen={setIsBookListOpen} />
       </div>
     </div>
   );

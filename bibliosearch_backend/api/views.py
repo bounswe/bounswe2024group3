@@ -870,6 +870,17 @@ def user_feed(request):
             'created_at': post.created_at.isoformat(),  
             'is_liked_by_user': user in post.likes.all(), 
             'total_likes': post.total_likes,  
+            'book': {
+                'id':  post.book.id,
+                'title': post.book.title,
+                'cover_url': post.book.cover_url,
+                'authors': [author.name + ' ' + author.surname for author in post.book.authors.all()],
+                'genres': [genre.name for genre in post.book.genres.all()],
+                'isbn': post.book.isbn,
+                'description': post.book.description,
+                'publication_date': post.book.publication_date,
+                'page_count': post.book.page_count
+            }
         }
         for post in posts
     ]

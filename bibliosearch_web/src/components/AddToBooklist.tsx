@@ -24,7 +24,7 @@ const AddToBooklist = ({ book, isOpen, setIsOpen }: { book: BookDetails, isOpen:
 
   const handleSave = () => {
     if (selectedBooklist) {
-      req(`add_books_to_booklist`, 'post', { booklist_id: selectedBooklist, book_ids: [book.ISBN13] })
+      req(`add_books_to_booklist`, 'post', { booklist_id: selectedBooklist, isbns: [book.ISBN13.replace(/-/g,"")] })
         .then((response) => {
           console.log("Book added to booklist:", response);
           setIsOpen(false);

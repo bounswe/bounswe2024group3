@@ -4,6 +4,10 @@ import { Link } from "react-router-dom";
 import PostPopup from "./PostPopUp";
 import AddToBooklist from "./AddToBooklist";
 
+const handleDetailsClick = (book: BookDetails) => {
+  localStorage.setItem("book", JSON.stringify(book));
+}
+
 // BookCard component
 const BookCard = ({ book }: { book: BookDetails }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +27,7 @@ const BookCard = ({ book }: { book: BookDetails }) => {
         <p>ISBN: {book.ISBN13}</p>
         <p>Author: {book.authors}</p>
         <div className="card-actions justify-end">
-          <Link to={`/get_book/?isbn=${book.ISBN13}`} className="btn btn-primary">
+          <Link to={`/get_book/?isbn=${book.ISBN13}`} onClick={() => handleDetailsClick(book)} className="btn btn-primary">
             {" "}
             Details{" "}
           </Link>

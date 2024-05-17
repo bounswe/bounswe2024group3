@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
 import BookCard from "../components/BookCard";
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 
 export type BookType = {
   id: number;
@@ -16,9 +16,7 @@ export type BookType = {
 export const BookPage = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const isbn = searchParams.get('isbn');
-  
-
+  const isbn = searchParams.get("isbn");
 
   const [isBook, setIsBook] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,13 +33,20 @@ export const BookPage = () => {
         const response = await req(BookQuery, "get", {});
         console.log("Book response:", response.data);
         setBook(response.data);
-       
+
         setIsBook(true);
       } catch (error: any) {
         console.error("Book failed:", error);
         setError(error.message);
       }
       setIsLoading(false);
+      let book = JSON.parse(localStorage.getItem("book") || "{}");
+      // alert(JSON.stringify(book));
+      console.log("BOOK IS", book);
+      if (book) {
+        setBook({ isbn: book.ISBN13, ...book });
+      }
+      // setBook(book)
     };
     handleQuery();
   }, [isbn]);
@@ -56,29 +61,23 @@ export const BookPage = () => {
 
   return (
     <div className="flex flex-col justify-center items-center pt-5">
-      {isBook&&  <div className="card bg-base-100 shadow-xl">
-      {/* Conditional rendering for the image */}
-      <figure>
-        {book!.cover ? (
-          <img src={book!.cover!}  />
-        ) : (
-          <></>
-        )}
-      </figure>
-      <div className="card-body">
-        <h2 className="card-title">{book!.title}</h2>
-        <p>ISBN: {book!.isbn}</p>
-        <p>Author: {book!.authors}</p>
-        {book!.publication_date ? (<p>Publication Date: {book!.publication_date}</p>) :(
-          <></>
-        ) }
-      
-      
-      </div>
-    </div>}
+      {isBook && (
+        <div className="card bg-base-100 shadow-xl">
+          {/* Conditional rendering for the image */}
+          <figure>{book!.cover ? <img src={book!.cover!} /> : <></>}</figure>
+          <div className="card-body">
+            <h2 className="card-title">{book!.title}</h2>
+            <p>ISBN: {book!.isbn}</p>
+            <p>Author: {book!.authors}</p>
+            {book!.publication_date ? (
+              <p>Publication Date: {book!.publication_date}</p>
+            ) : (
+              <></>
+            )}
+          </div>
+        </div>
+      )}
       {error && <p className="text-red-500">{error}</p>}
-    
-   
     </div>
   );
 };

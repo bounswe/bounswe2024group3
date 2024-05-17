@@ -13,27 +13,25 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const BookPage = ({query: initialQuery, results: initialResults}) => {
+const BookPage = ({ query: initialQuery, results: initialResults }) => {
   const [query, setQuery] = useState(initialQuery);
   const [input, setInput] = useState('');
   const [results, setResults] = useState(initialResults); // State to manage results
   const [isLoading, setIsLoading] = useState(false);
+  const [postContents, setPostContents] = useState({}); // State to manage content inputs
 
   const handleQuery = async () => {
     setIsLoading(true);
-    const searchEndpoint = 'http://207.154.246.225/api/'; 
+    const searchEndpoint = 'http://207.154.246.225/api/';
 
     try {
-      // Fetch the CSRF token
-      const csrfTokenResponse = await axios.get(searchEndpoint + 'getToken/');
-      const csrfToken = csrfTokenResponse.data.csrf_token;
-      console.log('CSRF Token:', csrfToken);
-      
+
+
       // Proceed with registration
       const response = await axios.get(`${searchEndpoint}book/search/?keyword=${encodeURIComponent(input)}`);
-      
+
       if (response.data.message === 'successfully fetched data') {
         console.log('search successful');
         console.log(response.data.data);
@@ -49,6 +47,33 @@ const BookPage = ({query: initialQuery, results: initialResults}) => {
     setIsLoading(false);
   };
 
+  const handleCreatePost = async (book, content) => {
+    const postEndpoint = 'http://207.154.246.225/api/create_post/';
+    console.log('Book:', book);
+
+    try {
+
+
+      const postData = {
+        book_data: book,
+        content: content
+      };
+
+      const response = await axios.post(postEndpoint, postData);
+
+      if (response.data.message === 'Post created successfully') {
+        console.log('Post created successfully');
+        Alert.alert('Success', 'Post created successfully');
+      } else {
+        console.log(response.data.message || 'Failed to create post');
+        throw new Error(response.data.message || 'Failed to create post');
+      }
+    } catch (error) {
+      console.error('Create Post Error:', error);
+      Alert.alert('Create Post Error', error.message || 'An error occurred while creating the post');
+    }
+  };
+
   const renderBooks = () => {
     return results.map((book, index) => (
       <View key={index} style={styles.bookContainer}>
@@ -61,10 +86,21 @@ const BookPage = ({query: initialQuery, results: initialResults}) => {
         <Text style={styles.bookInfo}>Publication Year: {book.publicationYear?.value || 'Year not available'}</Text>
         <View style={styles.line}></View>
         <Text style={styles.bookInfo}>ISBN: {book.ISBN13?.value || 'ISBN not available'}</Text>
+        <TextInput
+          style={styles.contentInput}
+          placeholder="Write your post content here..."
+          value={postContents[book.ISBN13?.value] || ''}
+          onChangeText={(text) => setPostContents({ ...postContents, [book.ISBN13?.value]: text })}
+        />
+        <TouchableOpacity
+          style={styles.postButton}
+          onPress={() => handleCreatePost(book, postContents[book.ISBN13?.value] || 'Cool')}
+        >
+          <Text style={styles.postButtonText}>Create Post</Text>
+        </TouchableOpacity>
       </View>
     ));
   };
-  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -153,6 +189,18 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
+  postButton: {
+    backgroundColor: colors.secondary,
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  postButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   bookInfo: {
     fontSize: 16,
     color: colors.fourth,
@@ -167,5 +215,14 @@ const styles = StyleSheet.create({
   resultsContainer: {
     flex: 1,
   },
+  contentInput: {
+    backgroundColor: colors.primary,
+    borderColor: colors.fourth,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
 });
+
 export default BookPage;

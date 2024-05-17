@@ -16,6 +16,7 @@ import axios from 'axios';
 import BookPage from './BookPage';
 import FeedPage from './FeedPage';
 import ProfileScreen from './ProfileScreen';
+import UserSearchPage from './UserSearchPage';
 
 
 const {width} = Dimensions.get('window'); // Get the width of the screen
@@ -86,7 +87,7 @@ const MainPage = () => {
 
 const App = () => {
   return (
-    <NavigationContainer>
+    <NavigationContainer independent={true}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIconStyle: { display: "none" },
@@ -111,8 +112,9 @@ const App = () => {
           },
         })}
       >
-        <Tab.Screen name="Search" component={MainPage} options={{ headerShown: false }} />
-        <Tab.Screen name="Main" component={FeedPage} options={{ headerShown: false }} />
+        <Tab.Screen name="Books" component={MainPage} options={{ headerShown: false }} />
+        <Tab.Screen name="Users" component={UserSearchPage} options={{ headerShown: false }} />
+        <Tab.Screen name="Feed" component={FeedPage} options={{ headerShown: false }} />
         <Tab.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
       </Tab.Navigator>
     </NavigationContainer>

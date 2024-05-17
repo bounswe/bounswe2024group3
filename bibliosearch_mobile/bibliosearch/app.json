@@ -19,8 +19,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.yusufsuatp.bibliosearch"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -32,14 +31,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "66126288-5e77-428c-880b-51cf73c8b8b9"
-      }
     }
   }
 }

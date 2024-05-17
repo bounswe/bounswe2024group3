@@ -13,6 +13,7 @@ export type PostDetails = {
   likes: number;
   dislikes: number;
   created_at: Date,
+  is_liked_by_user: boolean;
 };
 
 export const FeedPage = () => {
@@ -40,6 +41,7 @@ export const FeedPage = () => {
             content: post.content,  
             username: post.username,
             created_at: new Date(post.created_at),
+            is_liked_by_user: post.is_liked_by_user,
           })
         );
         if (posts.length === 0) {

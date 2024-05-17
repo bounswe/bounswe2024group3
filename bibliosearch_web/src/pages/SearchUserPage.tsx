@@ -4,7 +4,8 @@ import { req } from "../utils/client";
 import UserCard from "../components/UserCard";
 
 export type UserDetails = {
-  id: number;
+ id: number;
+ userId: number;
  username: string;
  name:string;
  surname:string;
@@ -29,6 +30,7 @@ export const SearchUserPage = () => {
         const users: UserDetails[] = response.data.users.map(
           (user: any, idx: number) => ({
             id: idx,
+            userId : user.user_id,
             username: user.username,
             name: user.name,
             surname: user.surname

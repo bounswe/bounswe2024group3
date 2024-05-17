@@ -273,16 +273,16 @@ def create_booklist(request):
 def add_books_to_booklist(request):
     data = json.loads(request.body)
     booklist_id = data.get('booklist_id')
-    book_ids = data.get('book_ids', [])
+    isbns = data.get('isbns', [])
 
-    if not booklist_id or not book_ids:
+    if not booklist_id or not isbns:
         return JsonResponse({'error': 'Missing booklist_id or book_ids'}, status=400)
 
     booklist = get_object_or_404(BookList, id=booklist_id, user__user=request.user)
     if not booklist:
         return JsonResponse({'error': 'Booklist not found'}, status=404)
     
-    books = Book.objects.filter(id__in=book_ids)
+    books = Book.objects.filter(isbn__in=isbns)
     if not books:
         return JsonResponse({'error': 'Books not found'}, status=404)
     

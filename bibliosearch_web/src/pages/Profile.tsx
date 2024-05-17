@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { req } from "../utils/client";
 import { useUser } from "../providers/UserContest";
+import { useNavigate } from 'react-router-dom';
 
 interface Author {
   author_id: number;
@@ -41,6 +42,8 @@ interface BookDetails {
 }
 
 const Profile = () => {
+
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,6 +103,7 @@ const Profile = () => {
         })
         .then((response) => {
           alert("User deleted successfully");
+          navigate('/register');
           // Handle post-deletion logic, e.g., redirect to login page
         })
         .catch((error) => {

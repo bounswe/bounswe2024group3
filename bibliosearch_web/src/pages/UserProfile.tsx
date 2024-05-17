@@ -36,41 +36,47 @@
     const [isFollowing, setIsFollowing] = useState(false);
 
     useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await axios.get(
-          `${process.env.REACT_APP_BACKEND_URL}get_user_profile/?user_id=${id}`
-        );
-        setProfile(response.data);
+      const fetchProfileAndStatus = async () => {
+        await fetchProfile();
         await checkFollowStatus();
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-        setError('Failed to fetch profile');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
+      
+      fetchProfileAndStatus();
+    }, [id]);
+  
+  
+  const fetchProfile = async () => {
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}get_user_profile/?user_id=${id}`
+      );
+      setProfile(response.data);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      setError('Failed to fetch profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    
+  
 
-    const checkFollowStatus = async () => {
-      try {
-        const response = await req(
-          `check_user_follows_user/?target_user_id=${id}`,
-          'get',
-          {}
-        );
-        console.log(response);
-        setIsFollowing(response.data.is_following);
-      } catch (error) {
-        console.error('Failed to check follow status:', error);
-        setError('Failed to check follow status');
-      }
-    };
+  const checkFollowStatus = async () => {
+    try {
+      const response = await req(
+        `check_user_follows_user/?target_user_id=${id}`,
+        'get',
+        {}
+      );
+      console.log("Response:",response.data);
+      setIsFollowing(response.data.follows);
+      
+    } catch (error) {
+      console.error('Failed to check follow status:', error);
+      setError('Failed to check follow status');
+    }
+  };
 
-    fetchProfile();
-    checkFollowStatus();
-  }, [id]);
     
   const handleFollow = async (e: React.FormEvent) => {
     e.preventDefault();

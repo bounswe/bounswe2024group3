@@ -73,11 +73,9 @@ export const FeedPage = () => {
       {error && <p className="text-red-500">{error}</p>}
 
   
-      <div className="flex flex-col gap-4">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
-      </div>
     </div>
   );
 };

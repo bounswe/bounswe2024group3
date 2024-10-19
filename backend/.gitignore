@@ -1,0 +1,28 @@
+# Python related
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Ignore the virtual environment under the backend folder
+env/
+backend/env
+# Ignore the .env file under backend/music_app
+backend/.env
+
+# Django related
+db.sqlite3
+/media
+/static
+
+# VSCode settings
+.vscode/
+
+# macOS specific
+.DS_Store
+
+# Log files
+*.log
+
+# PostgreSQL dumps
+*.sql

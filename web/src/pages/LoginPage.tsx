@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import FormInput from "../components/FormInput";
-// import { req } from "../utils/client";
+import { req } from "../utils/client";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
@@ -11,21 +11,21 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     try {
-//       let response = await req("login", "post", {
-//         username: username,
-//         password: password,
-//       });
-//       console.log("Login Successful", response.data);
+    e.preventDefault();
+    try {
+      let response = await req("login", "post", {
+        username: username,
+        password: password,
+      });
+      console.log("Login Successful", response.data);
 
-//       navigate("/");
-//     } catch (error: any) {
-//       console.error("Login failed:", error);
-//       setError(error.message);
-//     }
-//   };
-  }
+      navigate("/");
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      setError(error.message);
+    }
+  };
+  
 
   
 

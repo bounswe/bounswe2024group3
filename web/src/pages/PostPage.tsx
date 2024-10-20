@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import SpotifyEmbed from "./SpotifyEmbed";
+import SpotifyEmbed from "../components/SpotifyEmbed";
 
 interface PostPageProps {
   type: string;

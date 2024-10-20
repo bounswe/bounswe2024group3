@@ -1,0 +1,55 @@
+version: '3.9'
+
+services:
+
+  # Database service
+  db:
+    image: postgres
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: topsecret
+
+  # Adminer for database management
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  # Backend service
+  backend:
+    build: ../backend
+    container_name: backend
+    command: bash -c "sleep 3 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ../backend:/backend
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: topsecret
+    depends_on:
+      - db
+    links:
+      - db:database
+
+  # Frontend service
+  frontend:
+    build: ../web
+    container_name: frontend
+    command: yarn start
+    volumes:
+      - ../web:/frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_BACKEND_URL: http://backend:8000/api/
+      HOST: 0.0.0.0
+    depends_on:
+      - backend
+    links:
+      - backend:backend

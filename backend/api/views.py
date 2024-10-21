@@ -148,7 +148,12 @@ def forget_password(request):
         reset = PasswordReset(email=email, token=token)
         reset.save()
 
-        backend_host = getenv("PROD_HOST").split(":")[0]
+        backend_host = getenv("PROD_HOST")
+
+        if not backend_host:
+            backend_host = "0.0.0.0"
+        else:
+            backend_host = backend_host.split(":")[0]
 
         reset_url = f"http://{backend_host}:3000/reset/?token={token}" # TODO: make this point to server's domain
 

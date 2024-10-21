@@ -32,6 +32,7 @@ services:
       DB_NAME: postgres
       DB_USERNAME: postgres
       DB_PASSWORD: topsecret
+      DEBUG: ${DJANGO_DEBUG:-True}
     depends_on:
       - db
     links:

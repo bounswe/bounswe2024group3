@@ -1,131 +1,103 @@
-
-import json
-from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
-from django.db.models.functions import Concat
-
-#import auth_logout,auth_login,authenticate
-from django.contrib.auth import logout as auth_logout,login as auth_login,authenticate
-
-from django.views.decorators.csrf import csrf_exempt
-
-from django.http import JsonResponse
-
-#import messages
-from django.contrib import messages
-
-
-#import User
+from django.urls import reverse
+from django.test import TestCase
 from django.contrib.auth.models import User
+from .models import Profile
+import json
 
-from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
-
-
-from datetime import datetime
-
-
-
-# create login view
-@require_http_methods(["POST"])
-@csrf_exempt
-def login(request):
-    data = json.loads(request.body)
-    username = data['username']
-    password = data['password']
-    user = authenticate(request, username=username, password=password)
-
-    if user is not None:
-        auth_login(request, user)
-
-        # Assuming that BiblioSearchUser has a one-to-one relation with Django's User model
-        try:
-            biblio_user = BiblioSearchUser.objects.get(user=user)
-            name = biblio_user.name
-            surname = biblio_user.surname
-        except BiblioSearchUser.DoesNotExist:
-            # Handle case where BiblioSearchUser does not exist for the authenticated user
-            name = ''
-            surname = ''
-
-        return JsonResponse({
-            'message': 'Login successful',
-            'username': user.username,
-            'user_id': user.id,
-            'name': name,
-            'surname': surname,
-            'email' : user.email
-        })
-    else:
-        return JsonResponse({'error': 'Invalid username or password'}, status=400)
-    
-
-@require_http_methods(["GET"])
-def get_user(request):
-    if request.user.is_authenticated:
-        user = request.user
-        try:
-            biblio_user = BiblioSearchUser.objects.get(user=user)
-            name = biblio_user.name
-            surname = biblio_user.surname
-        except BiblioSearchUser.DoesNotExist:
-            # Handle case where BiblioSearchUser does not exist for the authenticated user
-            name = ''
-            surname = ''
-
-        return JsonResponse({
-            'message': 'Login successful',
-            'username': user.username,
-            'user_id': user.id,
-            'name': name,
-            'surname': surname,
-            'email' : user.email
-
-        })
-    else:
-        return JsonResponse({'error': 'Invalid username or password'}, status=400)
+class AuthAPITests(TestCase):
+    def setUp(self):
+        # Create a test user and profile
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpassword'
+        )
+        self.profile = Profile.objects.create(
+            user=self.user,
+            name='Test',
+            surname='User',
+            labels=['Artist', 'Listener']
+        )
+        self.user1 = User.objects.create_user(
+            username='testuser1',
+            email='test1@example.com',
+            password='testpassword'
+        )
+        self.profile1 = Profile.objects.create(
+            user=self.user1,
+            name='Test',
+            surname='User',
+            labels=['Artist', 'Listener']
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2',
+            email='test2@example.com',
+            password='testpassword'
+        )
+        self.profile2 = Profile.objects.create(
+            user=self.user2,
+            name='Another',
+            surname='User',
+            labels=['Listener']
+        )
         
+    def test_register(self):
+        response = self.client.post(reverse('register'), data=json.dumps({
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'newpassword',
+            'name': 'New',
+            'surname': 'User',
+            'labels': ['Listener']
+        }), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Registration successful')
     
+    def test_login(self):
+        response = self.client.post(reverse('login'), data=json.dumps({
+            'username': 'testuser',
+            'password': 'testpassword'
+        }), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Login successful')
 
-@require_http_methods(["POST"])
-@csrf_exempt
-def register(request):
-        # get the name, username, email, and password from the request body
-        data = json.loads(request.body)
-        name = data['name']
-        surname = data['surname']
-        username = data['username']
-        email = data['email']
-        password = data['password']
+    def test_get_user(self):
+        self.client.login(username='testuser', password='testpassword')  # Log in the user
+        response = self.client.get(reverse('get_user'))
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'User details retrieved')
 
-    
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists')
-            return JsonResponse({'error': 'Username already exists'}, status=400)
-        elif User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already registered')
-            return JsonResponse({'error': 'Email already registered'}, status=400)
-        else:
+    def test_logout(self):
+        self.client.login(username='testuser', password='testpassword')  # Log in the user
+        response = self.client.post(reverse('logout'))
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Logout successful')
 
-            user = User.objects.create_user(username=username, email=email, password=password)
-            
-            bibliosearch_user = BiblioSearchUser.objects.create(user=user, name=name, surname=surname)
+    def test_follow_user(self):
+        self.client.login(username='testuser1', password='testpassword')  # Log in user1
+        response = self.client.post(reverse('follow_user', args=[self.user2.id]))  # Follow user2
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'You are now following {self.user2.username}')
+        
+        # Check if user1 follows user2
+        self.profile1.refresh_from_db()
+        self.assertIn(self.profile2, self.profile1.following.all())
 
-
-            user.save()
-            bibliosearch_user.save()
-
-            # Log the user in and redirect to home
-            auth_login(request, user)
-            messages.success(request, 'Registration successful')
-
-            # return json object user  with user details and status code 200
-            return JsonResponse({'message': 'Registration successful', 'username': user.username})
-            
-
-    
-
-# create logout view
-def logout(request):
-    auth_logout(request)
-    return JsonResponse({'message': 'Logout successful'})
+    def test_unfollow_user(self):
+        self.client.login(username='testuser1', password='testpassword')  # Log in user1
+        # Follow user2 first
+        self.profile1.following.add(self.profile2)
+        
+        response = self.client.post(reverse('unfollow_user', args=[self.user2.id]))  # Unfollow user2
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'You have unfollowed {self.user2.username}')
+        
+        # Check if user1 no longer follows user2
+        self.profile1.refresh_from_db()
+        self.assertNotIn(self.profile2, self.profile1.following.all())

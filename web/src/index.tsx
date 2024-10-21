@@ -22,6 +22,7 @@ root.render(
                 <Route path= "/"    element={<App/>} />,
                 <Route path="track/:spotifyId" element={<PostPage type="track" />} />
                 <Route path="playlist/:spotifyId" element={<PostPage type="playlist" />} />
+                <Route path="album/:spotifyId" element={<PostPage type="album" />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
               </Routes>

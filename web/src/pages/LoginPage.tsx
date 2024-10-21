@@ -2,11 +2,15 @@ import React, { useState } from "react";
 import FormInput from "../components/FormInput";
 import { req } from "../utils/client";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../providers/UserContext";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const { setUsername: setGlobalUsername } = useUser();
+  const { setUserId: setGlobalUserId } = useUser();
+  const { setEmail: setGlobalEmail} = useUser();
 
   const navigate = useNavigate();
 
@@ -18,6 +22,9 @@ const LoginPage = () => {
         password: password,
       });
       console.log("Login Successful", response.data);
+      setGlobalUsername(username);
+      setGlobalUserId(response.data.user_id);
+      setGlobalEmail(response.data.email);
 
       navigate("/");
     } catch (error: any) {

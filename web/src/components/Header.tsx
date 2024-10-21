@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import NavbarAccount from "./NavbarAccount";
-// import { useUser } from "../providers/UserContest";
+import { useUser } from "../providers/UserContext";
 
 const Header = () => {
-//   const { username } = useUser();
+  const { username } = useUser();
 
   const navigate = useNavigate();
 
@@ -18,7 +18,7 @@ const Header = () => {
       </div>  
         {// going to change this part when userContext is active
         }
-      <div><NavbarAccount username={""} /></div>
+      <div><NavbarAccount username={username} /></div>
       
     </div>
   );

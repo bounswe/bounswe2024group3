@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 
+from os import getenv
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,6 +33,13 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
     "127.0.0.1"
 ]
+
+prod_host = getenv("PROD_HOST")
+
+if prod_host:
+    prod_host = prod_host.split(":")[0]
+
+    ALLOWED_HOSTS.append(prod_host)
 
 
 # Application definition

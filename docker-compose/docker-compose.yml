@@ -23,7 +23,7 @@ services:
     container_name: backend
     command: bash -c "sleep 3 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ../backend:/backend
+      - ../backend-vol:/backend
     ports:
       - "8000:8000"
     environment:
@@ -32,6 +32,8 @@ services:
       DB_NAME: postgres
       DB_USERNAME: postgres
       DB_PASSWORD: topsecret
+      DEBUG: ${DJANGO_DEBUG:-True}
+      PROD_HOST: ${BACKEND_URL:-0.0.0.0}
     depends_on:
       - db
     links:
@@ -43,11 +45,11 @@ services:
     container_name: frontend
     command: yarn start
     volumes:
-      - ../web:/frontend
+      - ../web-vol:/frontend
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_BACKEND_URL: http://0.0.0.0:8000/api/
+      REACT_APP_BACKEND_URL: http://${BACKEND_URL:-0.0.0.0:8000}/api/
       HOST: 0.0.0.0
     depends_on:
       - backend

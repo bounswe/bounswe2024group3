@@ -13,7 +13,7 @@ const Header = () => {
     <div className="navbar bg-base-100 shadow-xl rounded-box">
       <div className="flex-1">
         <Link className="btn btn-ghost text-xl" to="/">
-          Spotity
+          Spot On
         </Link>
       </div>  
         {// going to change this part when userContext is active

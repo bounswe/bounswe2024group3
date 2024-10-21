@@ -23,7 +23,7 @@ services:
     container_name: backend
     command: bash -c "sleep 3 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
-      - ../backend:/backend
+      - ../backend-vol:/backend
     ports:
       - "8000:8000"
     environment:
@@ -44,7 +44,7 @@ services:
     container_name: frontend
     command: yarn start
     volumes:
-      - ../web:/frontend
+      - ../web-vol:/frontend
     ports:
       - "3000:3000"
     environment:

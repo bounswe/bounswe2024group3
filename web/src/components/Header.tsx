@@ -12,7 +12,7 @@ const Header = () => {
   return (
     <div className="navbar bg-base-100 shadow-xl rounded-box">
       <div className="flex-1">
-        <Link className="btn btn-ghost text-xl" to="/feed">
+        <Link className="btn btn-ghost text-xl" to="/">
           Spotity
         </Link>
       </div>  

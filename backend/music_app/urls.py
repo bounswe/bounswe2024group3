@@ -22,6 +22,8 @@ from api import views
 urlpatterns = [
     path('api/login/', views.login, name='login'),
     path('api/register/', views.register, name='register'),
+    path('api/forget-password', views.forget_password, name='forget_password'),
+    path('api/reset-password', views.reset_password, name='reset_password'),
     path('api/get_user/', views.get_user, name='get_user'),
     path('api/logout/', views.logout, name='logout'),
     path('api/follow/<int:user_id>/', views.follow_user, name='follow_user'),

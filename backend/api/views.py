@@ -3,9 +3,10 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt, get_token
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.shortcuts import get_object_or_404
 import json
-from .models import Profile
+from .models import PasswordReset, Profile
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -131,3 +132,62 @@ def logout(request):
 def csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrf_token': csrf_token})
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def forget_password(request):
+    data = json.loads(request.body)
+    email = data['email']
+    user = User.objects.filter(email__iexact=email).first()
+
+    if user:
+        token_generator = PasswordResetTokenGenerator()
+        token = token_generator.make_token(user) 
+        reset = PasswordReset(email=email, token=token)
+        reset.save()
+
+        reset_url = f"http://0.0.0.0:3000/reset/?token={token}" # TODO: make this point to server's domain
+
+        print(
+            f"""
+            New email:
+            to: {email}
+            subject: Password Reset
+
+            body:
+                to reset your password please go to the following URL:
+                {reset_url}
+            """
+        )
+        return JsonResponse({'success': 'We have sent you a link to reset your password'}, status=200)
+    else:
+        return JsonResponse({"error": "User with credentials not found"}, status=400)
+    
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def reset_password(request):
+    data = json.loads(request.body)
+    token = data['token']
+    new_password = data['new_password']
+    confirm_password = data['confirm_password']
+
+    if new_password != confirm_password:
+            return JsonResponse({"error": "Passwords do not match"}, status=400)
+        
+    reset_obj = PasswordReset.objects.filter(token=token).first()
+    
+    if not reset_obj:
+        return JsonResponse({'error':'Invalid token'}, status=400)
+    
+    user = User.objects.filter(email=reset_obj.email).first()
+    
+    if user:
+        user.set_password(data['new_password'])
+        user.save()
+        
+        reset_obj.delete()
+        
+        return JsonResponse({'success':'Password updated'})
+    else: 
+        return JsonResponse({'error':'No user found'}, status=404)

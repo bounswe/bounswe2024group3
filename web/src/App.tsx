@@ -1,10 +1,12 @@
-import SpotifyEmbed from "./components/SpotifyEmbed";
+import PostCard from "./components/PostCard";
+import { mockPosts } from "./pages/PostPage";
 
 function App() {
   return (
     <>
-      
-      <SpotifyEmbed spotifyId="spotify:track:2LETLpcnlbL2d5IbnNYLf8?theme=0" />
+      {mockPosts.map((post) => (
+          <PostCard key={post.id} isFeed={true} post={post} />
+      ))}
     </>
   );
 }

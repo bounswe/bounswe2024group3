@@ -8,6 +8,8 @@ import RegisterPage from "./pages/RegisterPage";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import PostPage from "./pages/PostPage";
 import { UserProvider } from "./providers/UserContext";
+import ResetRequestPage from "./pages/ResetRequestPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 
 const root = ReactDOM.createRoot(
@@ -25,6 +27,8 @@ root.render(
                 <Route path="album/:spotifyId" element={<PostPage type="album" />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/request-reset" element={<ResetRequestPage />} />
+                <Route path="/reset" element={<ResetPasswordPage />} />
               </Routes>
             </Layout>
           </UserProvider>

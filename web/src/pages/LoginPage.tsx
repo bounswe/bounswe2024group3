@@ -32,6 +32,10 @@ const LoginPage = () => {
       setError(error.message);
     }
   };
+  const navigateToResetRequest = () => {
+    navigate("/request-reset"); // Assuming '/request-reset' is the route for the ResetRequestPage
+  };
+
   
 
   
@@ -55,6 +59,14 @@ const LoginPage = () => {
       <button type="submit" className="btn btn-primary mt-4">
         Login
       </button>
+      <button
+        type="button"
+        className="btn btn-secondary mt-4"
+        onClick={navigateToResetRequest}
+      >
+        Forgot Password?
+      </button>
+      
       {error && <p className="text-red-500">{error}</p>}
     </form>
   );

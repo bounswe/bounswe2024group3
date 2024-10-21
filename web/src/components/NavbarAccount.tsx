@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-// import { req } from "../utils/client";
-// import { useUser } from "../providers/UserContest";
+import { req } from "../utils/client";
+import { useUser } from "../providers/UserContext";
 
 type NavbarAccountProps = {
   username: string;
@@ -9,19 +9,19 @@ type NavbarAccountProps = {
 
 const NavbarAccount = ({ username }: NavbarAccountProps) => {
   const navigate = useNavigate();
-//   const { setUsername, setError } = useUser();
+  const { setUsername, setError } = useUser();
 
 
-//   const logout = async () => {
-//     try {
-//       await req("logout", "post", {});
-//     } catch (error: any) {
-//       console.error("Logout failed:", error);
-//       setError(error.message);
-//     }
-//     setUsername("");
-//     navigate("/");
-//   };
+  const logout = async () => {
+    try {
+      await req("logout", "post", {});
+    } catch (error: any) {
+      console.error("Logout failed:", error);
+      setError(error.message);
+    }
+    setUsername("");
+    navigate("/");
+  };
 
   if (username !== "") {
     return (
@@ -46,9 +46,9 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
             <Link to="/settings">Settings</Link>
           </li>
           <li>
-            {/* <Link to="/" onClick={logout}>
+            <Link to="/" onClick={logout}>
               Logout
-            </Link> */}
+            </Link>
           </li>
         </ul>
       </div>

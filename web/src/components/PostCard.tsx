@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import {Link} from "react-router-dom";
 import { PostDetails } from "../pages/PostPage";
 import { Spotify } from "react-spotify-embed";
 import SvgIcon from "./SvgIcon";
@@ -62,18 +63,17 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           <div className="relative">
             {/* Spotify Embed */}
             <Spotify
-              width={80}
-              height={80}
+              width=  "100%"
+              height="100%"
               link={`https://open.spotify.com/${post.type}/${post.spotifyId}`}
             />
 
             {/* Invisible clickable overlay */}
-            <a
-              href={`/${post.type}/${post.spotifyId}`}
-              rel="noopener noreferrer"
-              className="absolute inset-0 z-10"
-              aria-label="Override Spotify link"
-            ></a>
+            <Link
+  to={`/${post.type}/${post.spotifyId}`}
+  className="absolute inset-0 z-10"
+  aria-label="Override Spotify link"
+></Link>
           </div>
         )}
         <div className="card-body">

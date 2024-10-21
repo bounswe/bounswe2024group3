@@ -7,7 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import PostPage from "./pages/PostPage";
-
+import { UserProvider } from "./providers/UserContext";
 
 
 const root = ReactDOM.createRoot(
@@ -16,7 +16,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
         <BrowserRouter>
-
+          <UserProvider>
             <Layout>
               <Routes>
                 <Route path= "/"    element={<App/>} />,
@@ -26,8 +26,9 @@ root.render(
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
               </Routes>
-
             </Layout>
+          </UserProvider>
+
 
 
 

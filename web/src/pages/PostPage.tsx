@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import PostCard from "../components/PostCard";
 import { Spotify } from "react-spotify-embed";
 import RecommendationItem from "../components/RecommendationItem";
+import { useUser } from "../providers/UserContext";
 
 interface PostPageProps {
   type: string;
@@ -200,6 +201,8 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const { spotifyId } = useParams<{ spotifyId: string }>();
   const [posts, setPosts] = useState<PostDetails[]>([]);
   const [newPostContent, setNewPostContent] = useState(""); // To track new post content
+  const { username } = useUser();
+
 
   useEffect(() => {
     // If spotifyId is provided, filter posts by it; otherwise, show all posts
@@ -220,7 +223,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       imageUrl: null,
       title: undefined,
       content: newPostContent,
-      username: "ekrembal", // You can replace this with the logged-in user's name
+      username: username ,// You can replace this with the logged-in user's name
       likes: 0,
       dislikes: 0,
       created_at: new Date(),

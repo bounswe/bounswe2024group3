@@ -1,3 +1,5 @@
+from os import getenv
+
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -146,7 +148,9 @@ def forget_password(request):
         reset = PasswordReset(email=email, token=token)
         reset.save()
 
-        reset_url = f"http://0.0.0.0:3000/reset/?token={token}" # TODO: make this point to server's domain
+        backend_host = getenv("PROD_HOST").split(":")[0]
+
+        reset_url = f"http://{backend_host}:3000/reset/?token={token}" # TODO: make this point to server's domain
 
         print(
             f"""

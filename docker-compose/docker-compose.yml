@@ -33,7 +33,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: topsecret
       DEBUG: ${DJANGO_DEBUG:-True}
-      PROD_HOST: ${BACKEND_URL}
+      PROD_HOST: ${BACKEND_URL:-0.0.0.0}
     depends_on:
       - db
     links:

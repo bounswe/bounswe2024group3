@@ -1,7 +1,7 @@
 import React from 'react';
 import { SafeAreaView, FlatList } from 'react-native';
-import PostCard from '../components/PostCard'; // Ensure the path is correct
-import { mockPosts } from '../pages/mockPosts'; // Corrected import path
+import PostCard from '../../components/PostCard'; 
+import { mockPosts } from '../../pages/mockPosts'; 
 
 function App() {
   return (

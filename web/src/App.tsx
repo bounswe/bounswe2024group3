@@ -8,7 +8,7 @@ function App() {
     <>
       {username ? mockPosts.map((post) => (
           <PostCard key={post.id} isFeed={true} post={post} />
-      )):
+      )) :
       <p className="text-lg text-center text-gray-600 mt-10">
           Please login to see the posts
         </p>}

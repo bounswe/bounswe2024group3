@@ -22,6 +22,7 @@ const LoginPage = () => {
         password: password,
       });
       console.log("Login Successful", response.data);
+      localStorage.setItem("username",username);
       setGlobalUsername(username);
       setGlobalUserId(response.data.user_id);
       setGlobalEmail(response.data.email);

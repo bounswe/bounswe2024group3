@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState,useEffect } from "react";
 
 const UserContext = createContext<{
   setError: (message: string) => void;
@@ -23,10 +23,14 @@ const UserContext = createContext<{
 export const useUser = () => useContext(UserContext);
 
 export const UserProvider = ({ children }: { children: any }) => {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(localStorage.getItem("username") || "");
   const [curError, setError] = useState("");
   const [userId, setUserId] = useState(0);
   const [email, setEmail] = useState("");
+  useEffect(() => {
+    if (username) localStorage.setItem("username", username);
+    else localStorage.removeItem("username");
+  }, [username]);
 
   return (
     <UserContext.Provider value={{ username, setUsername, userId, setUserId, email, setEmail, curError, setError }}>

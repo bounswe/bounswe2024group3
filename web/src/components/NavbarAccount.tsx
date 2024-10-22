@@ -20,6 +20,8 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
       setError(error.message);
     }
     setUsername("");
+    localStorage.clear();  // Clear all localStorage data (or selectively remove keys)
+
     navigate("/");
   };
 

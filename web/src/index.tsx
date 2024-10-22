@@ -29,6 +29,7 @@ root.render(
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/request-reset" element={<ResetRequestPage />} />
                 <Route path="/reset" element={<ResetPasswordPage />} />
+                
               </Routes>
             </Layout>
           </UserProvider>

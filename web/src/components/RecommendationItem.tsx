@@ -1,4 +1,5 @@
 import { Spotify } from "react-spotify-embed";
+import { Link } from "react-router-dom";
 
 const RecommendationItem: React.FC<{ rec: { type: string; spotifyId: string } }> = ({ rec }) => {
   return (
@@ -11,12 +12,12 @@ const RecommendationItem: React.FC<{ rec: { type: string; spotifyId: string } }>
       />
 
       {/* Invisible clickable overlay */}
-      <a
-        href={`/${rec.type}/${rec.spotifyId}`}
-        rel="noopener noreferrer"
-        className="absolute inset-0 z-10"
-        aria-label="Override Spotify link"
-      ></a>
+        <Link
+      to={`/${rec.type}/${rec.spotifyId}`}
+      className="absolute inset-0 z-10"
+      aria-label="Override Spotify link"
+    ></Link>
+      
     </div>
   );
 };

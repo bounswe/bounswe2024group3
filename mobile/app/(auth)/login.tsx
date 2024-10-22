@@ -6,18 +6,18 @@ import { Link } from 'expo-router';
 
 export default function Login() {
   const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState(''); // Use username instead of email
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      const response = await fakeApiLogin(email, password);
+      const response = await fakeApiLogin(username, password); // Use username for login
       if (response.success) {
         login();
       } else {
-        alert('Invalid email or password');
+        alert('Invalid username or password');
       }
     } catch (error) {
       console.error(error);
@@ -27,11 +27,11 @@ export default function Login() {
     }
   };
 
-  const fakeApiLogin = async (email: string, password: string) => {
+  const fakeApiLogin = async (username: string, password: string) => {
     // Simulate an API call with a delay
     return new Promise<{ success: boolean }>((resolve) => {
       setTimeout(() => {
-        if (email === 'user@example.com' && password === 'password') {
+        if (username === 'user123' && password === 'password') {
           resolve({ success: true });
         } else {
           resolve({ success: false });
@@ -44,12 +44,11 @@ export default function Login() {
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
       <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
         style={styles.input}
         autoCapitalize="none"
-        keyboardType="email-address"
       />
       <TextInput
         placeholder="Password"
@@ -63,8 +62,13 @@ export default function Login() {
       ) : (
         <Button title="Login" onPress={handleLogin} />
       )}
+
       <Link href="/register" style={styles.link}>
         Don't have an account? Register
+      </Link>
+
+      <Link href="/forgot-password" style={styles.link}>
+        Forgot password?
       </Link>
     </View>
   );

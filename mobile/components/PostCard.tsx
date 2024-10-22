@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, Image, Button, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import  SpotifyEmbed  from './SpotifyEmbed'; // Create a custom Spotify Embed for React Native
+
+// TODO: We should add types to the props
 
 const PostCard = ({ post, isFeed }) => {
   const [likes, setLikes] = useState(post.likes);

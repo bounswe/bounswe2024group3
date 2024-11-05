@@ -42,10 +42,10 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
           className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
         >
           <li>
-            <Link to="/profile">Profile</Link>
+            <Link to="/profile" aria-label="profile">Profile</Link>
           </li>
           <li>
-            <Link to="/settings">Settings</Link>
+            <Link to="/settings" aria-label="settings">Settings</Link>
           </li>
           <li>
             <Link to="/" onClick={logout}>
@@ -59,10 +59,10 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
     return (
       <ul className="menu menu-horizontal px-1">
         <li>
-          <Link to="/login">Login</Link>
+          <Link to="/login" aria-label="Login">Login</Link>
         </li>
         <li>
-          <Link to="/register">Register</Link>
+          <Link to="/register" aria-label="Register">Register</Link>
         </li>
       </ul>
     );

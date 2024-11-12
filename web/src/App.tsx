@@ -1,8 +1,10 @@
 import PostCard from "./components/PostCard";
 import { mockPosts } from "./pages/PostPage";
 import { useUser } from "./providers/UserContext";
-
+import useAccessibility, { setScreenReaderMode } from "./components/Accessibility";
 function App() {
+
+  useAccessibility();
   const { username } = useUser();
   return (
     <>

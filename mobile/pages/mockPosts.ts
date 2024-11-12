@@ -18,7 +18,7 @@ export let mockPosts: PostDetails[] = [
     imageUrl: null,
     title: undefined,
     content:
-      "Selamlar, şöyle bir playlist hazırladım. Ortamlarda çalarsınız :)",
+      "Selamlarr, şöyle bir playlist hazırladım. Ortamlarda çalarsınız :)",
     username: "ekrembal",
     likes: 10,
     dislikes: 5,

@@ -1,13 +1,41 @@
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import  SpotifyEmbed  from './SpotifyEmbed'; // Create a custom Spotify Embed for React Native
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
+import SpotifyEmbed from './SpotifyEmbed'; // Ensure this path is correct
 
-// TODO: We should add types to the props
+// Define the type for the post details
+interface PostDetails {
+  id: number;
+  title?: string;
+  content: string;
+  username: string;
+  imageUrl?: string | null;
+  type: string;
+  spotifyId: string;
+  likes: number;
+  dislikes: number;
+  userAction: 'like' | 'dislike' | null;
+  created_at: Date;
+}
 
-const PostCard = ({ post, isFeed }) => {
-  const [likes, setLikes] = useState(post.likes);
-  const [dislikes, setDislikes] = useState(post.dislikes);
-  const [userAction, setUserAction] = useState(post.userAction);
+// Define the props for the PostCard component
+interface PostCardProps {
+  post: PostDetails;
+  isFeed: boolean;
+  isDarkTheme: boolean;
+}
+
+const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
+  const [likes, setLikes] = useState<number>(post.likes);
+  const [dislikes, setDislikes] = useState<number>(post.dislikes);
+  const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(
+    post.userAction
+  );
 
   const handleLike = () => {
     if (userAction !== 'like') {
@@ -29,29 +57,73 @@ const PostCard = ({ post, isFeed }) => {
     }
   };
 
+  // Define colors based on the theme
+  const backgroundColor = isDarkTheme ? '#333' : '#fff';
+  const textColor = isDarkTheme ? '#fff' : '#000';
+
+  // Helper function to determine action button color
+  const getActionColor = (action: 'like' | 'dislike') => {
+    return userAction === action ? 'blue' : textColor;
+  };
+
   return (
-    <View style={{ padding: 16, backgroundColor: '#fff', marginBottom: 16 }}>
+    <View style={[styles.container, { backgroundColor }]}>
       {post.imageUrl ? (
-        <Image source={{ uri: post.imageUrl }} style={{ width: '100%', height: 200 }} />
+        <Image source={{ uri: post.imageUrl }} style={styles.image} />
       ) : (
-        <Text style={{ fontSize: 24 }}>{post.title}</Text>
+        post.title && (
+          <Text style={[styles.title, { color: textColor }]}>{post.title}</Text>
+        )
       )}
-      <Text style={{ fontWeight: 'bold', marginVertical: 8 }}>{post.username}</Text>
-      {isFeed && <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />}
-      <Text>{post.content}</Text>
-      <Text>{new Date(post.created_at).toLocaleString()}</Text>
+      <Text style={[styles.username, { color: textColor }]}>
+        {post.username}
+      </Text>
+      {isFeed && (
+        <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />
+      )}
+      <Text style={{ color: textColor }}>{post.content}</Text>
+      <Text style={{ color: textColor }}>
+        {new Date(post.created_at).toLocaleString()}
+      </Text>
 
       {/* Like and Dislike Actions */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 16 }}>
+      <View style={styles.actions}>
         <TouchableOpacity onPress={handleLike}>
-          <Text style={{ color: userAction === 'like' ? 'blue' : 'black' }}>👍 {likes}</Text>
+          <Text style={{ color: getActionColor('like') }}>
+            👍 {likes}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleDislike}>
-          <Text style={{ color: userAction === 'dislike' ? 'blue' : 'black' }}>👎 {dislikes}</Text>
+          <Text style={{ color: getActionColor('dislike') }}>
+            👎 {dislikes}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+    marginBottom: 16,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+  },
+  title: {
+    fontSize: 24,
+  },
+  username: {
+    fontWeight: 'bold',
+    marginVertical: 8,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+  },
+});
 
 export default PostCard;

@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  FlatList,
+  StyleSheet,
+} from 'react-native';
 import PostCard from '../components/PostCard';
 import { mockPosts, PostDetails } from './mockPosts';
 
 const PostPage: React.FC<{ type: string }> = ({ type }) => {
   const [posts, setPosts] = useState<PostDetails[]>([]);
   const [newPostContent, setNewPostContent] = useState('');
+  const [isDarkTheme, setIsDarkTheme] = useState(false); // Added theme state
 
   useEffect(() => {
     setPosts(mockPosts);
@@ -30,25 +38,56 @@ const PostPage: React.FC<{ type: string }> = ({ type }) => {
     setNewPostContent('');
   };
 
+  // Theme toggle function
+  const toggleTheme = () => {
+    setIsDarkTheme((prevState) => !prevState);
+  };
+
+  // Define colors based on the theme
+  const backgroundColor = isDarkTheme ? '#000' : '#fff';
+  const textColor = isDarkTheme ? '#fff' : '#000';
+  const placeholderTextColor = isDarkTheme ? '#888' : '#666';
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
+      {/* Toggle Theme Button */}
+      <View style={{ padding: 16 }}>
+        <Button
+          title="Toggle Theme"
+          onPress={toggleTheme}
+          color={isDarkTheme ? '#fff' : '#000'}
+        />
+      </View>
+
       {/* Post Input Section */}
       <View style={styles.addPostSection}>
-        <Text style={styles.title}>Add a New Post</Text>
+        <Text style={[styles.title, { color: textColor }]}>
+          Add a New Post
+        </Text>
         <TextInput
           value={newPostContent}
           onChangeText={setNewPostContent}
           placeholder="Write your post content here..."
-          style={styles.textInput}
+          placeholderTextColor={placeholderTextColor}
+          style={[
+            styles.textInput,
+            { color: textColor, borderColor: textColor },
+          ]}
         />
-        <Button title="Submit Post" onPress={handlePostSubmit} />
+        <Button
+          title="Submit Post"
+          onPress={handlePostSubmit}
+          color={isDarkTheme ? '#fff' : '#000'}
+        />
       </View>
 
       {/* Posts List */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <PostCard isFeed={false} post={item} />}
+        renderItem={({ item }) => (
+          <PostCard isFeed={false} post={item} isDarkTheme={isDarkTheme} />
+        )}
       />
     </View>
   );
@@ -57,10 +96,11 @@ const PostPage: React.FC<{ type: string }> = ({ type }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    // Removed padding to prevent double padding with addPostSection
   },
   addPostSection: {
     marginBottom: 16,
+    paddingHorizontal: 16, // Added horizontal padding
   },
   title: {
     fontSize: 18,
@@ -69,7 +109,6 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
     padding: 8,
     marginBottom: 8,
     borderRadius: 4,

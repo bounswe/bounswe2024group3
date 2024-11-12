@@ -3,6 +3,7 @@ from os import getenv
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.contrib.gis.geos import Point
 from django.views.decorators.csrf import csrf_exempt, get_token
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -27,6 +28,8 @@ def login(request):
             name = profile.name
             surname = profile.surname
             labels = profile.labels
+            latitude = profile.geolocation.y
+            longitude = profile.geolocation.x
         except Profile.DoesNotExist:
             name = ''
             surname = ''
@@ -39,7 +42,9 @@ def login(request):
             'name': name,
             'surname': surname,
             'email': user.email,
-            'labels': labels
+            'labels': labels,
+            'latitude': latitude,
+            'longitude': longitude
         })
     else:
         return JsonResponse({'error': 'Invalid username or password'}, status=400)
@@ -65,7 +70,7 @@ def get_user(request):
             'name': name,
             'surname': surname,
             'email': user.email,
-            'labels': labels
+            'labels': labels,
         })
     else:
         return JsonResponse({'error': 'User not authenticated'}, status=400)
@@ -80,6 +85,8 @@ def register(request):
     email = data['email']
     password = data['password']
     labels = data['labels']  # Expecting labels like ['Artist', 'Listener']
+    latitude = data['latitude']
+    longitude = data['longitude']
 
     if User.objects.filter(username=username).exists():
         return JsonResponse({'error': 'Username already exists'}, status=400)
@@ -97,7 +104,9 @@ def register(request):
             'name': name,
             'surname': surname,
             'email': user.email,
-            'labels': labels
+            'labels': labels,
+            'latitude': None,
+            'longitude': None
         })
 
 @require_http_methods(["POST"])

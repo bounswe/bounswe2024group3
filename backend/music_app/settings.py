@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.gis',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -98,7 +99,9 @@ load_dotenv()
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django.db.backends.postgresql", ## I couldnt figure out how to implement geodjango since it wanted me to add         
+                                                   ##"ENGINE": "django.db.backends.postgresql",
+
         "HOST": getenv("DB_HOST"),
         "PORT": getenv("DB_PORT"),
         "NAME": getenv("DB_NAME"),

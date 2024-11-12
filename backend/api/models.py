@@ -4,6 +4,7 @@ from django.db import models
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models as gis_models 
 
 class UserLabel(models.TextChoices):
     ARTIST = 'Artist', 'Artist'
@@ -19,6 +20,7 @@ class Profile(models.Model):
     )
     name = models.CharField(max_length=100, blank=False)
     surname = models.CharField(max_length=100, blank=False)
+    geolocation = gis_models.PointField(blank=True, null=True, geography=True)  # Use PointField for latitude/longitude
     
     # User labels (can select multiple)
     labels = models.CharField(

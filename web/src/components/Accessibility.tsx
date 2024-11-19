@@ -29,6 +29,11 @@ const useAccessibility = () => {
           const ariaLabel = activeElement.getAttribute('aria-label');
           if (ariaLabel) {
             speak(ariaLabel);
+          } else {
+            const placeholder = (activeElement as HTMLInputElement).placeholder;
+            if (placeholder) {
+              speak(placeholder);
+            }
           }
         }
       }

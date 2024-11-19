@@ -3,8 +3,10 @@ import FormInput from "../components/FormInput";
 import { req } from "../utils/client";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../providers/UserContext";
+import useAccessibility from "../components/Accessibility";
 
 const LoginPage = () => {
+  useAccessibility();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -49,6 +51,7 @@ const LoginPage = () => {
         placeholder="username"
         value={username}
         onChange={(e: any) => setUsername(e.target.value)}
+        aria-label="Username"
       />
       <FormInput
         icon="password"
@@ -56,14 +59,16 @@ const LoginPage = () => {
         placeholder="password"
         value={password}
         onChange={(e: any) => setPassword(e.target.value)}
+        aria-label="Password"
       />
-      <button type="submit" className="btn btn-primary mt-4">
+      <button type="submit" className="btn btn-primary mt-4" aria-label="Submit">
         Login
       </button>
       <button
         type="button"
         className="btn btn-secondary mt-4"
         onClick={navigateToResetRequest}
+        aria-label="Forgot Password?"
       >
         Forgot Password?
       </button>

@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { req } from "../utils/client";
 import { useUser } from "../providers/UserContext";
+import useAccessibility from "./Accessibility";
 
 type NavbarAccountProps = {
   username: string;
@@ -10,7 +11,7 @@ type NavbarAccountProps = {
 const NavbarAccount = ({ username }: NavbarAccountProps) => {
   const navigate = useNavigate();
   const { setUsername, setError } = useUser();
-
+  useAccessibility();
 
   const logout = async () => {
     try {
@@ -48,7 +49,7 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
             <Link to="/settings" aria-label="settings">Settings</Link>
           </li>
           <li>
-            <Link to="/" onClick={logout}>
+            <Link to="/" onClick={logout} aria-label="Logout">
               Logout
             </Link>
           </li>

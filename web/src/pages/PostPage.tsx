@@ -4,6 +4,7 @@ import PostCard from "../components/PostCard";
 import { Spotify } from "react-spotify-embed";
 import RecommendationItem from "../components/RecommendationItem";
 import { useUser } from "../providers/UserContext";
+import useAccessibility from "../components/Accessibility";
 
 interface PostPageProps {
   type: string;
@@ -205,6 +206,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
 
 
   useEffect(() => {
+    
     // If spotifyId is provided, filter posts by it; otherwise, show all posts
     if (spotifyId) {
       const filteredPosts = mockPosts.filter(

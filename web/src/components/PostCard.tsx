@@ -3,11 +3,13 @@ import {Link} from "react-router-dom";
 import { PostDetails } from "../pages/PostPage";
 import { Spotify } from "react-spotify-embed";
 import SvgIcon from "./SvgIcon";
+import useAccessibility from "./Accessibility";
 
 const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
   const [likes, setLikes] = useState(post.likes);
   const [dislikes, setDislikes] = useState(post.dislikes);
   const [userAction, setUserAction] = useState<string | null>(post.userAction);
+  useAccessibility();
 
   // Handle like
   const handleLike = async () => {
@@ -89,6 +91,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           <button
             className={`btn ${userAction === "like" ? "btn-primary" : ""}`}
             onClick={handleLike}
+            aria-label="Like"
           >
             <SvgIcon icon="like" className="mr-2" />
             {likes}
@@ -96,6 +99,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           <button
             className={`btn ${userAction === "dislike" ? "btn-primary" : ""}`}
             onClick={handleDislike}
+            aria-label="Dislike"
           >
             <SvgIcon icon="dislike" className="mr-2" />
             {dislikes}

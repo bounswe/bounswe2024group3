@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import FormInput from "../components/FormInput";
 import { useNavigate } from "react-router-dom";
 import { req } from "../utils/client";
+import useAccessibility from "../components/Accessibility";
 
 const RegisterPage = () => {
+  useAccessibility();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
@@ -42,12 +44,12 @@ const RegisterPage = () => {
 
   return (
     <form className="flex flex-col gap-4 p-4" onSubmit={handleLogin}>
-      <FormInput icon= "user" type="text" placeholder ="Name" value ={name} onChange ={(e:any) => setName(e.target.value)} /> 
-      <FormInput icon= "user" type="text" placeholder ="Surname" value ={surname} onChange ={(e:any) => setSurname(e.target.value)} /> 
-      <FormInput icon= "email" type="email" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} /> 
-      <FormInput icon= "user" type="text" placeholder ="Username" value ={username} onChange ={(e:any) => setUsername(e.target.value)} /> 
-      <FormInput icon= "password" type="password" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} /> 
-      <p className="text-lg font-bold text-slate-950" >Select Roles </p>
+      <FormInput icon= "user" type="text" placeholder ="Name" value ={name} onChange ={(e:any) => setName(e.target.value)} aria-label="Name" /> 
+      <FormInput icon= "user" type="text" placeholder ="Surname" value ={surname} onChange ={(e:any) => setSurname(e.target.value)} aria-label="Surname" /> 
+      <FormInput icon= "email" type="email" placeholder ="Email" value ={email} onChange ={(e:any) => setEmail(e.target.value)} aria-label="Email" /> 
+      <FormInput icon= "user" type="text" placeholder ="Username" value ={username} onChange ={(e:any) => setUsername(e.target.value)} aria-label="Username" /> 
+      <FormInput icon= "password" type="password" placeholder ="Password" value ={password} onChange ={(e:any) => setPassword(e.target.value)} aria-label="Password" /> 
+      <p tabIndex={0} className="text-lg font-bold text-slate-950" aria-label="Select Role">Select Roles </p>
         <div >
           <ul>
             <li>
@@ -57,6 +59,7 @@ const RegisterPage = () => {
                   value="Artist"
                   checked={labels.includes('Artist')}
                   onChange={() => handleCheckboxChange('Artist')}
+                  aria-label="Artist"
                 />
                 Artist
               </label>
@@ -68,6 +71,7 @@ const RegisterPage = () => {
                   value="Hobbyist"
                   checked={labels.includes('Hobbyist')}
                   onChange={() => handleCheckboxChange('Hobbyist')}
+                  aria-label="Hobbyist"
                 />
                 Hobbyist
               </label>
@@ -79,6 +83,7 @@ const RegisterPage = () => {
                   value="Listener"
                   checked={labels.includes('Listener')}
                   onChange={() => handleCheckboxChange('Listener')}
+                  aria-label="Listener"
                 />
                 Listener
               </label>
@@ -90,13 +95,14 @@ const RegisterPage = () => {
                   value="Organizer"
                   checked={labels.includes('Organizer')}
                   onChange={() => handleCheckboxChange('Organizer')}
+                  aria-label="Organizer"
                 />
                 Organizer
               </label>
             </li>
           </ul>
         </div>
-      <button type="submit" className="btn btn-primary mt-4">
+      <button type="submit" className="btn btn-primary mt-4" aria-label="submit">
         Register
       </button>
       <p className="text-red-500">{error}</p>

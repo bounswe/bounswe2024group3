@@ -22,6 +22,7 @@ export type PostDetails = {
   type: string;
   spotifyId: string;
   userAction: string | null;
+  isFollowing: boolean;
 };
 
 export let mockPosts: PostDetails[] = [
@@ -29,8 +30,7 @@ export let mockPosts: PostDetails[] = [
     id: 11,
     imageUrl: null,
     title: undefined,
-    content:
-      "Selamlar, şöyle bir playlist hazırladım. Ortamlarda çalarsınız :)",
+    content: "Selamlar, şöyle bir playlist hazırladım. Ortamlarda çalarsınız :)",
     username: "ekrembal",
     likes: 10,
     dislikes: 5,
@@ -38,6 +38,7 @@ export let mockPosts: PostDetails[] = [
     type: "playlist",
     spotifyId: "3oAH9FsuQGzqP5hAHiEcFD",
     userAction: "like",
+    isFollowing: false
   },
   {
     id: 12,
@@ -51,6 +52,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "7x76RN4ZCsw5DxT8LOmexq",
     userAction: null,
+    isFollowing: false
   },
   {
     id: 13,
@@ -64,13 +66,13 @@ export let mockPosts: PostDetails[] = [
     type: "album",
     spotifyId: "6RFizmJ3VitZBr8kwo62Kq",
     userAction: "dislike",
+    isFollowing: false
   },
   {
     id: 1,
     imageUrl: null,
     title: undefined,
-    content:
-      "Check out this track: 'New Person, Same Old Mistakes' by Tame Impala. It's amazing!",
+    content: "Check out this track: 'New Person, Same Old Mistakes' by Tame Impala. It's amazing!",
     username: "ekrembal",
     likes: 15,
     dislikes: 3,
@@ -78,6 +80,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "52ojopYMUzeNcudsoz7O9D",
     userAction: "like",
+    isFollowing: false
   },
   {
     id: 2,
@@ -91,6 +94,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "2SCLswvRP8hAYdIKsrLV6h",
     userAction: null,
+    isFollowing: false
   },
   {
     id: 3,
@@ -104,6 +108,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "2dje3ZBu1j1r0QfR7mtS0l",
     userAction: "like",
+    isFollowing: false
   },
   {
     id: 4,
@@ -117,6 +122,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "1LuK2NE1dkha6A4Cey3tsA",
     userAction: null,
+    isFollowing: false
   },
   {
     id: 5,
@@ -130,6 +136,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "4UySkSnMBKf1PS32agnwxp",
     userAction: "like",
+    isFollowing: false
   },
   {
     id: 6,
@@ -143,6 +150,7 @@ export let mockPosts: PostDetails[] = [
     type: "track",
     spotifyId: "2e7CRfHmTnrT5SxfXbQ0lF",
     userAction: null,
+    isFollowing: false
   },
   {
     id: 7,
@@ -156,6 +164,7 @@ export let mockPosts: PostDetails[] = [
     type: "playlist",
     spotifyId: "0Ljm42Eo0Ia1bDuw6sGvVI",
     userAction: "like",
+    isFollowing: false
   },
   {
     id: 8,
@@ -169,6 +178,7 @@ export let mockPosts: PostDetails[] = [
     type: "playlist",
     spotifyId: "7kbGTNApfe03SjBDIFrQ3B",
     userAction: null,
+    isFollowing: false
   },
   {
     id: 9,
@@ -182,6 +192,7 @@ export let mockPosts: PostDetails[] = [
     type: "playlist",
     spotifyId: "6fMfMHqUS72fM3YS8MDKtr",
     userAction: "dislike",
+    isFollowing: false
   },
   {
     id: 10,
@@ -195,6 +206,7 @@ export let mockPosts: PostDetails[] = [
     type: "playlist",
     spotifyId: "24ztzWYSKzrV8G5OiMw8yS",
     userAction: null,
+    isFollowing: false
   },
 ];
 
@@ -225,13 +237,14 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       imageUrl: null,
       title: undefined,
       content: newPostContent,
-      username: username ,// You can replace this with the logged-in user's name
+      username: username, // You can replace this with the logged-in user's name
       likes: 0,
       dislikes: 0,
       created_at: new Date(),
       type,
       spotifyId: spotifyId || "",
       userAction: null,
+      isFollowing: true
     };
     mockPosts.push(newPost); // Add the new post to the mockPosts array
     setPosts([newPost, ...posts]); // Add the new post to the top of the list

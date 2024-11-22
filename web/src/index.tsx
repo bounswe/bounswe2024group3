@@ -7,6 +7,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import PostPage from "./pages/PostPage";
+import { SearchPage } from "./pages/SearchPage";
 import { UserProvider } from "./providers/UserContext";
 import ResetRequestPage from "./pages/ResetRequestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -29,6 +30,7 @@ root.render(
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/request-reset" element={<ResetRequestPage />} />
                 <Route path="/reset" element={<ResetPasswordPage />} />
+                <Route path="/search/:query" element={<SearchPage />} />
                 
               </Routes>
             </Layout>

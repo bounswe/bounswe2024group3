@@ -1,3 +1,4 @@
+import math
 import os
 import requests
 from django.core.paginator import Paginator
@@ -11,9 +12,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.shortcuts import get_object_or_404
 import json
-from .models import PasswordReset, Post, Profile, Tag, Content
+from .models import NowPlaying, PasswordReset, Post, Profile, Tag, Content
 import time
 from os import getenv
+from django.db.models import Count, Q
+
 @require_http_methods(["POST"])
 @csrf_exempt
 def login(request):
@@ -206,54 +209,64 @@ def reset_password(request):
         return JsonResponse({'error':'No user found'}, status=404)
 
 
+@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_post(request):
+    user = request.user  # Authenticated user
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
+    # Extract required fields from the request body
     link = body.get('link')
-    image = body.get('image')
-    comment = body.get('content')
-    #created_by = body.get('created_by') # Should be checked
-    if not link: # If no link is provided, return an error
-            return JsonResponse({"error": "Link and content are required!"}, status=400)
-    
-    post_content_type = get_content_type(link)  # Detect the content type of the Spotify link
-    existing_content = Content.objects.filter(link=link).first() # Check if content already exists in database
-    if existing_content: 
-        # If content exists, use the existing Content object
+    image = body.get('image', '')
+    comment = body.get('comment', '')
+    latitude = body.get('latitude')
+    longitude = body.get('longitude')
+
+    # Validate required fields
+    if not link or not comment or latitude is None or longitude is None:
+        return JsonResponse({"error": "Link, comment, latitude, and longitude are required!"}, status=400)
+
+    # Detect the content type of the Spotify link
+    post_content_type = get_content_type(link)
+    existing_content = Content.objects.filter(link=link).first()
+
+    if existing_content:
+        # Use the existing Content object
         content = existing_content
-        print("Content already exists:", content)
     else:
-        # If content does not exist, create a new Content object
-        # first, fetch the content description from the Spotify API
-        access_token = get_access_token()  # Get an access token from Spotify
+        # Fetch and create a new Content object
+        access_token = get_access_token()
         if not access_token:
             return JsonResponse({"error": "Failed to get access token"}, status=500)
+
         headers = {"Authorization": f"Bearer {access_token}"}
-        print(headers)
-        response = requests.get(f"https://api.spotify.com/v1/{post_content_type}s/{link.split('/')[-1]}", headers=headers)
-        print("Spotify API response:", response.status_code, response.text)
+        spotify_url = f"https://api.spotify.com/v1/{post_content_type}s/{link.split('/')[-1]}"
+        response = requests.get(spotify_url, headers=headers)
+
         if response.status_code != 200:
             return JsonResponse({"error": "Failed to fetch content description"}, status=500)
+
         content_description = response.json()
-        # then, create a new Content object
         content = Content(link=link, content_type=post_content_type, description=content_description)
         content.save()
 
-    #if not created_by:
-    #    return JsonResponse({"error": "User is not authenticated"}, status=403)
-    
-    # post = Post(comment=comment, image=image, link=link, content=content,created_by=created_by) # should be checked
-    post = Post(comment=comment, image=image, link=link, content=content) # should be checked
-
+    # Create and save the post
+    post = Post(
+        comment=comment,
+        image=image,
+        link=link,
+        content=content,
+        belongs_to=user,  # Assign to the authenticated user
+        latitude=latitude,
+        longitude=longitude,
+    )
     post.save()
 
-    print("Post created:", post)
-    return JsonResponse({"message": "Post created successfully"}, status=201)
+    return JsonResponse({"message": "Post created successfully", "post_id": post.id}, status=201)
 
 def get_content_type(link):
     """Detects whether the Spotify link is for a track, album, playlist, or artist."""
@@ -423,3 +436,194 @@ def dislike_post(request, post_id):
             'status': 'error',
             'message': str(e)
         }, status=500)
+    
+
+
+@require_http_methods(["GET"])
+@login_required
+def most_shared_nearby_things(request):
+    try:
+        # Extract query parameters
+        user_lat = float(request.GET.get('latitude'))
+        user_lon = float(request.GET.get('longitude'))
+        radius_km = float(request.GET.get('radius', 10))  # Default radius: 10 km
+        page = int(request.GET.get('page', 1))  # Default page is 1
+        size = int(request.GET.get('size', 10))  # Default page size is 10
+
+        # Validate inputs
+        if page < 1 or size < 1:
+            return JsonResponse({"error": "Page and size must be positive integers."}, status=400)
+
+        # Fetch paginated songs
+        offset = (page - 1) * size
+        songs, total_songs = get_most_shared_nearby_songs(user_lat, user_lon, radius_km, offset, size)
+
+        # Calculate total pages
+        total_pages = math.ceil(total_songs / size)
+
+        # Return response with pagination metadata
+        return JsonResponse({
+            "songs": songs,
+            "pagination": {
+                "page": page,
+                "size": size,
+                "total_pages": total_pages,
+                "total_songs": total_songs,
+            }
+        }, status=200)
+
+    except ValueError:
+        return JsonResponse({"error": "Invalid input for latitude, longitude, radius, page, or size."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+def get_most_shared_nearby_songs(user_lat, user_lon, radius_km, offset, limit):
+    try:
+        # Compute bounding box to narrow down the query
+        min_lat, max_lat, min_lon, max_lon = bounding_box(user_lat, user_lon, radius_km)
+
+        print(f"Bounding box: {min_lat}, {max_lat}, {min_lon}, {max_lon}")
+
+        # Filter posts within bounding box and calculate counts
+        posts_within_radius = Post.objects.filter(
+            Q(latitude__gte=min_lat) &
+            Q(latitude__lte=max_lat) &
+            Q(longitude__gte=min_lon) &
+            Q(longitude__lte=max_lon)
+        )
+
+        # Further filter posts using the Haversine formula and annotate with song counts
+        posts_within_radius = [
+            post for post in posts_within_radius
+            if haversine(user_lat, user_lon, post.latitude, post.longitude) <= radius_km
+        ]
+        post_ids = [post.id for post in posts_within_radius]
+
+        # Query songs with pagination
+        songs = (
+            Post.objects.filter(id__in=post_ids)
+            .values('content__link', 'content__description')
+            .annotate(count=Count('content__link'))
+            .order_by('-count')[offset:offset + limit]
+        )
+
+        # Get total count of songs for pagination metadata
+        total_songs = len(posts_within_radius)
+
+        return list(songs), total_songs
+
+    except Exception as e:
+        raise Exception(f"Error fetching songs: {e}")
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371.0  # Earth radius in kilometers
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def bounding_box(lat, lon, radius_km):
+    """
+    Calculate the bounding box for a given latitude, longitude, and radius in kilometers.
+    """
+    lat_delta = radius_km / 111  # 1 degree of latitude is ~111 km
+    lon_delta = radius_km / (111 * math.cos(math.radians(lat)))  # Adjust for longitude at given latitude
+
+    min_lat = lat - lat_delta
+    max_lat = lat + lat_delta
+    min_lon = lon - lon_delta
+    max_lon = lon + lon_delta
+
+    return min_lat, max_lat, min_lon, max_lon
+
+
+@require_http_methods(["POST"])
+@login_required
+def save_now_playing(request):
+    try:
+        # Parse the request body
+        body = json.loads(request.body)
+
+        user = request.user  # The authenticated user
+        link = body.get("link")
+        latitude = body.get("latitude")
+        longitude = body.get("longitude")
+
+        # Validate inputs
+        if not link or not latitude or not longitude:
+            return JsonResponse({"error": "link, latitude, and longitude are required."}, status=400)
+
+        # Save the data to the database
+        now_playing = NowPlaying.objects.create(
+            user=user,
+            link=link,
+            latitude=latitude,
+            longitude=longitude
+        )
+
+        return JsonResponse({"message": "Now playing data saved successfully.", "id": now_playing.id}, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+@login_required
+def most_listened_nearby(request):
+    try:
+        # Extract query parameters
+        user_lat = float(request.GET.get("latitude"))
+        user_lon = float(request.GET.get("longitude"))
+        radius_km = float(request.GET.get("radius", 10))  # Default radius: 10 km
+
+        # Validate inputs
+        if user_lat is None or user_lon is None:
+            return JsonResponse({"error": "latitude and longitude are required."}, status=400)
+
+        # Compute bounding box
+        min_lat, max_lat, min_lon, max_lon = bounding_box(user_lat, user_lon, radius_km)
+        print(f"Bounding box: {min_lat}, {max_lat}, {min_lon}, {max_lon}")
+
+        # Filter Posts within the bounding box and with content_type = "track"
+        nearby_posts = Post.objects.filter(
+            latitude__gte=min_lat,
+            latitude__lte=max_lat,
+            longitude__gte=min_lon,
+            longitude__lte=max_lon,
+            content__content_type="track"  # Only include tracks
+        )
+
+
+
+        # Further filter by Haversine formula
+        nearby_posts = [
+            post for post in nearby_posts
+            if haversine(user_lat, user_lon, post.latitude, post.longitude) <= radius_km
+        ]
+
+        # Aggregate track counts using annotation
+        track_counts = (
+            Post.objects.filter(id__in=[post.id for post in nearby_posts])
+            .values("content__link", "content__description")
+            .annotate(count=Count("content__link"))
+            .order_by("-count")
+        )
+
+        # Format the response
+        result = [
+            {"link": track["content__link"], "description": track["content__description"], "count": track["count"]}
+            for track in track_counts
+        ]
+
+        return JsonResponse({"tracks": result}, status=200)
+
+    except ValueError:
+        return JsonResponse({"error": "Invalid input for latitude, longitude, or radius."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -62,6 +62,11 @@ class Post(models.Model):
     content = models.ForeignKey('Content', on_delete=models.CASCADE)
     tags = models.ManyToManyField('Tag', blank=True)
 
+    latitude = models.DecimalField(null=True, decimal_places=6, max_digits=9)  # Allow null temporarily
+    longitude = models.DecimalField(null=True, decimal_places=6, max_digits=9)  # Allow null temporarily
+    belongs_to = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # Allow null temporarily
+
+
     # This is the user who created the post
     # Use created_by instead of user for clarity
     #created_by = models.TextField(blank=True) # should be checked
@@ -94,3 +99,14 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class NowPlaying(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # User triggering the play
+    link = models.URLField()  # Link to the song (e.g., Spotify link)
+    latitude = models.FloatField()  # Latitude of the location
+    longitude = models.FloatField()  # Longitude of the location
+    played_at = models.DateTimeField(auto_now_add=True)  # Timestamp of the play
+
+    def __str__(self):
+        return f"{self.user.username} played {self.link} at {self.latitude}, {self.longitude}"

@@ -1,5 +1,5 @@
-from os import getenv
-
+import os
+import requests
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -8,8 +8,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.shortcuts import get_object_or_404
 import json
-from .models import PasswordReset, Post, Profile, Tag
-
+from .models import PasswordReset, Post, Profile, Tag, Content
+import time
+from os import getenv
 @require_http_methods(["POST"])
 @csrf_exempt
 def login(request):
@@ -206,49 +207,62 @@ def reset_password(request):
 @require_http_methods(["POST"])
 def create_post(request):
     try:
-        data = json.loads(request.body)
-        
-        # Create post with initial data
-        post = Post.objects.create(
-            content=data['content'],
-            images=data.get('images', []),  
-            links=data.get('links', [])    
-        )
-        
-        # Handle tags
-        tags = data.get('tags', [])
-        for tag_name in tags:
-            tag, _ = Tag.objects.get_or_create(name=tag_name)
-            post.tags.add(tag)
-        
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Post created successfully',
-            'data': {
-                'id': post.id,
-                'content': post.content,
-                'images': post.images,
-                'links': post.links,
-                'timestamp': post.timestamp,
-                'tags': list(post.tags.values_list('name', flat=True))
-            }
-        }, status=201)
-        
-    except KeyError as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Missing required field: {str(e)}'
-        }, status=400)
+        body = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Invalid JSON data'
-        }, status=400)
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    link = body.get('link')
+    image = body.get('image')
+    comment = body.get('content')
+    #created_by = body.get('created_by') # Should be checked
+    if not link: # If no link is provided, return an error
+            return JsonResponse({"error": "Link and content are required!"}, status=400)
+    
+    post_content_type = get_content_type(link)  # Detect the content type of the Spotify link
+    existing_content = Content.objects.filter(link=link).first() # Check if content already exists in database
+    if existing_content: 
+        # If content exists, use the existing Content object
+        content = existing_content
+        print("Content already exists:", content)
+    else:
+        # If content does not exist, create a new Content object
+        # first, fetch the content description from the Spotify API
+        access_token = get_access_token()  # Get an access token from Spotify
+        if not access_token:
+            return JsonResponse({"error": "Failed to get access token"}, status=500)
+        headers = {"Authorization": f"Bearer {access_token}"}
+        response = requests.get(f"https://api.spotify.com/v1/{post_content_type}s/{link.split('/')[-1]}", headers=headers)
+        print("Spotify API response:", response.status_code, response.text)
+        if response.status_code != 200:
+            return JsonResponse({"error": "Failed to fetch content description"}, status=500)
+        content_description = response.json()
+        # then, create a new Content object
+        content = Content(link=link, content_type=post_content_type, description=content_description)
+        content.save()
+
+    #if not created_by:
+    #    return JsonResponse({"error": "User is not authenticated"}, status=403)
+    
+    # post = Post(comment=comment, image=image, link=link, content=content,created_by=created_by) # should be checked
+    post = Post(comment=comment, image=image, link=link, content=content) # should be checked
+
+    post.save()
+
+    print("Post created:", post)
+    return JsonResponse({"message": "Post created successfully"}, status=201)
+
+def get_content_type(link):
+    """Detects whether the Spotify link is for a track, album, playlist, or artist."""
+    if "album" in link:
+        return "album"
+    elif "playlist" in link:
+        return "playlist"
+    elif "artist" in link:
+        return "artist"
+    else:
+        return "track"
+
+
 
 @require_http_methods(["GET"])
 def get_posts(request):
@@ -304,3 +318,24 @@ def get_post(request, post_id):
             'status': 'error',
             'message': str(e)
         }, status=500)
+    
+ACCESS_TOKEN = None
+TOKEN_EXPIRY = 0
+
+def get_access_token():
+    """Fetch a new access token from Spotify."""
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    url = "https://accounts.spotify.com/api/token"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {"grant_type": "client_credentials"}
+    response = requests.post(url, headers=headers, auth=(client_id, client_secret), data=data)
+    if response.status_code == 200:
+        token_data = response.json()
+        global ACCESS_TOKEN, TOKEN_EXPIRY
+        ACCESS_TOKEN = token_data["access_token"]
+        TOKEN_EXPIRY = time.time() + token_data["expires_in"] - 60  # Buffer for token renewal
+        return ACCESS_TOKEN
+    else:
+        print(response)
+        raise Exception("Failed to get access token: " + response.text)

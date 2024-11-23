@@ -50,24 +50,35 @@ class PasswordReset(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Post(models.Model):
-    id = models.AutoField(primary_key=True)
-    content = models.TextField()
-    images = ArrayField(models.CharField(max_length=200), blank=True, default=list)
-    links = ArrayField(models.CharField(max_length=200), blank=True, default=list)
-    timestamp = models.DateTimeField(default=timezone.now)
+    comment = models.TextField()
+    # Single image URL per post
+    image = models.URLField(blank=True)
+    # Single link per post
+    link = models.URLField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
-
-    def __str__(self):
-        return f"Post by {self.user.username} on {self.created_at.strftime('%Y-%m-%d')}"
+    # The content the post is about
+    content = models.ForeignKey('Content', on_delete=models.CASCADE)
     
+    # This is the user who created the post
+    # Use created_by instead of user for clarity
+    #created_by = models.TextField(blank=True) # should be checked
     @property
     def total_likes(self):
         return self.likes.count()
+
     # Many-to-Many relationship with Tags
     tags = models.ManyToManyField('Tag', blank=True)
 
-    
+
+class Content(models.Model):
+    id = models.AutoField(primary_key=True)
+    link = models.URLField()  # URL for the content (e.g., Spotify link)
+    description = models.TextField()  # Response from the Spotify API
+    content_type = models.CharField(max_length=20, choices=[('artist', 'Artist'), ('album', 'Album'), ('track', 'Track')])
+
+    def __str__(self):
+        return f"{self.content_type.capitalize()} - {self.link}"
 
 class Tag(models.Model):
     name = models.CharField(max_length=100, unique=True)

@@ -57,6 +57,7 @@ class Post(models.Model):
     timestamp = models.DateTimeField(default=timezone.now)
     created_at = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
+    dislikes = models.ManyToManyField(User, related_name='disliked_posts', blank=True)
 
     def __str__(self):
         return f"Post by {self.user.username} on {self.created_at.strftime('%Y-%m-%d')}"

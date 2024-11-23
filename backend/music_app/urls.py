@@ -31,5 +31,7 @@ urlpatterns = [
     path('api/create-post/', views.create_post, name='create_post'),
     path('api/get-posts/', views.get_posts, name='get_posts'),
     path('api/get-post/<int:post_id>/', views.get_post, name='get_post'),
+    path('api/posts/<int:post_id>/like', views.like_post, name='like_post'),
+    path('api/posts/<int:post_id>/dislike', views.dislike_post, name='dislike_post'),
 
 ]

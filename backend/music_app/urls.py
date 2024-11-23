@@ -30,4 +30,6 @@ urlpatterns = [
     path('api/unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
     path('api/create-post/', views.create_post, name='create_post'),
     path('api/get-posts/', views.get_posts, name='get_posts'),
+    path('api/posts/<int:post_id>/like', views.like_post, name='like_post'),
+    path('api/posts/<int:post_id>/dislike', views.dislike_post, name='dislike_post'),
 ]

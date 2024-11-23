@@ -57,6 +57,7 @@ class Post(models.Model):
     link = models.URLField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
+    dislikes = models.ManyToManyField(User, related_name='disliked_posts', blank=True)
     # The content the post is about
     content = models.ForeignKey('Content', on_delete=models.CASCADE)
     tags = models.ManyToManyField('Tag', blank=True)
@@ -67,6 +68,10 @@ class Post(models.Model):
     @property
     def total_likes(self):
         return self.likes.count()
+    
+    @property
+    def total_dislikes(self):
+        return self.dislikes.count()
 
     # Many-to-Many relationship with Tags
 

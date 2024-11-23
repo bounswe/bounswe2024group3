@@ -3,6 +3,7 @@ import requests
 from django.core.paginator import Paginator
 from datetime import datetime
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth.decorators import login_required  
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt, get_token
@@ -358,3 +359,67 @@ def get_access_token():
     else:
         print(response)
         raise Exception("Failed to get access token: " + response.text)
+    
+@require_http_methods(["POST"])
+@login_required
+def like_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+        user = request.user
+        if user not in post.likes.all():
+            if user in post.dislikes.all():
+                post.dislikes.remove(user)
+    
+            post.likes.add(user)
+            post.save()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Post liked'
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Post already liked'
+            }, status=400)
+    except Post.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Post not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+    
+@require_http_methods(["POST"])
+@login_required
+def dislike_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+        user = request.user
+        if user not in post.dislikes.all():
+            if user in post.likes.all():
+                post.likes.remove(user)
+    
+            post.dislikes.add(user)
+            post.save()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Post disliked'
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Post already disliked'
+            }, status=400)
+    except Post.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Post not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.shortcuts import get_object_or_404
 import json
-from .models import PasswordReset, Profile
+from .models import PasswordReset, Post, Profile, Tag
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -200,3 +200,107 @@ def reset_password(request):
         return JsonResponse({'success':'Password updated'})
     else: 
         return JsonResponse({'error':'No user found'}, status=404)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def create_post(request):
+    try:
+        data = json.loads(request.body)
+        
+        # Create post with initial data
+        post = Post.objects.create(
+            content=data['content'],
+            images=data.get('images', []),  
+            links=data.get('links', [])    
+        )
+        
+        # Handle tags
+        tags = data.get('tags', [])
+        for tag_name in tags:
+            tag, _ = Tag.objects.get_or_create(name=tag_name)
+            post.tags.add(tag)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Post created successfully',
+            'data': {
+                'id': post.id,
+                'content': post.content,
+                'images': post.images,
+                'links': post.links,
+                'timestamp': post.timestamp,
+                'tags': list(post.tags.values_list('name', flat=True))
+            }
+        }, status=201)
+        
+    except KeyError as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Missing required field: {str(e)}'
+        }, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+@require_http_methods(["GET"])
+def get_posts(request):
+    try:
+        posts = Post.objects.all().order_by('-timestamp')  # Get all posts, newest first
+        posts_data = []
+        
+        for post in posts:
+            posts_data.append({
+                'id': post.id,
+                'content': post.content,
+                'images': post.images,
+                'links': post.links,
+                'timestamp': post.timestamp,
+                'tags': list(post.tags.values_list('name', flat=True))
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': posts_data
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+@require_http_methods(["GET"])
+def get_post(request, post_id):
+    try:
+        post = Post.objects.get(id=post_id)
+        post_data = {
+            'id': post.id,
+            'content': post.content,
+            'images': post.images,
+            'links': post.links,
+            'timestamp': post.timestamp,
+            'tags': list(post.tags.values_list('name', flat=True))
+        }
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': post_data
+        })
+
+    except Post.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Post not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

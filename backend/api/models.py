@@ -59,7 +59,8 @@ class Post(models.Model):
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
     # The content the post is about
     content = models.ForeignKey('Content', on_delete=models.CASCADE)
-    
+    tags = models.ManyToManyField('Tag', blank=True)
+
     # This is the user who created the post
     # Use created_by instead of user for clarity
     #created_by = models.TextField(blank=True) # should be checked
@@ -68,7 +69,6 @@ class Post(models.Model):
         return self.likes.count()
 
     # Many-to-Many relationship with Tags
-    tags = models.ManyToManyField('Tag', blank=True)
 
 
 class Content(models.Model):

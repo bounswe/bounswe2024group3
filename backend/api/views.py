@@ -1,5 +1,7 @@
 import os
 import requests
+from django.core.paginator import Paginator
+from datetime import datetime
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -231,6 +233,7 @@ def create_post(request):
         if not access_token:
             return JsonResponse({"error": "Failed to get access token"}, status=500)
         headers = {"Authorization": f"Bearer {access_token}"}
+        print(headers)
         response = requests.get(f"https://api.spotify.com/v1/{post_content_type}s/{link.split('/')[-1]}", headers=headers)
         print("Spotify API response:", response.status_code, response.text)
         if response.status_code != 200:
@@ -264,61 +267,77 @@ def get_content_type(link):
 
 
 
-@require_http_methods(["GET"])
 def get_posts(request):
+    post_id = request.GET.get('id')  # Get the ID from query params
+    start_date = request.GET.get('start_date')  # Start of time interval
+    end_date = request.GET.get('end_date')  # End of time interval
+    page_number = request.GET.get('page', 1)  # Page number for pagination
+    page_size = request.GET.get('page_size', 10)  # Number of items per page
+
     try:
-        posts = Post.objects.all().order_by('-timestamp')  # Get all posts, newest first
-        posts_data = []
-        
-        for post in posts:
-            posts_data.append({
-                'id': post.id,
-                'content': post.content,
-                'images': post.images,
-                'links': post.links,
-                'timestamp': post.timestamp,
-                'tags': list(post.tags.values_list('name', flat=True))
+        if post_id:  # If an ID is provided, fetch a single post
+            post = Post.objects.filter(id=post_id).first()
+            if not post:
+                return JsonResponse({"error": "Post not found"}, status=404)
+            return JsonResponse({
+                "id": post.id,
+                "comment": post.comment,
+                "image": post.image,
+                "link": post.link,
+                "created_at": post.created_at.isoformat(),
+                "total_likes": post.total_likes,
+                "content": {
+                    "id": post.content.id,
+                    "link": post.content.link,
+                    "description": post.content.description,
+                    "content_type": post.content.content_type,
+                },
+                "tags": [tag.name for tag in post.tags.all()],
             })
-        
+
+        # If no ID is provided, fetch posts within a time interval
+        posts_query = Post.objects.all()
+
+        if start_date:
+            start_date_obj = datetime.fromisoformat(start_date)
+            posts_query = posts_query.filter(created_at__gte=start_date_obj)
+
+        if end_date:
+            end_date_obj = datetime.fromisoformat(end_date)
+            posts_query = posts_query.filter(created_at__lte=end_date_obj)
+
+        # Apply pagination
+        paginator = Paginator(posts_query.order_by('-created_at'), page_size)
+        posts_page = paginator.get_page(page_number)
+
+        # Serialize the paginated posts
+        posts_data = [{
+            "id": post.id,
+            "comment": post.comment,
+            "image": post.image,
+            "link": post.link,
+            "created_at": post.created_at.isoformat(),
+            "total_likes": post.total_likes,
+            "content": {
+                "id": post.content.id,
+                "link": post.content.link,
+                "description": post.content.description,
+                "content_type": post.content.content_type,
+            },
+            "tags": [tag.name for tag in post.tags.all()],
+        } for post in posts_page]
+
         return JsonResponse({
-            'status': 'success',
-            'data': posts_data
+            "posts": posts_data,
+            "pagination": {
+                "current_page": posts_page.number,
+                "total_pages": paginator.num_pages,
+                "total_posts": paginator.count,
+            },
         })
 
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-@require_http_methods(["GET"])
-def get_post(request, post_id):
-    try:
-        post = Post.objects.get(id=post_id)
-        post_data = {
-            'id': post.id,
-            'content': post.content,
-            'images': post.images,
-            'links': post.links,
-            'timestamp': post.timestamp,
-            'tags': list(post.tags.values_list('name', flat=True))
-        }
-        
-        return JsonResponse({
-            'status': 'success',
-            'data': post_data
-        })
-
-    except Post.DoesNotExist:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Post not found'
-        }, status=404)
-    except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=500)
-    
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 ACCESS_TOKEN = None
 TOKEN_EXPIRY = 0
 

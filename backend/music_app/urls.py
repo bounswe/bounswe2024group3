@@ -29,10 +29,11 @@ urlpatterns = [
     path('api/follow/<int:user_id>/', views.follow_user, name='follow_user'),
     path('api/unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
     path('api/create-post/', views.create_post, name='create_post'),
+    path('api/get-user-posts/', views.get_user_posts, name= 'get_user_posts'),
     path('api/get-posts/', views.get_posts, name='get_posts'),
     path('api/posts/<int:post_id>/like/', views.like_post, name='like_post'),
     path('api/posts/<int:post_id>/dislike/', views.dislike_post, name='dislike_post'),
-    path('api/most_shared_nearby_things/', views.most_shared_nearby_things, name='most_shared_nearby_things'),
+    path('api/most-shared-nearby-things/', views.most_shared_nearby_things, name='most_shared_nearby_things'),
     path('api/save-now-playing/', views.save_now_playing, name='save_now_playing'),
     path('api/most-listened-nearby/', views.most_listened_nearby, name='most_listened_nearby'),
 

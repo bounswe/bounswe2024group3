@@ -6,8 +6,7 @@ import { useUser } from "../providers/UserContext";
 
 import useAccessibility from "../components/Accessibility";
 
-import LocationFetcher from "../components/LocationFetcher";
-
+import { fetchLocation } from "../components/LocationFetcher";
 
 const LoginPage = () => {
   useAccessibility();
@@ -31,6 +30,10 @@ const LoginPage = () => {
       });
       console.log("Login Successful", response.data);
       localStorage.setItem("username", username);
+    
+      await fetchLocation();
+
+
       setGlobalUsername(username);
       setGlobalUserId(response.data.user_id);
       setGlobalEmail(response.data.email);
@@ -79,7 +82,7 @@ const LoginPage = () => {
 
       {error && <p className="text-red-500">{error}</p>}
 
-      {isLoggedIn && <LocationFetcher />} {/* Only rendered after login */}
+      {/* {isLoggedIn && <LocationFetcher />} Only rendered after login */}
     </form>
   );
 };

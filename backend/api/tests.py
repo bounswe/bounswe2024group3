@@ -1,7 +1,7 @@
 from django.urls import reverse
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from .models import Profile
+from .models import Profile, Post, Tag
 import json
 
 class AuthAPITests(TestCase):
@@ -101,3 +101,146 @@ class AuthAPITests(TestCase):
         # Check if user1 no longer follows user2
         self.profile1.refresh_from_db()
         self.assertNotIn(self.profile2, self.profile1.following.all())
+
+class PostTests(TestCase):
+    def setUp(self):
+        # Initialize the test client
+        self.client = Client()
+        
+        # Create some sample data
+        self.valid_post_data = {
+            'content': 'Test post content',
+            'images': ['https://example.com/image1.jpg'],
+            'links': ['https://example.com/link1'],
+            'tags': ['test', 'sample']
+        }
+        
+        # Create a test post for get requests
+        self.test_post = Post.objects.create(
+            content='Existing test post',
+            images=['https://example.com/image2.jpg'],
+            links=['https://example.com/link2']
+        )
+        # Add tags to the test post
+        tag = Tag.objects.create(name='existing_tag')
+        self.test_post.tags.add(tag)
+
+    def test_create_post_success(self):
+        """Test creating a post with valid data"""
+        response = self.client.post(
+            reverse('create_post'),
+            data=json.dumps(self.valid_post_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['status'], 'success')
+        
+        # Verify post was created in database
+        created_post = Post.objects.filter(content='Test post content').first()
+        self.assertIsNotNone(created_post)
+        self.assertEqual(created_post.images, ['https://example.com/image1.jpg'])
+        self.assertEqual(created_post.links, ['https://example.com/link1'])
+        self.assertEqual(
+            set(created_post.tags.values_list('name', flat=True)),
+            {'test', 'sample'}
+        )
+
+    def test_create_post_invalid_data(self):
+        """Test creating a post with invalid data"""
+        invalid_data = {
+            'images': ['https://example.com/image1.jpg'],
+            'links': [],
+            'tags': ['test']
+            # Missing required 'content' field
+        }
+        
+        response = self.client.post(
+            reverse('create_post'),
+            data=json.dumps(invalid_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['status'], 'error')
+
+    def test_create_post_invalid_json(self):
+        """Test creating a post with invalid JSON"""
+        response = self.client.post(
+            reverse('create_post'),
+            data='invalid json',
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['status'], 'error')
+
+    def test_get_all_posts(self):
+        """Test getting all posts"""
+        response = self.client.get(reverse('get_posts'))
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        
+        # Verify the test post is in the response
+        posts_data = response.json()['data']
+        self.assertTrue(len(posts_data) > 0)
+        self.assertEqual(posts_data[0]['content'], 'Existing test post')
+
+    def test_get_single_post(self):
+        """Test getting a single post by ID"""
+        response = self.client.get(
+            reverse('get_post', kwargs={'post_id': self.test_post.id})
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        self.assertEqual(
+            response.json()['data']['content'],
+            'Existing test post'
+        )
+
+    def test_get_nonexistent_post(self):
+        """Test getting a post that doesn't exist"""
+        response = self.client.get(
+            reverse('get_post', kwargs={'post_id': 99999})
+        )
+        
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['status'], 'error')
+
+    def test_create_post_with_empty_tags(self):
+        """Test creating a post with no tags"""
+        data = self.valid_post_data.copy()
+        data['tags'] = []
+        
+        response = self.client.post(
+            reverse('create_post'),
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['status'], 'success')
+
+    def test_create_post_with_duplicate_tags(self):
+        """Test creating a post with duplicate tags"""
+        data = self.valid_post_data.copy()
+        data['tags'] = ['test', 'test', 'sample']
+        
+        response = self.client.post(
+            reverse('create_post'),
+            data=json.dumps(data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 201)
+        created_post = Post.objects.filter(content='Test post content').first()
+        # Verify duplicate tags are handled correctly
+        self.assertEqual(
+            len(set(created_post.tags.values_list('name', flat=True))),
+            2  # Should only have 'test' and 'sample'
+        )
+
+
+    

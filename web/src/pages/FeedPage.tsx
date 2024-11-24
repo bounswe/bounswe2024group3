@@ -5,25 +5,24 @@ import PostCard from "../components/PostCard";
 import CreatePostForm from "../components/CreatePostForm";
 
 export type PostContent = {
-    id: number;
-    link: string;
-    description: string;
-    content_type: string;
-}
-
+  id: number;
+  link: string;
+  description: string;
+  content_type: string;
+};
 
 export type PostDetails = {
-    id: number;
-    imageUrl: string | null;
-    title: string | undefined;
-    content: PostContent;
-    comment: string;
-    username: string;
-    likes: number;
-    dislikes: number;
-    created_at: Date;
-    userAction: string | null;
-  };
+  id: number;
+  imageUrl: string | null;
+  title: string | undefined;
+  content: PostContent;
+  comment: string;
+  username: string;
+  likes: number;
+  dislikes: number;
+  created_at: Date;
+  userAction: string | null;
+};
 
 export const FeedPage = () => {
   const { query } = useParams();
@@ -44,25 +43,25 @@ export const FeedPage = () => {
         const response = await req(feedQuery, "get", {});
         console.log("Feed response:", response.data);
         const posts: PostDetails[] = response.data.posts.map(
-            (post: any, idx: number) => ({
-              id: post.id, // Use the actual `id` from the post instead of the index
-              comment: post.comment,
-              username: post.username || "", // Assuming `username` might not be available in the JSON, using a fallback
-              created_at: new Date(post.created_at),
-              image: post.image,
-              link: post.link,
-              total_likes: post.total_likes,
-              content: {
-                id: post.content.id,
-                link: post.content.link,
-                description: post.content.description,
-                content_type: post.content.content_type,
-              },
-              tags: post.tags.map((tag: any) => tag.name),
-            })
-          );
+          (post: any, idx: number) => ({
+            id: post.id, // Use the actual `id` from the post instead of the index
+            comment: post.comment,
+            username: post.username || "", // Assuming `username` might not be available in the JSON, using a fallback
+            created_at: new Date(post.created_at),
+            image: post.image,
+            link: post.link,
+            total_likes: post.total_likes,
+            content: {
+              id: post.content.id,
+              link: post.content.link,
+              description: post.content.description,
+              content_type: post.content.content_type,
+            },
+            tags: post.tags.map((tag: any) => tag.name),
+          })
+        );
         if (posts.length === 0) {
-            throw new Error("No posts found");
+          throw new Error("No posts found");
         }
         setPosts(posts);
       } catch (error: any) {
@@ -82,17 +81,13 @@ export const FeedPage = () => {
     );
   }
 
-  
-
   return (
-    <div className="flex flex-col justify-center items-center pt-5">
-      {/* <h1>Search Page {query}</h1> */}
-      {<h1 className="text-2xl font-bold mb-4">Feed Page</h1>}
-        {<CreatePostForm></CreatePostForm>}
-      {error && <p className="text-red-500">{error}</p>}
+    <div className="flex flex-col justify-center items-center">
+      <div className="flex-1 max-w-2xl w-full">
+        <h1 className="text-2xl font-bold mb-4">Feed Page</h1>
+        <CreatePostForm />
+        {error && <p className="text-red-500">{error}</p>}
 
-  
-      <div className="flex flex-col gap-4">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} isFeed={true} />
         ))}

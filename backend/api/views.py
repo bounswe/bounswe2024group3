@@ -288,6 +288,7 @@ def get_content_type(link):
 
 def get_posts(request):
     post_id = request.GET.get('id')  # Get the ID from query params
+    post_link = request.GET.get('link')  # Get the link from query params
     start_date = request.GET.get('start_date')  # Start of time interval
     end_date = request.GET.get('end_date')  # End of time interval
     page_number = request.GET.get('page', 1)  # Page number for pagination
@@ -315,6 +316,30 @@ def get_posts(request):
                 },
                 "tags": [tag.name for tag in post.tags.all()],
             })
+    
+        if post_link:  # If a link is provided, fetch posts with the same link
+            posts = Post.objects.filter(link=post_link)
+            if not posts:
+                return JsonResponse({"error": "Posts not found"}, status=404)
+            posts_data = [{
+                "id": post.id,
+                "comment": post.comment,
+                "image": post.image,
+                "link": post.link,
+                "created_at": post.created_at.isoformat(),
+                "total_likes": post.total_likes,
+                "total_dislikes": post.total_dislikes,
+                "username": post.belongs_to.username,
+                "content": {
+                    "id": post.content.id,
+                    "link": post.content.link,
+                    "description": post.content.description,
+                    "content_type": post.content.content_type,
+                },
+                "tags": [tag.name for tag in post.tags.all()],
+            } for post in posts]
+            return JsonResponse({"posts": posts_data})
+        
 
         # If no ID is provided, fetch posts within a time interval
         posts_query = Post.objects.all()

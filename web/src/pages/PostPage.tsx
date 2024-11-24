@@ -6,14 +6,12 @@ import RecommendationItem from "../components/RecommendationItem";
 import { useUser } from "../providers/UserContext";
 import useAccessibility from "../components/Accessibility";
 import { PostDetails } from "./FeedPage";
-
+import { createSpotifyLink, req } from "../utils/client";
+import CreatePostForm from "../components/CreatePostForm";
 
 interface PostPageProps {
   type: string;
 }
-
-
-
 
 const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const { spotifyId } = useParams<{ spotifyId: string }>();
@@ -21,44 +19,38 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const [newPostContent, setNewPostContent] = useState(""); // To track new post content
   const { username } = useUser();
 
-
   useEffect(() => {
-    
     // If spotifyId is provided, filter posts by it; otherwise, show all posts
-   
+
+    const handleQuery = async () => {
+      try {
+        if (!spotifyId) {
+          throw new Error("Invalid Spotify ID");
+        }
+        const response = await req(`get-posts?link=${
+          createSpotifyLink({ type, id: spotifyId })
+        }`, "get", {});
+        console.log("Post response:", response.data);
+        const posts: PostDetails[] = response.data.posts;
+        setPosts(posts);
+      } catch (error: any) {
+        console.error("Failed to fetch posts:", error);
+      }
+    };
+    handleQuery();
   }, [spotifyId]);
 
-  const handlePostSubmit = () => {
-    // Add the new post to the list
-    // const newPost: PostDetails = {
-    //   id: posts.length + 1,
-    //   imageUrl: null,
-    //   title: undefined,
-    //   content: newPostContent,
-    //   username: username ,// You can replace this with the logged-in user's name
-    //   likes: 0,
-    //   dislikes: 0,
-    //   created_at: new Date(),
-      
-    //   userAction: null,
-      
-    // };
-    // mockPosts.push(newPost); // Add the new post to the mockPosts array
-    // setPosts([newPost, ...posts]); // Add the new post to the top of the list
-    // setNewPostContent(""); // Clear the input field
-  };
-
-  if (!posts.length) {
+  if (!posts || !posts.length) {
     return <div>No posts found!</div>;
   }
 
   return (
-    <div className="flex">
+    <div className="flex  justify-center items-center">
       {/* Main Content Section */}
-      <div className="flex-1">
+      <div className="flex-1  max-w-2xl w-full">
         <Spotify wide link={`https://open.spotify.com/${type}/${spotifyId}`} />
 
-        {/* Show the post creation section only if the user is logged in */}
+        {/* Show the post creation section only if the user is logged in
         {true && (
           <div className="add-post-section">
             <h3>Add a New Post</h3>
@@ -68,11 +60,13 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
               placeholder="Write your post content here..."
               className="textarea textarea-bordered w-full mb-4"
             />
-            <button className="btn btn-primary" onClick={handlePostSubmit}>
+            <button className="btn btn-primary" onClick={() => alert("asd")}>
               Submit Post
             </button>
           </div>
-        )}
+        )} */}
+
+        <CreatePostForm />
 
         {/* Render the list of posts */}
         {posts.map((post) => (

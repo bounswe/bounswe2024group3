@@ -1,7 +1,7 @@
 // client.test.ts
 import axios from "axios";
 import MockAdapter from "axios-mock-adapter";
-import { req } from "./client"; // Adjust the import path as necessary
+import { createSpotifyLink, req } from "./client"; // Adjust the import path as necessary
 import { parseSpotifyLink } from './client';
 
 describe("req utility function", () => {
@@ -106,5 +106,42 @@ describe('parseSpotifyLink', () => {
   it('should throw an error if the URL does not contain a Spotify domain', () => {
     const url = "https://someotherwebsite.com/track/52ojopYMUzeNcudsoz7O9D";
     expect(() => parseSpotifyLink(url)).toThrow("Invalid Spotify link");
+  });
+});
+
+describe('createSpotifyLink', () => {
+  it('should return a valid Spotify link for a track', () => {
+    const result = createSpotifyLink({ type: "track", id: "7x76RN4ZCsw5DxT8LOmexq" });
+    expect(result).toBe("https://open.spotify.com/track/7x76RN4ZCsw5DxT8LOmexq");
+  });
+
+  it('should return a valid Spotify link for a playlist', () => {
+    const result = createSpotifyLink({ type: "playlist", id: "3oAH9FsuQGzqP5hAHiEcFD" });
+    expect(result).toBe("https://open.spotify.com/playlist/3oAH9FsuQGzqP5hAHiEcFD");
+  });
+
+  it('should return a valid Spotify link for an album', () => {
+    const result = createSpotifyLink({ type: "album", id: "6RFizmJ3VitZBr8kwo62Kq" });
+    expect(result).toBe("https://open.spotify.com/album/6RFizmJ3VitZBr8kwo62Kq");
+  });
+
+  it('should throw an error if the type is missing', () => {
+    expect(() => createSpotifyLink({ type: "", id: "6RFizmJ3VitZBr8kwo62Kq" }))
+      .toThrow("Invalid type or id");
+  });
+
+  it('should throw an error if the id is missing', () => {
+    expect(() => createSpotifyLink({ type: "track", id: "" }))
+      .toThrow("Invalid type or id");
+  });
+
+  it('should throw an error if both type and id are missing', () => {
+    expect(() => createSpotifyLink({ type: "", id: "" }))
+      .toThrow("Invalid type or id");
+  });
+
+  it('should handle unexpected type values gracefully', () => {
+    const result = createSpotifyLink({ type: "unknownType", id: "12345" });
+    expect(result).toBe("https://open.spotify.com/unknownType/12345");
   });
 });

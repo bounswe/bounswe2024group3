@@ -2,10 +2,21 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
 import PostCard from "../components/PostCard";
-import { PostDetails } from "./PostPage";
 import CreatePostForm from "../components/CreatePostForm";
 
-
+export type PostDetails = {
+    id: number;
+    imageUrl: string | null;
+    title: string | undefined;
+    content: any;
+    comment: string;
+    username: string;
+    likes: number;
+    dislikes: number;
+    created_at: Date;
+ 
+    userAction: string | null;
+  };
 
 export const FeedPage = () => {
   const { query } = useParams();
@@ -27,9 +38,9 @@ export const FeedPage = () => {
         console.log("Feed response:", response.data);
         const posts: PostDetails[] = response.data.posts.map(
             (post: any, idx: number) => ({
-              id: idx,
+              id: post.id, // Use the actual `id` from the post instead of the index
               comment: post.comment,
-              username: post.username,
+              username: post.username || "", // Assuming `username` might not be available in the JSON, using a fallback
               created_at: new Date(post.created_at),
               image: post.image,
               link: post.link,

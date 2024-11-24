@@ -10,6 +10,7 @@ import PostPage from "./pages/PostPage";
 import { UserProvider } from "./providers/UserContext";
 import ResetRequestPage from "./pages/ResetRequestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import { FeedPage } from "./pages/FeedPage";
 
 
 const root = ReactDOM.createRoot(
@@ -22,6 +23,7 @@ root.render(
             <Layout>
               <Routes>
                 <Route path= "/"    element={<App/>} />,
+                <Route path="/feed" element={<FeedPage />} />
                 <Route path="track/:spotifyId" element={<PostPage type="track" />} />
                 <Route path="playlist/:spotifyId" element={<PostPage type="playlist" />} />
                 <Route path="album/:spotifyId" element={<PostPage type="album" />} />

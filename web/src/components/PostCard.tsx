@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import {Link} from "react-router-dom";
-import { PostDetails } from "../pages/PostPage";
+import { PostDetails } from "../pages/FeedPage";
 import { Spotify } from "react-spotify-embed";
 import SvgIcon from "./SvgIcon";
 import useAccessibility from "./Accessibility";
+
 
 const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
   const [likes, setLikes] = useState(post.likes);
@@ -67,19 +68,19 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
             <Spotify
               width=  "100%"
               height="100%"
-              link={`https://open.spotify.com/${post.type}/${post.spotifyId}`}
+              link={post.content.link}
             />
 
             {/* Invisible clickable overlay */}
             <Link
-  to={`/${post.type}/${post.spotifyId}`}
+  to={`/${post.content.content_typetype}/${post.spotifyId}`}
   className="absolute inset-0 z-10"
   aria-label="Override Spotify link"
 ></Link>
           </div>
         )}
         <div className="card-body">
-          <p>{post.content}</p>
+          <p>{post.comment}</p>
         </div>
 
         <p className="right align">

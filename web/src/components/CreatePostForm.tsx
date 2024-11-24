@@ -4,8 +4,8 @@ import { req } from "../utils/client";
 const CreatePostForm = () => {
   const [link, setLink] = useState("");
   const [comment, setComment] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState("0");
+  const [longitude, setLongitude] = useState("0");
 
   useEffect(() => {
     const storedLatitude = localStorage.getItem("latitude");
@@ -27,16 +27,13 @@ const CreatePostForm = () => {
       link,
       comment,
       image: "", // Default to an empty string
-      latitude,
-      longitude,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
     };
 
     try {
       // Send the post data to your backend
       const response = await req("create-post", "post", postData);
-
-
-     
 
       // Reset form fields on successful submission
       setLink("");

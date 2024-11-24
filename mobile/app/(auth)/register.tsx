@@ -1,11 +1,18 @@
-// app/register.tsx
-import React, { useContext, useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState } from 'react';
+import {
+  View,
+  TextInput,
+  Button,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { Link } from 'expo-router';
+import { req } from '../../utils/client';
+import { router } from 'expo-router';
 
 export default function Register() {
-  const { login } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [username, setUsername] = useState('');
@@ -17,15 +24,38 @@ export default function Register() {
     listener: false,
     organizer: false,
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleRegister = () => {
-    const selectedRoles = Object.keys(roles).filter(role => roles[role]);
-    console.log('Registering with:', { name, surname, username, email, password, selectedRoles });
-    login();
+  const handleRegister = async () => {
+    setError('');
+    setIsLoading(true);
+
+    const selectedRoles = Object.keys(roles).filter((role) => roles[role]);
+
+    try {
+      await req('register', 'post', {
+        name,
+        surname,
+        email,
+        username,
+        password,
+        labels: selectedRoles,
+      });
+
+      alert('Registration successful! You can now log in.');
+      // Navigate to the login page after successful registration
+      router.replace('/login');
+    } catch (err: any) {
+      console.log('Registration error:', err);
+      setError(err.message || 'An error occurred during registration.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleRole = (role: string) => {
-    setRoles({ ...roles, [role]: !roles[role] });
+    setRoles((prevRoles) => ({ ...prevRoles, [role]: !prevRoles[role] }));
   };
 
   const renderCheckbox = (role: string, label: string) => (
@@ -88,7 +118,13 @@ export default function Register() {
         {renderCheckbox('organizer', 'Organizer')}
       </View>
 
-      <Button title="Register" onPress={handleRegister} />
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <Button title="Register" onPress={handleRegister} />
+      )}
 
       <Link href="/login" style={styles.link}>
         Already have an account? Login
@@ -138,6 +174,11 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     fontSize: 24,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   link: {
     marginTop: 10,

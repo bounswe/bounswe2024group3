@@ -27,9 +27,11 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
         if (!spotifyId) {
           throw new Error("Invalid Spotify ID");
         }
-        const response = await req(`get-posts?link=${
-          createSpotifyLink({ type, id: spotifyId })
-        }`, "get", {});
+        const response = await req(
+          `get-posts?link=${createSpotifyLink({ type, id: spotifyId })}`,
+          "get",
+          {}
+        );
         console.log("Post response:", response.data);
         const posts: PostDetails[] = response.data.posts;
         setPosts(posts);
@@ -40,7 +42,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
     handleQuery();
   }, [spotifyId]);
 
-  if (!posts || !posts.length) {
+  if (!posts || !posts.length || !spotifyId) {
     return <div>No posts found!</div>;
   }
 
@@ -66,7 +68,9 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
           </div>
         )} */}
 
-        <CreatePostForm />
+        <CreatePostForm
+          initialLink={createSpotifyLink({ type, id: spotifyId })}
+        />
 
         {/* Render the list of posts */}
         {posts.map((post) => (

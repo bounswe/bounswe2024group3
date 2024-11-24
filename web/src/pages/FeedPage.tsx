@@ -4,17 +4,24 @@ import { req } from "../utils/client";
 import PostCard from "../components/PostCard";
 import CreatePostForm from "../components/CreatePostForm";
 
+export type PostContent = {
+    id: number;
+    link: string;
+    description: string;
+    content_type: string;
+}
+
+
 export type PostDetails = {
     id: number;
     imageUrl: string | null;
     title: string | undefined;
-    content: any;
+    content: PostContent;
     comment: string;
     username: string;
     likes: number;
     dislikes: number;
     created_at: Date;
- 
     userAction: string | null;
   };
 

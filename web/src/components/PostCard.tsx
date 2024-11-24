@@ -4,6 +4,7 @@ import { PostDetails } from "../pages/FeedPage";
 import { Spotify } from "react-spotify-embed";
 import SvgIcon from "./SvgIcon";
 import useAccessibility from "./Accessibility";
+import { parseSpotifyLink } from "../utils/client";
 
 
 const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
@@ -73,7 +74,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
 
             {/* Invisible clickable overlay */}
             <Link
-  to={`/${post.content.content_typetype}/${post.spotifyId}`}
+  to={`/${post.content.content_type}/${parseSpotifyLink(post.content.link).id}`}
   className="absolute inset-0 z-10"
   aria-label="Override Spotify link"
 ></Link>

@@ -5,12 +5,12 @@ import { PostDetails } from "../pages/FeedPage";
 import { Spotify } from "react-spotify-embed";
 import SvgIcon from "./SvgIcon";
 import useAccessibility from "./Accessibility";
-import { parseSpotifyLink } from "../utils/client";
+import { parseSpotifyLink, req } from "../utils/client";
 
 
 const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
-  const [likes, setLikes] = useState(post.likes);
-  const [dislikes, setDislikes] = useState(post.dislikes);
+  const [likes, setLikes] = useState(post.total_likes);
+  const [dislikes, setDislikes] = useState(post.total_dislikes);
   const [userAction, setUserAction] = useState<string | null>(post.userAction);
   useAccessibility();
 
@@ -20,8 +20,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
 
     try {
       // Backend request to increment likes
-      const response = await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
-      if (!response.ok) throw new Error("Error while liking the post");
+      const response =  await req(`posts/${post.id}/like/`,"post",{});
 
       // Update local states
       setLikes((prev) => prev + 1);
@@ -38,8 +37,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
 
     try {
       // Backend request to increment dislikes
-      const response = await fetch(`/api/posts/${post.id}/dislike`, { method: "POST" });
-      if (!response.ok) throw new Error("Error while disliking the post");
+      const response =  await req(`posts/${post.id}/dislike`,"post",{});
 
       // Update local states
       setDislikes((prev) => prev + 1);
@@ -90,9 +88,6 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
         <div className="card-body">
           <p>{post.comment}</p>
         </div>
-
-        {/* Post content */}
-        <p className="text-gray-700">{post.content}</p>
 
         {/* Post creation date */}
         <p className="text-right text-sm text-gray-500">

@@ -18,8 +18,8 @@ export type PostDetails = {
   content: PostContent;
   comment: string;
   username: string;
-  likes: number;
-  dislikes: number;
+  total_likes: number;
+  total_dislikes: number;
   created_at: Date;
   userAction: string | null;
 };
@@ -42,24 +42,7 @@ export const FeedPage = () => {
         const feedQuery = `get-posts/`;
         const response = await req(feedQuery, "get", {});
         console.log("Feed response:", response.data);
-        const posts: PostDetails[] = response.data.posts.map(
-          (post: any, idx: number) => ({
-            id: post.id, // Use the actual `id` from the post instead of the index
-            comment: post.comment,
-            username: post.username || "", // Assuming `username` might not be available in the JSON, using a fallback
-            created_at: new Date(post.created_at),
-            image: post.image,
-            link: post.link,
-            total_likes: post.total_likes,
-            content: {
-              id: post.content.id,
-              link: post.content.link,
-              description: post.content.description,
-              content_type: post.content.content_type,
-            },
-            tags: post.tags.map((tag: any) => tag.name),
-          })
-        );
+        const posts: PostDetails[] = response.data.posts;
         if (posts.length === 0) {
           throw new Error("No posts found");
         }

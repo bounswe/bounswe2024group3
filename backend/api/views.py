@@ -226,8 +226,13 @@ def create_post(request):
     latitude = body.get('latitude')
     longitude = body.get('longitude')
 
+    if(latitude is None or longitude is None):
+        latitude = None
+        longitude = None
+
+
     # Validate required fields
-    if not link or not comment or latitude is None or longitude is None:
+    if not link or not comment:
         return JsonResponse({"error": "Link, comment, latitude, and longitude are required!"}, status=400)
 
     # Detect the content type of the Spotify link
@@ -518,7 +523,7 @@ def get_most_shared_nearby_songs(user_lat, user_lon, radius_km, offset, limit):
 
 
 def haversine(lat1, lon1, lat2, lon2):
-    R = 6371.0  # Earth radius in kilometers
+    R = 6371.0  
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
@@ -532,7 +537,7 @@ def bounding_box(lat, lon, radius_km):
     Calculate the bounding box for a given latitude, longitude, and radius in kilometers.
     """
     lat_delta = radius_km / 111  # 1 degree of latitude is ~111 km
-    lon_delta = radius_km / (111 * math.cos(math.radians(lat)))  # Adjust for longitude at given latitude
+    lon_delta = radius_km / (111 * math.cos(math.radians(lat)))  
 
     min_lat = lat - lat_delta
     max_lat = lat + lat_delta

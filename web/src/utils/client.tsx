@@ -1,7 +1,6 @@
-import axios ,{Method }from "axios";
+import axios, { Method } from "axios";
 
 export const req = async (url: string, method: string, data: any) => {
-
   if (method === "post" && url[url.length - 1] !== "/") {
     url += "/";
   }
@@ -9,11 +8,10 @@ export const req = async (url: string, method: string, data: any) => {
     url = url.slice(0, -1);
   }
   const axiosParams = {
-    method: method  as Method,
+    method: method as Method,
     url: process.env.REACT_APP_BACKEND_URL + url,
     data: data,
     withCredentials: true,
-
   };
   console.log("REQ>", axiosParams);
   const resp = await axios(axiosParams);
@@ -37,4 +35,18 @@ export const parseSpotifyLink = (url: string) => {
     return { id, type };
   }
   throw new Error("Invalid Spotify link");
+};
+
+/// Returns a Spotify link from the given id and type
+export const createSpotifyLink = ({
+  type,
+  id,
+}: {
+  type: string;
+  id: string;
+}): string => {
+  if (!type || !id) {
+    throw new Error("Invalid type or id");
+  }
+  return `https://open.spotify.com/${type}/${id}`;
 };

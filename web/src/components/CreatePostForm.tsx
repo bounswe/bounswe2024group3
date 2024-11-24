@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { req } from "../utils/client";
+import { createSpotifyLink, parseSpotifyLink, req } from "../utils/client";
 
 const CreatePostForm = () => {
   const [link, setLink] = useState("");
@@ -24,7 +24,7 @@ const CreatePostForm = () => {
     e.preventDefault();
 
     const postData = {
-      link,
+      link: createSpotifyLink(parseSpotifyLink(link)),
       comment,
       image: "", // Default to an empty string
       latitude: parseFloat(latitude),

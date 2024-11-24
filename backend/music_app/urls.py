@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/most_shared_nearby_things/', views.most_shared_nearby_things, name='most_shared_nearby_things'),
     path('api/save-now-playing/', views.save_now_playing, name='save_now_playing'),
     path('api/most-listened-nearby/', views.most_listened_nearby, name='most_listened_nearby'),
+    path('api/search/', views.search, name='search'),
 
 
 ]

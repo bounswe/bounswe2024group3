@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { req } from "../utils/client";
-import { PostDetails } from "./PostPage";
 import PostCard from "../components/PostCard";
-
+import { PostDetails } from "./FeedPage";
 export const SearchPage = () => {
     const { query } = useParams();
   
@@ -20,12 +19,7 @@ export const SearchPage = () => {
             const searchQuery = `posts/search?keyword=${query}`;
             const response = await req(searchQuery, "get", {});
             console.log("Search response:", response.data);
-            const posts: PostDetails[] = response.data.data.map(
-              (post: any, idx: number) => ({
-                id: idx,
-               
-              })
-            );
+            const posts: PostDetails[] = response.data.data;
             if (posts.length === 0) {
                 throw new Error("No books found");
             }

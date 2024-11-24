@@ -284,6 +284,57 @@ def get_content_type(link):
     else:
         return "track"
 
+@require_http_methods(["GET"])
+def get_user_posts(request):
+    req_user = request.user
+    user_id = request.GET.get('user_id')
+    page_number = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', 10)
+
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({"error": "User not found"}, status=404)
+
+    if req_user != target_user:
+        # Check if the requesting user follows the target user
+        req_user_profile = req_user.profile
+        if not req_user_profile.following.filter(id=target_user.profile.id).exists():
+            return JsonResponse({"error": "You do not follow this user"}, status=403)
+
+    posts = Post.objects.filter(belongs_to=target_user).order_by('-created_at')
+    
+    paginator = Paginator(posts, page_size)
+    try:
+        page = paginator.page(page_number)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    posts_data = [
+        {
+            "id": post.id,
+            "comment": post.comment,
+            "image": post.image,
+            "link": post.link,
+            "created_at": post.created_at,
+            "total_likes": post.total_likes,
+            "total_dislikes": post.total_dislikes,
+            "tags": [tag.name for tag in post.tags.all()],
+        }
+        for post in page.object_list
+    ]
+
+    return JsonResponse(
+        {
+            "posts": posts_data,
+            "current_page": page.number,
+            "total_pages": paginator.num_pages,
+            "total_posts": paginator.count,
+        },
+        status=200
+    )
+
+    
 
 
 def get_posts(request):
@@ -661,3 +712,4 @@ def most_listened_nearby(request):
         return JsonResponse({"error": "Invalid input for latitude, longitude, or radius."}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+

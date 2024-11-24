@@ -23,7 +23,7 @@ root.render(
           <UserProvider>
             <Layout>
               <Routes>
-                <Route path= "/"    element={<App/>} />,
+                <Route path= "/"    element={<FeedPage/>} />,
                 <Route path="/feed" element={<FeedPage />} />
                 <Route path="track/:spotifyId" element={<PostPage type="track" />} />
                 <Route path="playlist/:spotifyId" element={<PostPage type="playlist" />} />

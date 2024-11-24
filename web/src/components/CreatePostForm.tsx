@@ -45,7 +45,7 @@ const CreatePostForm = () => {
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl p-6 max-w-lg mx-auto my-4">
+    <div className="card bg-base-100 shadow-xl p-6 max-w-xlg mx-auto my-4">
       <h2 className="card-title mb-4">Create a New Post</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-group mb-4">

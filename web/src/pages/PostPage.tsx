@@ -7,6 +7,7 @@ import { useUser } from "../providers/UserContext";
 import useAccessibility from "../components/Accessibility";
 import { PostDetails } from "./FeedPage";
 import { createSpotifyLink, req } from "../utils/client";
+import CreatePostForm from "../components/CreatePostForm";
 
 interface PostPageProps {
   type: string;
@@ -44,12 +45,12 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   }
 
   return (
-    <div className="flex">
+    <div className="flex  justify-center items-center">
       {/* Main Content Section */}
-      <div className="flex-1">
+      <div className="flex-1  max-w-2xl w-full">
         <Spotify wide link={`https://open.spotify.com/${type}/${spotifyId}`} />
 
-        {/* Show the post creation section only if the user is logged in */}
+        {/* Show the post creation section only if the user is logged in
         {true && (
           <div className="add-post-section">
             <h3>Add a New Post</h3>
@@ -63,7 +64,9 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
               Submit Post
             </button>
           </div>
-        )}
+        )} */}
+
+        <CreatePostForm />
 
         {/* Render the list of posts */}
         {posts.map((post) => (

@@ -6,7 +6,7 @@ import RecommendationItem from "../components/RecommendationItem";
 import { useUser } from "../providers/UserContext";
 import useAccessibility from "../components/Accessibility";
 import { PostDetails } from "./FeedPage";
-import { createSpotifyLink, req } from "../utils/client";
+import { createSpotifyLink, parseSpotifyLink, req } from "../utils/client";
 import CreatePostForm from "../components/CreatePostForm";
 
 interface PostPageProps {
@@ -16,6 +16,7 @@ interface PostPageProps {
 const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const { spotifyId } = useParams<{ spotifyId: string }>();
   const [posts, setPosts] = useState<PostDetails[]>([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
   const [newPostContent, setNewPostContent] = useState(""); // To track new post content
   const { username } = useUser();
 
@@ -39,7 +40,43 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
         console.error("Failed to fetch posts:", error);
       }
     };
+
+    const addNowPlaying = async () => {
+      try {
+        if (!spotifyId) {
+          throw new Error("Invalid Spotify ID");
+        }
+        const storedLatitude = localStorage.getItem("latitude");
+        const storedLongitude = localStorage.getItem("longitude");
+        const response = await req("save-now-playing", "post", {
+          link: createSpotifyLink({ type, id: spotifyId }),
+          latitude: parseFloat(storedLatitude || "0"),
+          longitude: parseFloat(storedLongitude || "0"),
+        });
+        console.log("Added now playing:", response.data);
+      } catch (error: any) {
+        console.error("Failed to add now playing:", error);
+      }
+    };
+
+    const getRecommendations = async () => {
+      try {
+        const response = await req("get-posts/", "get", {});
+        console.log("Feed response:", response.data);
+        const posts: PostDetails[] = response.data.posts;
+        if (posts.length === 0) {
+          throw new Error("No posts found");
+        }
+        let links = posts.map((post) => post.content.link);
+        setRecommendations(links);
+        console.log("Recommendations response:", response.data);
+      } catch (error: any) {
+        console.error("Failed to fetch recommendations:", error);
+      }
+    };
     handleQuery();
+    addNowPlaying();
+    getRecommendations();
   }, [spotifyId]);
 
   if (!posts || !posts.length || !spotifyId) {
@@ -79,15 +116,21 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       </div>
 
       {/* Recommendations Bar */}
-      {/* <div className="w-64 bg-gray-100 p-4 ml-4">
+      <div className="w-64 bg-gray-100 p-4 ml-4">
         <h3 className="text-lg font-semibold mb-4">Recommended for You</h3>
-        {mockPosts
-          .filter((x) => x.spotifyId !== spotifyId && x.type === type)
+        {recommendations
+          .filter((x) => !x.endsWith(spotifyId))
           .slice(0, 10)
           .map((rec) => (
-            <RecommendationItem key={rec.id} rec={rec} />
+            <RecommendationItem
+              key={parseSpotifyLink(rec).id}
+              rec={{
+                type: parseSpotifyLink(rec).type,
+                spotifyId: parseSpotifyLink(rec).id,
+              }}
+            />
           ))}
-      </div> */}
+      </div>
     </div>
   );
 };

@@ -305,6 +305,8 @@ def get_posts(request):
                 "link": post.link,
                 "created_at": post.created_at.isoformat(),
                 "total_likes": post.total_likes,
+                "total_dislikes": post.total_dislikes,
+                "username": post.belongs_to.username, 
                 "content": {
                     "id": post.content.id,
                     "link": post.content.link,
@@ -337,6 +339,8 @@ def get_posts(request):
             "link": post.link,
             "created_at": post.created_at.isoformat(),
             "total_likes": post.total_likes,
+            "total_dislikes": post.total_dislikes,
+            "username": post.belongs_to.username,
             "content": {
                 "id": post.content.id,
                 "link": post.content.link,

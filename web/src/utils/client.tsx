@@ -25,3 +25,16 @@ export const req = async (url: string, method: string, data: any) => {
   }
   return resp;
 };
+
+/// Returns the id and type of a Spotify link
+export const parseSpotifyLink = (url: string) => {
+  if (url.includes("spotify.com")) {
+    // Remove query parameters if they exist
+    const cleanedUrl = url.split("?")[0];
+    const parts = cleanedUrl.split("/");
+    const id = parts[parts.length - 1];
+    const type = parts[parts.length - 2];
+    return { id, type };
+  }
+  throw new Error("Invalid Spotify link");
+};

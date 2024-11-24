@@ -5,8 +5,15 @@ import { useUser } from "../providers/UserContext";
 
 const Header = () => {
   const { username } = useUser();
+  const [query, setQuery] = useState("");
+
 
   const navigate = useNavigate();
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/search/${query}`);
+  };
 
 
   return (
@@ -17,8 +24,20 @@ const Header = () => {
         </Link>
       </div>  
 
-        {// going to change this part when userContext is active
-        }
+      { <form onSubmit={handleSearch} className="flex-none gap-2">
+        <div className="form-control">
+          <input
+            type="text"
+            placeholder="Search"
+            className="input input-bordered w-24 md:w-auto"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      </form>}
+ 
+ 
+
         <label className="swap swap-rotate">
   {/* this hidden checkbox controls the state */}
   <input type="checkbox" className="theme-controller" value="dark" />

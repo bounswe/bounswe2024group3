@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import {Link} from "react-router-dom";
 import { PostDetails } from "../pages/FeedPage";
 import { Spotify } from "react-spotify-embed";
@@ -17,14 +18,17 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
   const handleLike = async () => {
     if (userAction === "like") return; // Prevent double like
 
-    // Make request to backend to increment likes (dummy API call)
     try {
-      await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+      // Backend request to increment likes
+      const response = await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+      if (!response.ok) throw new Error("Error while liking the post");
+
+      // Update local states
       setLikes((prev) => prev + 1);
       if (userAction === "dislike") setDislikes((prev) => prev - 1); // Undo dislike
       setUserAction("like");
     } catch (error) {
-      console.error("Failed to like the post", error);
+      console.error("Failed to like the post:", error);
     }
   };
 
@@ -32,14 +36,17 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
   const handleDislike = async () => {
     if (userAction === "dislike") return; // Prevent double dislike
 
-    // Make request to backend to increment dislikes (dummy API call)
     try {
-      await fetch(`/api/posts/${post.id}/dislike`, { method: "POST" });
+      // Backend request to increment dislikes
+      const response = await fetch(`/api/posts/${post.id}/dislike`, { method: "POST" });
+      if (!response.ok) throw new Error("Error while disliking the post");
+
+      // Update local states
       setDislikes((prev) => prev + 1);
       if (userAction === "like") setLikes((prev) => prev - 1); // Undo like
       setUserAction("dislike");
     } catch (error) {
-      console.error("Failed to dislike the post", error);
+      console.error("Failed to dislike the post:", error);
     }
   };
 
@@ -53,6 +60,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           <h1 className="text-4xl text-center">{post.title}</h1>
         )}
       </figure>
+
       <div className="card-body">
         {/* Username links to the user's profile */}
         <h2 className="card-title">
@@ -67,13 +75,12 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           <div className="relative">
             {/* Spotify Embed */}
             <Spotify
-              width=  "100%"
+              width="100%"
               height="100%"
               link={post.content.link}
             />
-
-            {/* Invisible clickable overlay */}
             <Link
+
   to={`/${post.content.content_type}/${parseSpotifyLink(post.content.link).id}`}
   className="absolute inset-0 z-10"
   aria-label="Override Spotify link"
@@ -84,14 +91,18 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           <p>{post.comment}</p>
         </div>
 
-        <p className="right align">
+        {/* Post content */}
+        <p className="text-gray-700">{post.content}</p>
+
+        {/* Post creation date */}
+        <p className="text-right text-sm text-gray-500">
           {new Date(post.created_at).toLocaleString()}
         </p>
 
         {/* Like and Dislike actions */}
-        <div className="card-actions justify-end">
+        <div className="card-actions justify-end space-x-2">
           <button
-            className={`btn ${userAction === "like" ? "btn-primary" : ""}`}
+            className={`btn ${userAction === "like" ? "btn-primary" : "btn-secondary"}`}
             onClick={handleLike}
             aria-label="Like"
           >
@@ -99,7 +110,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
             {likes}
           </button>
           <button
-            className={`btn ${userAction === "dislike" ? "btn-primary" : ""}`}
+            className={`btn ${userAction === "dislike" ? "btn-primary" : "btn-secondary"}`}
             onClick={handleDislike}
             aria-label="Dislike"
           >

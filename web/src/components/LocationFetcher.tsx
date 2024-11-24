@@ -1,12 +1,33 @@
 // LocationFetcher.tsx
 import React, { useEffect } from 'react';
 
+export const fetchLocation = async() => {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        localStorage.setItem("latitude", latitude.toString());
+        localStorage.setItem("longitude", longitude.toString());
+        console.log("Latitude:", latitude, "Longitude:", longitude);
+      },
+      (error) => {
+        console.error("Error obtaining location: ", error);
+      }
+    );
+  } else {
+    console.error("Geolocation is not supported by this browser.");
+  }
+}
+
 const LocationFetcher: React.FC = () => {
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          localStorage.setItem("latitude", latitude.toString());
+          localStorage.setItem("longitude", longitude.toString());
+          console.log("Latitude:", latitude, "Longitude:", longitude);
           fetchCityName(latitude, longitude);
         },
         (error) => {
@@ -17,6 +38,7 @@ const LocationFetcher: React.FC = () => {
       console.error("Geolocation is not supported by this browser.");
     }
   }, []);
+ 
 
   const fetchCityName = async (latitude: number, longitude: number) => {
     const apiKey = "YOUR_API_KEY"; // Replace with your API key

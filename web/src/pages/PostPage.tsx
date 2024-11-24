@@ -64,16 +64,22 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
         const response = await req("get-posts/", "get", {});
         console.log("Feed response:", response.data);
         const posts: PostDetails[] = response.data.posts;
+
         if (posts.length === 0) {
           throw new Error("No posts found");
         }
+
+        // Extract links, make them unique, and limit to 10
         let links = posts.map((post) => post.content.link);
-        setRecommendations(links);
-        console.log("Recommendations response:", response.data);
+        const uniqueLinks = Array.from(new Set(links)).slice(0, 10);
+
+        setRecommendations(uniqueLinks);
+        console.log("Recommendations response:", uniqueLinks);
       } catch (error: any) {
         console.error("Failed to fetch recommendations:", error);
       }
     };
+
     handleQuery();
     addNowPlaying();
     getRecommendations();
@@ -84,7 +90,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   }
 
   return (
-    <div className="flex  justify-center items-center">
+    <div className="flex justify-center">
       {/* Main Content Section */}
       <div className="flex-1  max-w-2xl w-full">
         <Spotify wide link={`https://open.spotify.com/${type}/${spotifyId}`} />
@@ -119,7 +125,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       <div className="w-64 bg-gray-100 p-4 ml-4">
         <h3 className="text-lg font-semibold mb-4">Recommended for You</h3>
         {recommendations
-          .filter((x) => !x.endsWith(spotifyId))
+          .filter((x) => parseSpotifyLink(x).id !== spotifyId)
           .slice(0, 10)
           .map((rec) => (
             <RecommendationItem

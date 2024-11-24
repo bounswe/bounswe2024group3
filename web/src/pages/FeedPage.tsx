@@ -18,8 +18,8 @@ export type PostDetails = {
   content: PostContent;
   comment: string;
   username: string;
-  likes: number;
-  dislikes: number;
+  total_likes: number;
+  total_dislikes: number;
   created_at: Date;
   userAction: string | null;
 };

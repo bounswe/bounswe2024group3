@@ -1,5 +1,3 @@
-// app/(tabs)/recommendations.tsx
-
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import PostCard from '../../components/PostCard';
@@ -13,10 +11,13 @@ function Recommendations() {
     setIsDarkTheme((previousState) => !previousState);
   };
 
-  useEffect(() => {
-    // Shuffle the posts and select the first three
+  const getRandomPosts = () => {
     const shuffledPosts = [...mockPosts].sort(() => 0.5 - Math.random());
     setRandomPosts(shuffledPosts.slice(0, 3));
+  };
+
+  useEffect(() => {
+    getRandomPosts();
   }, []);
 
   return (
@@ -28,12 +29,25 @@ function Recommendations() {
             backgroundColor: isDarkTheme ? '#fff' : '#000',
             padding: 12,
             borderRadius: 8,
+            marginBottom: 10,
           }}
         >
           <Text
             style={{ color: isDarkTheme ? '#000' : '#fff', textAlign: 'center', fontSize: 16 }}
           >
             Toggle Theme
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={getRandomPosts}
+          style={{
+            backgroundColor: '#2f95dc',
+            padding: 12,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: '#fff', textAlign: 'center', fontSize: 16 }}>
+            Refresh Recommendations
           </Text>
         </TouchableOpacity>
       </View>

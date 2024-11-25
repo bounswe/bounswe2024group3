@@ -1,43 +1,46 @@
-// app/login.tsx
-import React, { useContext, useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import React, { useState } from "react";
+import { View, TextInput, Button, StyleSheet, Text, ActivityIndicator } from "react-native";
+import { useUser } from "../../context/UserContext";
 import { AuthContext } from '../../context/AuthContext';
-import { Link } from 'expo-router';
+import { req } from "../../utils/client";
+import { Link } from "expo-router";
+import { useRouter } from 'expo-router';
 
 export default function Login() {
-  const { login } = useContext(AuthContext);
-  const [username, setUsername] = useState(''); // Use username instead of email
-  const [password, setPassword] = useState('');
+  const { setUsername, setUserId, setEmail, setLatitude, setLongitude } = useUser();
+  const [username, setUsernameInput] = useState("");
+  const [password, setPasswordInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { login } = React.useContext(AuthContext);
 
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      const response = await fakeApiLogin(username, password); // Use username for login
-      if (response.success) {
-        login();
-      } else {
-        alert('Invalid username or password');
-      }
-    } catch (error) {
-      console.error(error);
-      alert('An error occurred during login');
+      let response = await req("login", "post", {
+        username: username,
+        password: password,
+      });
+      const { user_id, email, latitude, longitude } = response.data;
+
+      setUsername(username);
+      setUserId(user_id);
+      setEmail(email);
+      setLatitude(latitude || 0);
+      setLongitude(longitude || 0);
+
+      console.log("Login successful");
+      // Navigate to the home page after successful login
+      router.replace({ pathname: "/(tabs)" });
+      login();
+
+    } catch (err) {
+      setError("Login failed. Please try again.");
+      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fakeApiLogin = async (username: string, password: string) => {
-    // Simulate an API call with a delay
-    return new Promise<{ success: boolean }>((resolve) => {
-      setTimeout(() => {
-        if (username === 'user123' && password === 'password') {
-          resolve({ success: true });
-        } else {
-          resolve({ success: false });
-        }
-      }, 1000);
-    });
   };
 
   return (
@@ -46,60 +49,38 @@ export default function Login() {
       <TextInput
         placeholder="Username"
         value={username}
-        onChangeText={setUsername}
+        onChangeText={setUsernameInput}
         style={styles.input}
         autoCapitalize="none"
       />
       <TextInput
         placeholder="Password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={setPasswordInput}
         style={styles.input}
         secureTextEntry
       />
+      {error && <Text style={styles.error}>{error}</Text>}
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <Button title="Login" onPress={handleLogin} />
       )}
-
-      <Link href="/register" style={styles.link}>
+        <Link href="/register" style={styles.link}>
         Don't have an account? Register
       </Link>
 
-      <Link href="/forgot-password" style={styles.link}>
+      {/* <Link href="/forgot-password" style={styles.link}>
         Forgot password?
-      </Link>
+      </Link> */}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 12,
-    backgroundColor: '#fff',
-  },
-  link: {
-    marginTop: 10,
-    color: '#007bff',
-    textAlign: 'center',
-    fontSize: 16,
-  },
+  container: { flex: 1, justifyContent: "center", paddingHorizontal: 20 },
+  title: { fontSize: 32, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
+  input: { height: 50, borderColor: "#ccc", borderWidth: 1, marginBottom: 12, paddingHorizontal: 10 },
+  error: { color: "red", textAlign: "center", marginBottom: 10 },
+  link: { color: "blue", textAlign: "center", marginTop: 20 },
 });

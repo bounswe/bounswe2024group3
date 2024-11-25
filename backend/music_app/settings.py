@@ -37,7 +37,7 @@ ALLOWED_HOSTS = [
 prod_host = getenv("PROD_HOST")
 
 if prod_host:
-    prod_host = prod_host.split(":")[0]
+    prod_host = prod_host.split(":")[1].strip('/')
 
     ALLOWED_HOSTS.append(prod_host)
 

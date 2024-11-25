@@ -10,19 +10,19 @@ export const setScreenReaderMode = (mode: boolean) => {
 const useAccessibility = () => {
   useEffect(() => {
     const handleMouseDown = () => {
-      console.log("Mouse down event detected");
+      // console.log("Mouse down event detected");
       lastInteractionWasMouse = true;
     };
 
     const handleKeyDown = () => {
-      console.log("Key down event detected");
+      // console.log("Key down event detected");
       lastInteractionWasMouse = false;
     };
 
     const handleFocus = (event: any) => {
-      console.log("Focus event triggered");
+      // console.log("Focus event triggered");
       if (lastInteractionWasMouse) {
-        console.log("Last interaction was with mouse, skipping speech synthesis");
+        // console.log("Last interaction was with mouse, skipping speech synthesis");
       }else{
         const activeElement = document.activeElement;
         if (activeElement) {

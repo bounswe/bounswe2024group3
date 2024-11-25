@@ -187,4 +187,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
+  loader: {
+    marginTop: 20,
+  },
 });

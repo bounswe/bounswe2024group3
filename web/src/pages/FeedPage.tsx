@@ -59,8 +59,9 @@ export const FeedPage = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [showCreateButton, setShowCreateButton] = useState(true);
   const [mostListenedNearbys, setMostListenedNearbys] = useState<string[]>([]);
-  const [mostSharedNearbys, setMostSharedNearbys ]= useState<string[]>([]);
+  const [mostSharedNearbys, setMostSharedNearbys] = useState<string[]>([]);
   const [posts, setPosts] = useState<PostDetails[]>([]);
+
   async function getMostListenedNearby(
     params: MostListenedNearbyParams
   ): Promise<Track[]> {
@@ -96,34 +97,6 @@ export const FeedPage = () => {
     }
   }
 
-  async function getMostSharedNearbyThings(params: MostListenedNearbyParams): Promise<Track[]> {
-    try {
-      const { latitude, longitude, radius = 10 } = params;
-  
-      // Construct the query parameters
-      const queryParams = new URLSearchParams({
-        latitude: latitude.toString(),
-        longitude: longitude.toString(),
-        radius: radius.toString(),
-      });
-  
-      // Make the GET request
-      const response = await req(
-        `most-shared-nearby-things/?${queryParams.toString()}`,"get",{});
-
-      // Return the list of tracks
-      const trackLinks =  response.data.songs.map((track: Song) => track.content__link);
-      setMostSharedNearbys(trackLinks);
-      return response.data.tracks;
-    } catch (error) {
-      // Handle error (optional: add better error handling based on the API response)
-      console.error('Error fetching most listened nearby tracks:', error);
-      throw error;
-    }
-  }
-
-
-
   useEffect(() => {
     const handleQuery = async () => {
       setIsLoading(true);
@@ -140,10 +113,14 @@ export const FeedPage = () => {
         if (!posts.length) {
           throw new Error("No posts found");
         }
-        getMostListenedNearby({latitude: localStorage.getItem("latitude")?  parseFloat(localStorage.getItem("latitude")!): 41.080895,
-           longitude: localStorage.getItem("longitude") ?  parseFloat(localStorage.getItem("longitude")!) : 29.0343434 });
-        getMostSharedNearbyThings({latitude: localStorage.getItem("latitude")?  parseFloat(localStorage.getItem("latitude")!): 41.080895,
-          longitude: localStorage.getItem("longitude") ?  parseFloat(localStorage.getItem("longitude")!) : 29.0343434 });
+        getMostListenedNearby({
+          latitude: localStorage.getItem("latitude")
+            ? parseFloat(localStorage.getItem("latitude")!)
+            : 41.080895,
+          longitude: localStorage.getItem("longitude")
+            ? parseFloat(localStorage.getItem("longitude")!)
+            : 29.0343434,
+        });
 
         setPosts(posts);
 
@@ -176,26 +153,22 @@ export const FeedPage = () => {
       </div>
     );
   }
-  return (
-    username ?
+  return username ? (
     <div className="flex justify-center items-start">
       {/* Main content area */}
-      <div className="w-64 bg-gray-100 p-4 mr-4">
-    <h3 className=" text-lg font-semibold mb-4">Most Shared Nearby</h3>
-    {mostSharedNearbys
-      .slice(0, 5)
-      .map((rec) => (
-        <RecommendationItem
-          key={parseSpotifyLink(rec).id}
-          rec={{
-            type: parseSpotifyLink(rec).type,
-            spotifyId: parseSpotifyLink(rec).id,
-          }}
-        />
-      ))}
-  </div>
+      {/* <div className="w-64 bg-gray-100 p-4 mr-4">
+        <h3 className=" text-lg font-semibold mb-4">Most Shared Nearby</h3>
+        {mostSharedNearbys.slice(0, 5).map((rec) => (
+          <RecommendationItem
+            key={parseSpotifyLink(rec).id}
+            rec={{
+              type: parseSpotifyLink(rec).type,
+              spotifyId: parseSpotifyLink(rec).id,
+            }}
+          />
+        ))}
+      </div> */}
       <div className="flex-1 max-w-2xl w-full">
-        
         <CreatePostForm />
         {error && <p className="text-red-500">{error}</p>}
 
@@ -218,12 +191,9 @@ export const FeedPage = () => {
         ))}
       </div>
     </div>
-:
-     <div className="flex justify-center items-start">
-      <h1> 
-      Please login to see feed. </h1> 
-      </div>
-
-);
-  
+  ) : (
+    <div className="flex justify-center items-start">
+      <h1>Please login to see feed. </h1>
+    </div>
+  );
 };

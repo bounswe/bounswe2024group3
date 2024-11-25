@@ -668,7 +668,7 @@ def most_listened_nearby(request):
         radius_km = float(request.GET.get("radius", 10))  # Default radius: 10 km
 
         # Validate inputs
-        if user_lat is None or user_lon is None:
+        if user_lat is None or user_lon is None or radius_km is None or math.isnan(user_lat) or math.isnan(user_lon) or math.isnan(radius_km):
             return JsonResponse({"error": "latitude and longitude are required."}, status=400)
 
         # Compute bounding box

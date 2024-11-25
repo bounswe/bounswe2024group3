@@ -32,6 +32,9 @@ services:
       DB_NAME: postgres
       DB_USERNAME: postgres
       DB_PASSWORD: topsecret
+      SPOTIFY_CLIENT_ID: c62a7c9ab8724af590583cf994eb285a
+      SPOTIFY_CLIENT_SECRET: 3ffb6e9ee94b47788078cffdcdd6f31b
+
     depends_on:
       - db
     links:

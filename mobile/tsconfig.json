@@ -2,11 +2,15 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
-      ]
-    }
+      ],
+      "@env": ["./env.d.ts"]
+    },
+    "typeRoots": ["./node_modules/@types", "./"]
   },
   "include": [
     "**/*.ts",

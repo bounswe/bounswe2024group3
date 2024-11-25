@@ -53,6 +53,7 @@ services:
     environment:
       REACT_APP_BACKEND_URL: http://${BACKEND_URL:-0.0.0.0:8000}/api/
       HOST: 0.0.0.0
+      PORT: 80
     depends_on:
       - backend
     links:

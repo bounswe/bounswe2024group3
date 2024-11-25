@@ -1,7 +1,10 @@
+// app/(tabs)/recommendations.tsx
+
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, FlatList, View, StyleSheet, TouchableOpacity } from 'react-native';
 import PostCard from '../../components/PostCard';
 import { mockPosts } from '../../pages/mockPosts';
+import { Ionicons } from '@expo/vector-icons';
 
 function Recommendations() {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -21,47 +24,55 @@ function Recommendations() {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkTheme ? '#000' : '#fff' }}>
-      <View style={{ padding: 16 }}>
-        <TouchableOpacity
-          onPress={toggleTheme}
-          style={{
-            backgroundColor: isDarkTheme ? '#fff' : '#000',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 10,
-          }}
-        >
-          <Text
-            style={{ color: isDarkTheme ? '#000' : '#fff', textAlign: 'center', fontSize: 16 }}
-          >
-            Toggle Theme
-          </Text>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: isDarkTheme ? '#121212' : '#f2f2f2' }]}
+    >
+      <View style={styles.header}>
+        <TouchableOpacity onPress={toggleTheme} style={styles.iconButton}>
+          <Ionicons
+            name={isDarkTheme ? 'sunny-outline' : 'moon-outline'}
+            size={24}
+            color={isDarkTheme ? '#fff' : '#000'}
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={getRandomPosts}
-          style={{
-            backgroundColor: '#2f95dc',
-            padding: 12,
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: '#fff', textAlign: 'center', fontSize: 16 }}>
-            Refresh Recommendations
-          </Text>
+        <TouchableOpacity onPress={getRandomPosts} style={styles.iconButton}>
+          <Ionicons
+            name="refresh-outline"
+            size={24}
+            color={isDarkTheme ? '#fff' : '#000'}
+          />
         </TouchableOpacity>
       </View>
-      <View style={{ flex: 1 }}>
-        <FlatList
-          data={randomPosts}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <PostCard isFeed={true} post={item} isDarkTheme={isDarkTheme} />
-          )}
-        />
-      </View>
+      <FlatList
+        data={randomPosts}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <PostCard isFeed={true} post={item} isDarkTheme={isDarkTheme} />
+        )}
+        contentContainerStyle={styles.listContent}
+      />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  iconButton: {
+    marginLeft: 16,
+    padding: 8,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+});
 
 export default Recommendations;

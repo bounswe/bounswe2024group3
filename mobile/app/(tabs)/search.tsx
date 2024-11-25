@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   TextInput,
-  Text,
   StyleSheet,
   View,
   FlatList,
   ActivityIndicator,
+  TouchableOpacity,
+  Text,
 } from 'react-native';
-import PostCard from '../../components/PostCard'; 
+import { Ionicons } from '@expo/vector-icons';
+import PostCard from '../../components/PostCard';
 import { REACT_APP_BACKEND_URL } from '@env';
 import axios from 'axios';
 
@@ -17,6 +19,11 @@ export default function SearchScreen() {
   const [posts, setPosts] = useState([]); // To store search results
   const [isLoading, setIsLoading] = useState(false); // To track loading state
   const [error, setError] = useState(''); // To display error messages
+  const [isDarkTheme, setIsDarkTheme] = useState(false); // Dark theme toggle
+
+  const toggleTheme = () => {
+    setIsDarkTheme((prevState) => !prevState);
+  };
 
   useEffect(() => {
     if (query.trim() === '') {
@@ -30,13 +37,12 @@ export default function SearchScreen() {
       try {
         const searchQuery = `search/?search=${query}`;
         const response = await axios.get(`${REACT_APP_BACKEND_URL}${searchQuery}`);
-        console.log('Search response:', response.data);
-
         const fetchedPosts = response.data.contents || [];
         if (fetchedPosts.length === 0) {
           setError('No posts found');
         }
         setPosts(fetchedPosts);
+        console.log('Fetched posts:', fetchedPosts);
       } catch (err) {
         console.error('Search failed:', err);
         setError('Failed to fetch posts');
@@ -52,17 +58,71 @@ export default function SearchScreen() {
     return () => clearTimeout(delayDebounce); // Cleanup on unmount or query change
   }, [query]);
 
-  const renderPost = ({ item }: { item: any }) => (
-    <PostCard post={item} isFeed={false} isDarkTheme={false} />
-  );
+  const renderPost = ({ item }) => {
+    // Extract image URL using regex to handle the description string
+    let imageUrl = '';
+    const imageMatch = item.description.match(/'images': \[{'url': '([^']+)'/);
+    
+    if (imageMatch) {
+      imageUrl = imageMatch[1]; // Extracted URL from description
+    } else {
+      imageUrl = ''; // Fallback to an empty string if no image is found
+    }
+  
+    // Extract release date from the description
+    let releaseDate = 'Unknown';
+    const releaseDateMatch = item.description.match(/'release_date': '([^']+)'/);
+
+
+    if (releaseDateMatch) {
+      releaseDate = `release date: ${releaseDateMatch[1]}`; // Format as "release date: {date}"
+    } else {
+      releaseDate = 'release date: Unknown'; // Fallback if release date is not found
+    }
+  
+    return (
+      <PostCard
+        post={{
+          id: item.id,
+          title: item.comment || 'Untitled', // Use comment as title or default to "Untitled"
+          content: releaseDate || 'Unknown release date', // Use release date as content
+          username: item.content_type || 'Unknown User', // Use content_type or fallback
+          imageUrl: imageUrl, // Use extracted image URL
+          type: item.content_type || 'unknown', // Extract type from content_type
+          spotifyId: item.link.split('/').pop(), // Extract Spotify ID from the link
+          likes: item.total_likes || 0, // Fallback to 0 if no likes field
+          dislikes: item.total_dislikes || 0, // Fallback to 0 if no dislikes field
+          userAction: null, // No user action initially
+          created_at: new Date(item.created_at), // Parse created_at timestamp
+        }}
+        isFeed={true}
+        isDarkTheme={isDarkTheme}
+      />
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.text}>Search Posts</Text>
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: isDarkTheme ? '#121212' : '#f5f5f5' },
+      ]}
+    >
+      <View style={styles.header}>
+        <TouchableOpacity onPress={toggleTheme} style={styles.iconButton}>
+          <Ionicons
+            name={isDarkTheme ? 'sunny-outline' : 'moon-outline'}
+            size={24}
+            color={isDarkTheme ? '#fff' : '#000'}
+          />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search..."
+          placeholderTextColor="#888"
           value={query}
           onChangeText={setQuery}
         />
@@ -71,18 +131,13 @@ export default function SearchScreen() {
       {isLoading ? (
         <ActivityIndicator size="large" color="#007bff" style={styles.loader} />
       ) : error ? (
-        <Text style={styles.error}>{error}</Text>
+        <Text style={[styles.error, { color: isDarkTheme ? '#fff' : '#000' }]}>{error}</Text>
       ) : (
         <FlatList
           data={posts}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderPost}
-          contentContainerStyle={styles.resultsContainer}
-          ListEmptyComponent={
-            query.trim() !== '' && !isLoading ? (
-              <Text style={styles.noResults}>No results found</Text>
-            ) : null
-          }
+          contentContainerStyle={styles.listContent}
         />
       )}
     </SafeAreaView>
@@ -92,8 +147,16 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  iconButton: {
+    marginLeft: 16,
+    padding: 8,
   },
   searchContainer: {
     backgroundColor: '#fff',
@@ -101,8 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginBottom: 20,
-    marginTop: 20,
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
@@ -116,27 +178,16 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
   },
-  text: {
-    fontSize: 24,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
   loader: {
     marginTop: 20,
   },
   error: {
-    color: 'red',
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
   },
-  noResults: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#555',
-    marginTop: 20,
-  },
-  resultsContainer: {
-    paddingHorizontal: 10,
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
 });

@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from .models import Profile, Post, Tag
+from .models import Profile, Post, Tag, Content
 import json
 
 class AuthAPITests(TestCase):
@@ -350,3 +350,123 @@ class SaveNowPlayingTest(TestCase):
 
         # Assertions
         self.assertEqual(response.status_code, 405)  # Method not allowed
+     
+    
+class SearchTests(TestCase):
+    def setUp(self):
+        # Initialize the test client
+        self.client = Client()
+
+        # Create some sample Content instances
+        self.content1 = Content.objects.create(
+            description='First content description',
+            content_type='Type A',
+            link='http://example.com/1'
+        )
+        self.content2 = Content.objects.create(
+            description='Second content description',
+            content_type='Type B',
+            link='http://example.com/2'
+        )
+        self.content3 = Content.objects.create(
+            description='Third content description',
+            content_type='Type A',
+            link='http://example.com/3'
+        )
+        self.content4 = Content.objects.create(
+            description='Fourth content description',
+            content_type='Type C',
+            link='http://example.com/4'
+        )
+
+    def test_search_no_query(self):
+        response = self.client.get(reverse('search'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['total_results'], 4)
+        self.assertEqual(data['page'], 1)
+        self.assertEqual(data['page_size'], 10)
+        self.assertEqual(len(data['contents']), 4)
+
+    def test_search_with_query(self):
+        """Test searching with a query that matches some contents"""
+        response = self.client.get(reverse('search'), {'search': 'First'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['total_results'], 1)
+        self.assertEqual(len(data['contents']), 1)
+        self.assertEqual(data['contents'][0]['description'], 'First content description')
+
+    def test_search_no_matches(self):
+        """Test searching with a query that matches no contents"""
+        response = self.client.get(reverse('search'), {'search': 'asdfasdf'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['total_results'], 0)
+        self.assertEqual(len(data['contents']), 0)
+
+    def test_search_pagination(self):
+        """Test pagination parameters"""
+        response = self.client.get(reverse('search'), {'page': 1, 'page_size': 2})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['page'], 1)
+        self.assertEqual(data['page_size'], 2)
+        self.assertEqual(len(data['contents']), 2)
+
+        response = self.client.get(reverse('search'), {'page': 2, 'page_size': 2})
+        data = response.json()
+        self.assertEqual(data['page'], 2)
+        self.assertEqual(len(data['contents']), 2)
+
+    def test_search_pagination_out_of_range(self):
+        """Test pagination with page number beyond available pages"""
+        response = self.client.get(reverse('search'), {'page': 3, 'page_size': 2})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['contents']), 0)
+
+    def test_search_method_not_allowed(self):
+        """Test that POST method is not allowed"""
+        response = self.client.post(reverse('search'))
+        self.assertEqual(response.status_code, 405)
+
+    def test_search_content_fields(self):
+        """Test that the returned contents have the correct fields"""
+        response = self.client.get(reverse('search'))
+        data = response.json()
+        content = data['contents'][0]
+        self.assertIn('id', content)
+        self.assertIn('description', content)
+        self.assertIn('content_type', content)
+        self.assertIn('link', content)
+
+    def test_search_multiple_filters(self):
+        """Test searching with a query that should match multiple fields"""
+        response = self.client.get(reverse('search'), {'search': 'Type A'})
+        data = response.json()
+        self.assertEqual(data['total_results'], 2)
+        descriptions = [item['description'] for item in data['contents']]
+        self.assertIn('First content description', descriptions)
+        self.assertIn('Third content description', descriptions)
+
+
+
+    def test_search_with_special_characters(self):
+        """Test searching with special characters in the query"""
+        Content.objects.create(
+            description='Special & Content',
+            content_type='Type D',
+            link='http://example.com/5'
+        )
+        response = self.client.get(reverse('search'), {'search': '&'})
+        data = response.json()
+        self.assertEqual(data['total_results'], 1)
+        self.assertEqual(data['contents'][0]['description'], 'Special & Content')
+
+    def test_search_case_insensitive(self):
+        """Test that the search is case-insensitive"""
+        response = self.client.get(reverse('search'), {'search': 'first'})
+        data = response.json()
+        self.assertEqual(data['total_results'], 1)
+        self.assertEqual(data['contents'][0]['description'], 'First content description')

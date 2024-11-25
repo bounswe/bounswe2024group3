@@ -241,8 +241,116 @@ class PostTests(TestCase):
             len(set(created_post.tags.values_list('name', flat=True))),
             2  # Should only have 'test' and 'sample'
         )
+from django.test import TestCase, Client
+from django.contrib.auth.models import User
+from .models import NowPlaying
+import json
 
+class SaveNowPlayingTest(TestCase):
+    def setUp(self):
+        # Create a test user
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.client = Client()
 
+        # Authenticate the user
+        self.client.login(username="testuser", password="password")
+
+        # Define the URL for the endpoint
+        self.url = '/api/save-now-playing/'
+
+    def test_save_now_playing_success(self):
+        # Valid request data
+        payload = {
+            "link": "https://open.spotify.com/track/7eBo7oeGFWJ9GlL1Me6NuV?si=d9afed506e9942e4",
+            "latitude": 37.7749,
+            "longitude": -122.4194
+        }
+
+        # Send a POST request
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        # Assertions
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(NowPlaying.objects.count(), 1)
+        self.assertEqual(NowPlaying.objects.first().link, "https://open.spotify.com/track/7eBo7oeGFWJ9GlL1Me6NuV?si=d9afed506e9942e4")
+        self.assertJSONEqual(
+            response.content,
+            {"message": "Now playing data saved successfully.", "id": NowPlaying.objects.first().id}
+        )
+
+    def test_save_now_playing_missing_fields(self):
+        # Payload missing latitude and longitude
+        payload = {
+            "link": "https://open.spotify.com/track/7eBo7oeGFWJ9GlL1Me6NuV?si=d9afed506e9942e4"
+        }
+
+        # Send a POST request
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        # Assertions
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(NowPlaying.objects.count(), 0)
+        self.assertJSONEqual(
+            response.content,
+            {"error": "link, latitude, and longitude are required."}
+        )
+
+    def test_save_now_playing_invalid_json(self):
+        # Invalid JSON payload
+        payload = "invalid_json"
+
+        # Send a POST request
+        response = self.client.post(
+            self.url,
+            data=payload,
+            content_type="application/json"
+        )
+
+        # Assertions
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(NowPlaying.objects.count(), 0)
+        self.assertJSONEqual(
+            response.content,
+            {"error": "Invalid JSON."}
+        )
+
+    def test_save_now_playing_unauthenticated(self):
+        # Log out the user
+        self.client.logout()
+
+        # Valid payload
+        payload = {
+            "link": "https://open.spotify.com/track/7eBo7oeGFWJ9GlL1Me6NuV?si=d9afed506e9942e4",
+            "latitude": 37.7749,
+            "longitude": -122.4194
+        }
+
+        # Send a POST request
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json"
+        )
+
+        # Assertions
+        self.assertEqual(response.status_code, 302)  # Redirect to login
+        self.assertEqual(NowPlaying.objects.count(), 0)
+
+    def test_save_now_playing_invalid_method(self):
+        # Send a GET request instead of POST
+        response = self.client.get(self.url)
+
+        # Assertions
+        self.assertEqual(response.status_code, 405)  # Method not allowed
+     
     
 class SearchTests(TestCase):
     def setUp(self):

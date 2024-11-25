@@ -1,8 +1,8 @@
-// App.test.js
+// index.test.tsx
 
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-import App from './App';
+import App from './index'; // Updated to import from 'index.tsx'
 import { mockPosts } from '../../pages/mockPosts';
 import { Text } from 'react-native';
 

@@ -284,10 +284,62 @@ def get_content_type(link):
     else:
         return "track"
 
+@require_http_methods(["GET"])
+def get_user_posts(request):
+    req_user = request.user
+    user_id = request.GET.get('user_id')
+    page_number = request.GET.get('page', 1)
+    page_size = request.GET.get('page_size', 10)
+
+    try:
+        target_user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({"error": "User not found"}, status=404)
+
+    if req_user != target_user:
+        # Check if the requesting user follows the target user
+        req_user_profile = req_user.profile
+        if not req_user_profile.following.filter(id=target_user.profile.id).exists():
+            return JsonResponse({"error": "You do not follow this user"}, status=403)
+
+    posts = Post.objects.filter(belongs_to=target_user).order_by('-created_at')
+    
+    paginator = Paginator(posts, page_size)
+    try:
+        page = paginator.page(page_number)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    posts_data = [
+        {
+            "id": post.id,
+            "comment": post.comment,
+            "image": post.image,
+            "link": post.link,
+            "created_at": post.created_at,
+            "total_likes": post.total_likes,
+            "total_dislikes": post.total_dislikes,
+            "tags": [tag.name for tag in post.tags.all()],
+        }
+        for post in page.object_list
+    ]
+
+    return JsonResponse(
+        {
+            "posts": posts_data,
+            "current_page": page.number,
+            "total_pages": paginator.num_pages,
+            "total_posts": paginator.count,
+        },
+        status=200
+    )
+
+    
 
 
 def get_posts(request):
     post_id = request.GET.get('id')  # Get the ID from query params
+    post_link = request.GET.get('link')  # Get the link from query params
     start_date = request.GET.get('start_date')  # Start of time interval
     end_date = request.GET.get('end_date')  # End of time interval
     page_number = request.GET.get('page', 1)  # Page number for pagination
@@ -305,6 +357,8 @@ def get_posts(request):
                 "link": post.link,
                 "created_at": post.created_at.isoformat(),
                 "total_likes": post.total_likes,
+                "total_dislikes": post.total_dislikes,
+                "username": post.belongs_to.username, 
                 "content": {
                     "id": post.content.id,
                     "link": post.content.link,
@@ -313,6 +367,30 @@ def get_posts(request):
                 },
                 "tags": [tag.name for tag in post.tags.all()],
             })
+    
+        if post_link:  # If a link is provided, fetch posts with the same link
+            posts = Post.objects.filter(link=post_link)
+            if not posts:
+                return JsonResponse({"error": "Posts not found"}, status=404)
+            posts_data = [{
+                "id": post.id,
+                "comment": post.comment,
+                "image": post.image,
+                "link": post.link,
+                "created_at": post.created_at.isoformat(),
+                "total_likes": post.total_likes,
+                "total_dislikes": post.total_dislikes,
+                "username": post.belongs_to.username,
+                "content": {
+                    "id": post.content.id,
+                    "link": post.content.link,
+                    "description": post.content.description,
+                    "content_type": post.content.content_type,
+                },
+                "tags": [tag.name for tag in post.tags.all()],
+            } for post in posts]
+            return JsonResponse({"posts": posts_data})
+        
 
         # If no ID is provided, fetch posts within a time interval
         posts_query = Post.objects.all()
@@ -337,6 +415,8 @@ def get_posts(request):
             "link": post.link,
             "created_at": post.created_at.isoformat(),
             "total_likes": post.total_likes,
+            "total_dislikes": post.total_dislikes,
+            "username": post.belongs_to.username,
             "content": {
                 "id": post.content.id,
                 "link": post.content.link,
@@ -671,3 +751,4 @@ def search(request):
     }
 
     return JsonResponse(response)
+

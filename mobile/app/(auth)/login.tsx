@@ -1,42 +1,62 @@
 import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet, Text, ActivityIndicator } from "react-native";
-import { useUser } from "../../context/UserContext";
-import { AuthContext } from '../../context/AuthContext';
+import {
+  View,
+  TextInput,
+  Button,
+  StyleSheet,
+  Text,
+  ActivityIndicator,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { req } from "../../utils/client";
-import { Link } from "expo-router";
-import { useRouter } from 'expo-router';
+import { AuthContext } from "../../context/AuthContext";
+import { Link, useRouter } from "expo-router";
 
 export default function Login() {
-  const { setUsername, setUserId, setEmail, setLatitude, setLongitude } = useUser();
   const [username, setUsernameInput] = useState("");
   const [password, setPasswordInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
   const router = useRouter();
   const { login } = React.useContext(AuthContext);
 
   const handleLogin = async () => {
     setIsLoading(true);
+    setLocalError("");
     try {
-      let response = await req("login", "post", {
-        username: username,
-        password: password,
+      const response = await req("login", "post", {
+        username,
+        password,
       });
-      const { user_id, email, latitude, longitude } = response.data;
-
-      setUsername(username);
-      setUserId(user_id);
-      setEmail(email);
-      setLatitude(latitude || 0);
-      setLongitude(longitude || 0);
-
+  
+      const { user_id, email, name, surname, labels } = response.data;
+      console.log("User data:", user_id, email, name, surname, labels);
+  
+      // Ensure labels is a proper array
+      let parsedLabels = [];
+      if (typeof labels === "string") {
+        parsedLabels = labels.replace(/'/g, '"'); // Replace single quotes with double quotes
+        parsedLabels = JSON.parse(parsedLabels); // Parse the corrected string
+      } else if (Array.isArray(labels)) {
+        parsedLabels = labels;
+      }
+  
+      const userData = {
+        user_id,
+        email,
+        name,
+        surname,
+        labels: parsedLabels,
+      };
+  
+      await AsyncStorage.setItem("userData", JSON.stringify(userData));
+  
       console.log("Login successful");
-      // Navigate to the home page after successful login
-      router.replace({ pathname: "/(tabs)" });
+  
+      router.replace("/(tabs)");
       login();
-
     } catch (err) {
-      setError("Login failed. Please try again.");
+      setLocalError("Login failed. Please try again.");
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -60,27 +80,34 @@ export default function Login() {
         style={styles.input}
         secureTextEntry
       />
-      {error && <Text style={styles.error}>{error}</Text>}
+      {localError && <Text style={styles.error}>{localError}</Text>}
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <Button title="Login" onPress={handleLogin} />
       )}
-        <Link href="/register" style={styles.link}>
+      <Link href="/register" style={styles.link}>
         Don't have an account? Register
       </Link>
-
-      {/* <Link href="/forgot-password" style={styles.link}>
-        Forgot password?
-      </Link> */}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", paddingHorizontal: 20 },
-  title: { fontSize: 32, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  input: { height: 50, borderColor: "#ccc", borderWidth: 1, marginBottom: 12, paddingHorizontal: 10 },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  input: {
+    height: 50,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    marginBottom: 12,
+    paddingHorizontal: 10,
+  },
   error: { color: "red", textAlign: "center", marginBottom: 10 },
   link: { color: "blue", textAlign: "center", marginTop: 20 },
 });

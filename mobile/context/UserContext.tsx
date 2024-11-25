@@ -1,93 +1,71 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const UserContext = createContext<{
-  setError: (message: string) => void;
-  curError: string | null;
+type UserContextType = {
   username: string;
   userId: number;
   email: string;
   latitude: number;
   longitude: number;
+  labels: string[];
+  curError: string | null;
   setUsername: (username: string) => void;
   setUserId: (userId: number) => void;
   setEmail: (email: string) => void;
   setLatitude: (latitude: number) => void;
   setLongitude: (longitude: number) => void;
-}>({
-  setError: (error: string) => {},
-  curError: "",
+  setLabels: (labels: string[]) => void;
+  setError: (error: string) => void;
+  clearUserData: () => void;
+};
+
+export const UserContext = createContext<UserContextType>({
   username: "",
   userId: 0,
   email: "",
   latitude: 0,
   longitude: 0,
-  setUsername: (username: string) => {},
-  setUserId: (userId: number) => {},
-  setEmail: (email: string) => {},
-  setLatitude: (latitude: number) => {},
-  setLongitude: (longitude: number) => {},
+  labels: [],
+  curError: null,
+  setUsername: () => {},
+  setUserId: () => {},
+  setEmail: () => {},
+  setLatitude: () => {},
+  setLongitude: () => {},
+  setLabels: () => {},
+  setError: () => {},
+  clearUserData: () => {},
 });
 
-export const useUser = () => useContext(UserContext);
+// export const useUser = () => useContext(UserContext);
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+
   const [username, setUsername] = useState<string>("");
-  const [latitude, setLatitude] = useState<number>(0);
-  const [longitude, setLongitude] = useState<number>(0);
-  const [curError, setError] = useState<string>("");
   const [userId, setUserId] = useState<number>(0);
   const [email, setEmail] = useState<string>("");
+  const [latitude, setLatitude] = useState<number>(0);
+  const [longitude, setLongitude] = useState<number>(0);
+  const [labels, setLabels] = useState<string[]>([]);
+  const [curError, setError] = useState<string | null>(null);
+
+  const clearUserData = () => {
+    setUsername("");
+    setUserId(0);
+    setEmail("");
+    setLatitude(0);
+    setLongitude(0);
+    setLabels([]);
+    setError(null);
+  };
 
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const storedUsername = await AsyncStorage.getItem("username");
-        const storedLatitude = await AsyncStorage.getItem("latitude");
-        const storedLongitude = await AsyncStorage.getItem("longitude");
-        const storedEmail = await AsyncStorage.getItem("email");
-        const storedUserId = await AsyncStorage.getItem("userId");
-
-        if (storedUsername) setUsername(storedUsername);
-        if (storedLatitude) setLatitude(parseFloat(storedLatitude));
-        if (storedLongitude) setLongitude(parseFloat(storedLongitude));
-        if (storedEmail) setEmail(storedEmail);
-        if (storedUserId) setUserId(Number(storedUserId));
-      } catch (error) {
-        console.error("Failed to load user data:", error);
-      }
-    };
-
-    loadUserData();
-  }, []);
-
-  useEffect(() => {
-    const saveUserData = async () => {
-      try {
-        if (username) {
-          await AsyncStorage.setItem("username", username);
-          await AsyncStorage.setItem("email", email);
-          await AsyncStorage.setItem("userId", userId.toString());
-          if (latitude && longitude) {
-            await AsyncStorage.setItem("latitude", latitude.toString());
-            await AsyncStorage.setItem("longitude", longitude.toString());
-          } else {
-            await AsyncStorage.removeItem("latitude");
-            await AsyncStorage.removeItem("longitude");
-          }
-        } else {
-          await AsyncStorage.removeItem("username");
-          await AsyncStorage.removeItem("email");
-          await AsyncStorage.removeItem("userId");
-          await AsyncStorage.removeItem("latitude");
-          await AsyncStorage.removeItem("longitude");
-        }
-      } catch (error) {
-        console.error("Failed to save user data:", error);
-      }
-    };
-
-    saveUserData();
+    console.log("User Context Updated:", {
+      username,
+      email,
+      userId,
+      latitude,
+      longitude,
+    });
   }, [username, email, userId, latitude, longitude]);
 
   return (
@@ -99,12 +77,15 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         setUserId,
         email,
         setEmail,
-        curError,
-        setError,
         latitude,
         setLatitude,
         longitude,
         setLongitude,
+        labels,
+        setLabels,
+        curError,
+        setError,
+        clearUserData,
       }}
     >
       {children}

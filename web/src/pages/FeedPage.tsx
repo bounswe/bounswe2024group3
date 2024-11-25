@@ -92,7 +92,8 @@ export const FeedPage = () => {
         if (posts.length === 0) {
           throw new Error("No posts found");
         }
-        getMostListenedNearby({latitude: parseFloat(localStorage.getItem("latitude")!), longitude: parseFloat(localStorage.getItem("longitude")!)});
+        getMostListenedNearby({latitude: localStorage.getItem("latitude")?  parseFloat(localStorage.getItem("latitude")!): 41.080895,
+           longitude: localStorage.getItem("longitude") ?  parseFloat(localStorage.getItem("longitude")!) : 29.0343434 });
         setPosts(posts);
       } catch (error: any) {
         console.error("Get failed:", error);

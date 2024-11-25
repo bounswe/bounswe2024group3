@@ -712,4 +712,43 @@ def most_listened_nearby(request):
         return JsonResponse({"error": "Invalid input for latitude, longitude, or radius."}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+
+@require_http_methods(["GET"])
+@csrf_exempt
+def search(request):
+    contents = Content.objects.all()
+
+    search_query = request.GET.get('search', '')
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 10))
+
+
+
+    if search_query:
+        contents = Content.objects.filter(
+            Q(description__icontains=search_query) |
+            Q(content_type__icontains=search_query) |
+            Q(link__icontains=search_query)
+        )
+    else:
+        contents = Content.objects.all()
+
+    total_results = contents.count()
+
+    # Implement pagination
+    start = (page - 1) * page_size
+    end = start + page_size
+    contents_paginated = contents[start:end]
+    
+    content_list = list(contents_paginated.values())
+
+    response = {
+        'total_results': total_results,
+        'page': page,
+        'page_size': page_size,
+        'contents': content_list
+    }
+
+    return JsonResponse(response)
 

@@ -14,10 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.spoton", // Replace with your actual bundle identifier
+      "bundleIdentifier": "com.yourcompany.spoton",
       "buildNumber": "1.0.0",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to scan QR codes." // Example permission
+        "NSCameraUsageDescription": "This app uses the camera to scan QR codes."
       }
     },
     "android": {
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourcompany.spoton", // Replace with your actual package name
+      "package": "com.yourcompany.spoton",
       "versionCode": 1
     },
     "web": {
@@ -34,7 +34,8 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

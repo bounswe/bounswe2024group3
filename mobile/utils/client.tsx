@@ -1,5 +1,5 @@
 import axios, { Method } from "axios";
-import { REACT_APP_BACKEND_URL } from '@env';
+// import { REACT_APP_BACKEND_URL } from '@env';
 
 export const req = async (url: string, method: string, data: any) => {
   if (method === "post" && url[url.length - 1] !== "/") {
@@ -10,7 +10,7 @@ export const req = async (url: string, method: string, data: any) => {
   }
   const axiosParams = {
     method: method as Method,
-    url: `${REACT_APP_BACKEND_URL}${url}`,
+    url: `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}${url}`,
     data: data,
     withCredentials: true,
   };

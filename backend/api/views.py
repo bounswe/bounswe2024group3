@@ -676,33 +676,30 @@ def most_listened_nearby(request):
         print(f"Bounding box: {min_lat}, {max_lat}, {min_lon}, {max_lon}")
 
         # Filter Posts within the bounding box and with content_type = "track"
-        nearby_posts = Post.objects.filter(
+        nearby_tracks = NowPlaying.objects.filter(
             latitude__gte=min_lat,
             latitude__lte=max_lat,
             longitude__gte=min_lon,
-            longitude__lte=max_lon,
-            content__content_type="track"  # Only include tracks
+            longitude__lte=max_lon
         )
 
-
-
         # Further filter by Haversine formula
-        nearby_posts = [
-            post for post in nearby_posts
-            if haversine(user_lat, user_lon, post.latitude, post.longitude) <= radius_km
+        nearby_tracks = [
+            track for track in nearby_tracks
+            if haversine(user_lat, user_lon, track.latitude, track.longitude) <= radius_km
         ]
 
-        # Aggregate track counts using annotation
+        # Aggregate track counts using the `link` field
         track_counts = (
-            Post.objects.filter(id__in=[post.id for post in nearby_posts])
-            .values("content__link", "content__description")
-            .annotate(count=Count("content__link"))
+            NowPlaying.objects.filter(id__in=[track.id for track in nearby_tracks])
+            .values("link")
+            .annotate(count=Count("link"))
             .order_by("-count")
         )
 
         # Format the response
         result = [
-            {"link": track["content__link"], "description": track["content__description"], "count": track["count"]}
+            {"link": track["link"], "count": track["count"]}
             for track in track_counts
         ]
 

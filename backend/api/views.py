@@ -675,7 +675,6 @@ def most_listened_nearby(request):
         min_lat, max_lat, min_lon, max_lon = bounding_box(user_lat, user_lon, radius_km)
         print(f"Bounding box: {min_lat}, {max_lat}, {min_lon}, {max_lon}")
 
-        # Filter Posts within the bounding box and with content_type = "track"
         nearby_tracks = NowPlaying.objects.filter(
             latitude__gte=min_lat,
             latitude__lte=max_lat,
@@ -689,20 +688,34 @@ def most_listened_nearby(request):
             if haversine(user_lat, user_lon, track.latitude, track.longitude) <= radius_km
         ]
 
-        # Aggregate track counts using the `link` field
-        track_counts = (
-            NowPlaying.objects.filter(id__in=[track.id for track in nearby_tracks])
+        # Get distinct links from NowPlaying in the filtered area
+        track_links = [track.link for track in nearby_tracks]
+
+        # Aggregate play counts from NowPlaying
+        link_counts = (
+            NowPlaying.objects.filter(link__in=track_links)
             .values("link")
             .annotate(count=Count("link"))
             .order_by("-count")
         )
 
-        # Format the response
+        # Fetch descriptions from Post table for these links
+        posts_with_descriptions = {
+            post.link: post.content.description
+            for post in Post.objects.filter(link__in=[entry["link"] for entry in link_counts])
+        }
+
+        # Prepare the result
         result = [
-            {"link": track["link"], "count": track["count"]}
-            for track in track_counts
+            {
+                "link": entry["link"],
+                "description": posts_with_descriptions.get(entry["link"], "No description available"),
+                "count": entry["count"]
+            }
+            for entry in link_counts
         ]
 
+        # Return response
         return JsonResponse({"tracks": result}, status=200)
 
     except ValueError:
@@ -748,4 +761,3 @@ def search(request):
     }
 
     return JsonResponse(response)
-

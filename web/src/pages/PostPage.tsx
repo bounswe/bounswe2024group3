@@ -23,6 +23,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   useEffect(() => {
     // If spotifyId is provided, filter posts by it; otherwise, show all posts
 
+
     const handleQuery = async () => {
       try {
         if (!spotifyId) {

@@ -9,6 +9,8 @@ services:
     shm_size: 128mb
     environment:
       POSTGRES_PASSWORD: topsecret
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
   # Adminer for database management
   adminer:
@@ -32,6 +34,8 @@ services:
       DB_NAME: postgres
       DB_USERNAME: postgres
       DB_PASSWORD: topsecret
+      SPOTIFY_CLIENT_ID: c62a7c9ab8724af590583cf994eb285a
+      SPOTIFY_CLIENT_SECRET: 3ffb6e9ee94b47788078cffdcdd6f31b
       DEBUG: ${DJANGO_DEBUG:-True}
       PROD_HOST: ${BACKEND_URL:-0.0.0.0}
     depends_on:
@@ -49,9 +53,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_BACKEND_URL: http://${BACKEND_URL:-0.0.0.0:8000}/api/
+      REACT_APP_BACKEND_URL: ${BACKEND_URL:-0.0.0.0:8000}/api/
       HOST: 0.0.0.0
     depends_on:
       - backend
     links:
       - backend:backend
+
+volumes:
+  postgres-data:

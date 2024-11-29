@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { SafeAreaView, FlatList, Text, TouchableOpacity, View } from 'react-native';
+import {
+  SafeAreaView,
+  FlatList,
+  View,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import PostCard from '../../components/PostCard';
 import { mockPosts } from '../../pages/mockPosts';
+import { Ionicons } from '@expo/vector-icons';
 
 function App() {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -12,22 +19,18 @@ function App() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: isDarkTheme ? '#000' : '#fff' }}
+      style={[
+        styles.container,
+        { backgroundColor: isDarkTheme ? '#121212' : '#f2f2f2' },
+      ]}
     >
-      <View style={{ padding: 16 }}>
-        <TouchableOpacity
-          onPress={toggleTheme}
-          style={{
-            backgroundColor: isDarkTheme ? '#fff' : '#000',
-            padding: 12,
-            borderRadius: 8,
-          }}
-        >
-          <Text
-            style={{ color: isDarkTheme ? '#000' : '#fff', textAlign: 'center', fontSize: 16 }}
-          >
-            Toggle Theme
-          </Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={toggleTheme} style={styles.iconButton}>
+          <Ionicons
+            name={isDarkTheme ? 'sunny-outline' : 'moon-outline'}
+            size={24}
+            color={isDarkTheme ? '#fff' : '#000'}
+          />
         </TouchableOpacity>
       </View>
       <View style={{ flex: 1 }}>
@@ -37,10 +40,28 @@ function App() {
           renderItem={({ item }) => (
             <PostCard isFeed={true} post={item} isDarkTheme={isDarkTheme} />
           )}
+          contentContainerStyle={styles.listContent}
         />
       </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    alignItems: 'flex-end',
+    padding: 16,
+  },
+  iconButton: {
+    padding: 8,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+});
 
 export default App;

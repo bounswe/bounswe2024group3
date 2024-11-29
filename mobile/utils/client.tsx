@@ -1,4 +1,5 @@
 import axios, { Method } from "axios";
+import { REACT_APP_BACKEND_URL } from '@env';
 
 export const req = async (url: string, method: string, data: any) => {
   if (method === "post" && url[url.length - 1] !== "/") {
@@ -9,12 +10,13 @@ export const req = async (url: string, method: string, data: any) => {
   }
   const axiosParams = {
     method: method as Method,
-    url: process.env.REACT_APP_BACKEND_URL + url,
+    url: `${REACT_APP_BACKEND_URL}${url}`,
     data: data,
     withCredentials: true,
   };
   console.log("REQ>", axiosParams);
   const resp = await axios(axiosParams);
+  console.log("RESP>", resp);
   if (resp.status === 403) {
     throw new Error("You are not authorized to perform this action");
   }

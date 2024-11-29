@@ -5,263 +5,98 @@ import { Spotify } from "react-spotify-embed";
 import RecommendationItem from "../components/RecommendationItem";
 import { useUser } from "../providers/UserContext";
 import useAccessibility from "../components/Accessibility";
+import { PostDetails } from "./FeedPage";
+import { createSpotifyLink, parseSpotifyLink, req } from "../utils/client";
+import CreatePostForm from "../components/CreatePostForm";
 
 interface PostPageProps {
   type: string;
 }
 
-export type PostDetails = {
-  id: number;
-  imageUrl: string | null;
-  title: string | undefined;
-  content: string;
-  username: string;
-  likes: number;
-  dislikes: number;
-  created_at: Date;
-  type: string;
-  spotifyId: string;
-  userAction: string | null;
-  isFollowing: boolean;
-};
-
-export let mockPosts: PostDetails[] = [
-  {
-    id: 11,
-    imageUrl: null,
-    title: undefined,
-    content: "Selamlar, şöyle bir playlist hazırladım. Ortamlarda çalarsınız :)",
-    username: "ekrembal",
-    likes: 10,
-    dislikes: 5,
-    created_at: new Date(),
-    type: "playlist",
-    spotifyId: "3oAH9FsuQGzqP5hAHiEcFD",
-    userAction: "like",
-    isFollowing: false
-  },
-  {
-    id: 12,
-    imageUrl: null,
-    title: undefined,
-    content: "I really like this song",
-    username: "trella",
-    likes: 10,
-    dislikes: 5,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "7x76RN4ZCsw5DxT8LOmexq",
-    userAction: null,
-    isFollowing: false
-  },
-  {
-    id: 13,
-    imageUrl: null,
-    title: undefined,
-    content: "Мне очень нравится этот альбом",
-    username: "нравьбом",
-    likes: 1,
-    dislikes: 2,
-    created_at: new Date(),
-    type: "album",
-    spotifyId: "6RFizmJ3VitZBr8kwo62Kq",
-    userAction: "dislike",
-    isFollowing: false
-  },
-  {
-    id: 1,
-    imageUrl: null,
-    title: undefined,
-    content: "Check out this track: 'New Person, Same Old Mistakes' by Tame Impala. It's amazing!",
-    username: "ekrembal",
-    likes: 15,
-    dislikes: 3,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "52ojopYMUzeNcudsoz7O9D",
-    userAction: "like",
-    isFollowing: false
-  },
-  {
-    id: 2,
-    imageUrl: null,
-    title: undefined,
-    content: "I'm vibing with 'The Finishing'. Give it a listen!",
-    username: "trella",
-    likes: 20,
-    dislikes: 1,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "2SCLswvRP8hAYdIKsrLV6h",
-    userAction: null,
-    isFollowing: false
-  },
-  {
-    id: 3,
-    imageUrl: null,
-    title: undefined,
-    content: "Burning Hour is on repeat for me today. Great track!",
-    username: "nate",
-    likes: 12,
-    dislikes: 2,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "2dje3ZBu1j1r0QfR7mtS0l",
-    userAction: "like",
-    isFollowing: false
-  },
-  {
-    id: 4,
-    imageUrl: null,
-    title: undefined,
-    content: "Are You There is perfect for a chill evening.",
-    username: "musiclover",
-    likes: 18,
-    dislikes: 0,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "1LuK2NE1dkha6A4Cey3tsA",
-    userAction: null,
-    isFollowing: false
-  },
-  {
-    id: 5,
-    imageUrl: null,
-    title: undefined,
-    content: "I'm really into '24/7'. Listen to it if you haven't yet!",
-    username: "ekrembal",
-    likes: 25,
-    dislikes: 4,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "4UySkSnMBKf1PS32agnwxp",
-    userAction: "like",
-    isFollowing: false
-  },
-  {
-    id: 6,
-    imageUrl: null,
-    title: undefined,
-    content: "Vanity Corner is such a unique track. What do you think?",
-    username: "nate",
-    likes: 8,
-    dislikes: 1,
-    created_at: new Date(),
-    type: "track",
-    spotifyId: "2e7CRfHmTnrT5SxfXbQ0lF",
-    userAction: null,
-    isFollowing: false
-  },
-  {
-    id: 7,
-    imageUrl: null,
-    title: undefined,
-    content: "I made this playlist 'nE'. Let me know your thoughts!",
-    username: "ekrembal",
-    likes: 30,
-    dislikes: 5,
-    created_at: new Date(),
-    type: "playlist",
-    spotifyId: "0Ljm42Eo0Ia1bDuw6sGvVI",
-    userAction: "like",
-    isFollowing: false
-  },
-  {
-    id: 8,
-    imageUrl: null,
-    title: undefined,
-    content: "The 'zıbar' playlist is perfect for chilling. Check it out!",
-    username: "trella",
-    likes: 22,
-    dislikes: 3,
-    created_at: new Date(),
-    type: "playlist",
-    spotifyId: "7kbGTNApfe03SjBDIFrQ3B",
-    userAction: null,
-    isFollowing: false
-  },
-  {
-    id: 9,
-    imageUrl: null,
-    title: undefined,
-    content: "Dive deep into my 'POSEIDON' playlist! Hope you enjoy.",
-    username: "нравьбом",
-    likes: 16,
-    dislikes: 2,
-    created_at: new Date(),
-    type: "playlist",
-    spotifyId: "6fMfMHqUS72fM3YS8MDKtr",
-    userAction: "dislike",
-    isFollowing: false
-  },
-  {
-    id: 10,
-    imageUrl: null,
-    title: undefined,
-    content: "Here's a great Techno playlist I've been enjoying lately!",
-    username: "musiclover",
-    likes: 28,
-    dislikes: 1,
-    created_at: new Date(),
-    type: "playlist",
-    spotifyId: "24ztzWYSKzrV8G5OiMw8yS",
-    userAction: null,
-    isFollowing: false
-  },
-];
-
 const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const { spotifyId } = useParams<{ spotifyId: string }>();
   const [posts, setPosts] = useState<PostDetails[]>([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
   const [newPostContent, setNewPostContent] = useState(""); // To track new post content
   const { username } = useUser();
 
-
   useEffect(() => {
-    
     // If spotifyId is provided, filter posts by it; otherwise, show all posts
-    if (spotifyId) {
-      const filteredPosts = mockPosts.filter(
-        (post) => post.spotifyId === spotifyId
-      );
-      setPosts(filteredPosts);
-    } else {
-      setPosts(mockPosts); // Show all posts if no spotifyId is given
-    }
+
+
+    const handleQuery = async () => {
+      try {
+        if (!spotifyId) {
+          throw new Error("Invalid Spotify ID");
+        }
+        const response = await req(
+          `get-posts?link=${createSpotifyLink({ type, id: spotifyId })}`,
+          "get",
+          {}
+        );
+        console.log("Post response:", response.data);
+        const posts: PostDetails[] = response.data.posts;
+        setPosts(posts);
+      } catch (error: any) {
+        console.error("Failed to fetch posts:", error);
+      }
+    };
+
+    const addNowPlaying = async () => {
+      try {
+        if (!spotifyId) {
+          throw new Error("Invalid Spotify ID");
+        }
+        const storedLatitude = localStorage.getItem("latitude");
+        const storedLongitude = localStorage.getItem("longitude");
+        const response = await req("save-now-playing", "post", {
+          link: createSpotifyLink({ type, id: spotifyId }),
+          latitude: parseFloat(storedLatitude || "0"),
+          longitude: parseFloat(storedLongitude || "0"),
+        });
+        console.log("Added now playing:", response.data);
+      } catch (error: any) {
+        console.error("Failed to add now playing:", error);
+      }
+    };
+
+    const getRecommendations = async () => {
+      try {
+        const response = await req("get-posts/", "get", {});
+        console.log("Feed response:", response.data);
+        const posts: PostDetails[] = response.data.posts;
+
+        if (posts.length === 0) {
+          throw new Error("No posts found");
+        }
+
+        // Extract links, make them unique, and limit to 10
+        let links = posts.map((post) => post.content.link);
+        const uniqueLinks = Array.from(new Set(links)).slice(0, 10);
+
+        setRecommendations(uniqueLinks);
+        console.log("Recommendations response:", uniqueLinks);
+      } catch (error: any) {
+        console.error("Failed to fetch recommendations:", error);
+      }
+    };
+
+    handleQuery();
+    addNowPlaying();
+    getRecommendations();
   }, [spotifyId]);
 
-  const handlePostSubmit = () => {
-    // Add the new post to the list
-    const newPost: PostDetails = {
-      id: posts.length + 1,
-      imageUrl: null,
-      title: undefined,
-      content: newPostContent,
-      username: username, // You can replace this with the logged-in user's name
-      likes: 0,
-      dislikes: 0,
-      created_at: new Date(),
-      type,
-      spotifyId: spotifyId || "",
-      userAction: null,
-      isFollowing: true
-    };
-    mockPosts.push(newPost); // Add the new post to the mockPosts array
-    setPosts([newPost, ...posts]); // Add the new post to the top of the list
-    setNewPostContent(""); // Clear the input field
-  };
-
-  if (!posts.length) {
+  if (!posts || !posts.length || !spotifyId) {
     return <div>No posts found!</div>;
   }
 
   return (
-    <div className="flex">
+    <div className="flex justify-center">
       {/* Main Content Section */}
-      <div className="flex-1">
+      <div className="flex-1  max-w-2xl w-full">
         <Spotify wide link={`https://open.spotify.com/${type}/${spotifyId}`} />
 
-        {/* Show the post creation section only if the user is logged in */}
+        {/* Show the post creation section only if the user is logged in
         {true && (
           <div className="add-post-section">
             <h3>Add a New Post</h3>
@@ -271,11 +106,15 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
               placeholder="Write your post content here..."
               className="textarea textarea-bordered w-full mb-4"
             />
-            <button className="btn btn-primary" onClick={handlePostSubmit}>
+            <button className="btn btn-primary" onClick={() => alert("asd")}>
               Submit Post
             </button>
           </div>
-        )}
+        )} */}
+
+        <CreatePostForm
+          initialLink={createSpotifyLink({ type, id: spotifyId })}
+        />
 
         {/* Render the list of posts */}
         {posts.map((post) => (
@@ -286,11 +125,17 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       {/* Recommendations Bar */}
       <div className="w-64 bg-gray-100 p-4 ml-4">
         <h3 className="text-lg font-semibold mb-4">Recommended for You</h3>
-        {mockPosts
-          .filter((x) => x.spotifyId !== spotifyId && x.type === type)
+        {recommendations
+          .filter((x) => parseSpotifyLink(x).id !== spotifyId)
           .slice(0, 10)
           .map((rec) => (
-            <RecommendationItem key={rec.id} rec={rec} />
+            <RecommendationItem
+              key={parseSpotifyLink(rec).id}
+              rec={{
+                type: parseSpotifyLink(rec).type,
+                spotifyId: parseSpotifyLink(rec).id,
+              }}
+            />
           ))}
       </div>
     </div>

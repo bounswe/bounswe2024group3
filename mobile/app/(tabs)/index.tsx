@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+// app/(tabs)/index.tsx
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   FlatList,
   View,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import PostCard from '../../components/PostCard';
 import { Ionicons } from '@expo/vector-icons';
-// import { REACT_APP_BACKEND_URL } from '@env';
 import axios from 'axios';
+import { req } from '../../utils/client';
+import FloatingButton from '../../components/FloatingButton';
+import CreatePostModal from '../../components/CreatePostModal';
 
 interface Post {
   id: number;
@@ -25,7 +30,8 @@ interface Post {
 
 function App() {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [posts, setPosts] = useState([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const toggleTheme = () => {
     setIsDarkTheme((prevState) => !prevState);
@@ -35,23 +41,22 @@ function App() {
     try {
       console.log('URL:', `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
       const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
-      const posts = response.data.posts.map((item: any) => ({
+      const fetchedPosts = response.data.posts.map((item: any) => ({
         id: item.id,
-        title: item.comment || 'Untitled', // Use comment as title or default to "Untitled"
-        // content: item.comment || 'No content available', // Fallback if no comment
+        title: item.comment || 'Untitled',
         username: item.username,
-        // imageUrl: imageUrl, // Use extracted image URL
-        type: item.content.content_type || 'unknown', // Extract type from content
-        spotifyId: item.content.link.split('/').pop(), // Extract Spotify ID from the link
-        likes: item.total_likes || 0, // Fallback to 0 if no likes field
-        dislikes: item.total_dislikes || 0, // Fallback to 0 if no dislikes field
-        userAction: null, // No user action initially
-        created_at: new Date(item.created_at), // Parse created_at timestamp
+        type: item.content.content_type || 'unknown',
+        spotifyId: item.content.link.split('/').pop(),
+        likes: item.total_likes || 0,
+        dislikes: item.total_dislikes || 0,
+        userAction: null,
+        created_at: new Date(item.created_at),
       }));
-      setPosts(posts);
-      console.log('Fetched posts:', posts);
+      setPosts(fetchedPosts);
+      console.log('Fetched posts:', fetchedPosts);
     } catch (error) {
       console.error('Error fetching posts:', error);
+      Alert.alert('Error', 'Failed to fetch posts. Please try again later.');
     }
   };
 
@@ -63,6 +68,19 @@ function App() {
     <PostCard isFeed={true} post={item} isDarkTheme={isDarkTheme} />
   );
 
+  const openModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setIsModalVisible(false);
+  };
+
+  // Memoize the callback to prevent unnecessary re-renders
+  const handlePostCreated = useCallback(() => {
+    fetchPosts(); // Refresh posts after a new post is created
+  }, []);
+
   return (
     <SafeAreaView
       style={[
@@ -70,6 +88,7 @@ function App() {
         { backgroundColor: isDarkTheme ? '#121212' : '#f2f2f2' },
       ]}
     >
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={toggleTheme} style={styles.iconButton}>
           <Ionicons
@@ -79,6 +98,8 @@ function App() {
           />
         </TouchableOpacity>
       </View>
+
+      {/* Posts List */}
       <View style={{ flex: 1 }}>
         <FlatList
           data={posts}
@@ -87,6 +108,17 @@ function App() {
           contentContainerStyle={styles.listContent}
         />
       </View>
+
+      {/* Floating "+" Button */}
+      <FloatingButton onPress={openModal} />
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isVisible={isModalVisible}
+        onClose={closeModal}
+        onPostCreated={handlePostCreated}
+        isDarkTheme={isDarkTheme}
+      />
     </SafeAreaView>
   );
 }
@@ -105,6 +137,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 80, // To ensure content is not hidden behind the FAB
   },
 });
 

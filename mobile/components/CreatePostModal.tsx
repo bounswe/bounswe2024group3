@@ -1,6 +1,6 @@
 // app/(tabs)/components/CreatePostModal.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,8 +12,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Animated,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
-import { req, createSpotifyLink, parseSpotifyLink } from '../../utils/client';
+import { req, createSpotifyLink, parseSpotifyLink } from '../utils/client';
 
 interface CreatePostModalProps {
   isVisible: boolean;
@@ -31,6 +34,24 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const [spotifyLink, setSpotifyLink] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const slideAnim = useRef(new Animated.Value(-300)).current; // Initial position above the screen
+
+  useEffect(() => {
+    if (isVisible) {
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 12,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: -300,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isVisible, slideAnim]);
 
   const handleSubmit = async () => {
     // Basic validation
@@ -80,7 +101,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
   return (
     <Modal
       visible={isVisible}
-      animationType="slide"
+      animationType="none" // We'll handle animation manually
       transparent={true}
       onRequestClose={onClose}
     >
@@ -88,58 +109,55 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}
       >
-        <View
-          style={[
-            styles.modalContainer,
-            { backgroundColor: isDarkTheme ? '#1e1e1e' : '#fff' },
-          ]}
-        >
-          <Text style={[styles.modalTitle, { color: isDarkTheme ? '#fff' : '#000' }]}>
-            Create a New Post
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: isDarkTheme ? '#333' : '#f9f9f9',
-                color: isDarkTheme ? '#fff' : '#000',
-              },
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <Animated.View
+            style={[ 
+              styles.modalContainer,
+              { backgroundColor: isDarkTheme ? '#1e1e1e' : '#fff' },
+              { transform: [{ translateY: slideAnim }] },
             ]}
-            placeholder="Spotify URL"
-            placeholderTextColor={isDarkTheme ? '#aaa' : '#555'}
-            value={spotifyLink}
-            onChangeText={setSpotifyLink}
-            autoCapitalize="none"
-            keyboardType="url"
-          />
-          <TextInput
-            style={[
-              styles.textArea,
-              {
-                backgroundColor: isDarkTheme ? '#333' : '#f9f9f9',
-                color: isDarkTheme ? '#fff' : '#000',
-              },
-            ]}
-            placeholder="Comment"
-            placeholderTextColor={isDarkTheme ? '#aaa' : '#555'}
-            value={comment}
-            onChangeText={setComment}
-            multiline={true}
-            numberOfLines={4}
-          />
-          {isSubmitting ? (
-            <ActivityIndicator size="large" color="#0000ff" style={styles.loading} />
-          ) : (
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.buttonText}>Submit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+          >
+            <Text style={[styles.modalTitle, { color: isDarkTheme ? '#fff' : '#000' }]}>
+              Create a New Post
+            </Text>
+            <TextInput
+              style={[ 
+                styles.input,
+                { backgroundColor: isDarkTheme ? '#333' : '#f9f9f9', color: isDarkTheme ? '#fff' : '#000' },
+              ]}
+              placeholder="Spotify URL"
+              placeholderTextColor={isDarkTheme ? '#aaa' : '#555'}
+              value={spotifyLink}
+              onChangeText={setSpotifyLink}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <TextInput
+              style={[ 
+                styles.textArea,
+                { backgroundColor: isDarkTheme ? '#333' : '#f9f9f9', color: isDarkTheme ? '#fff' : '#000' },
+              ]}
+              placeholder="Comment"
+              placeholderTextColor={isDarkTheme ? '#aaa' : '#555'}
+              value={comment}
+              onChangeText={setComment}
+              multiline={true}
+              numberOfLines={4}
+            />
+            {isSubmitting ? (
+              <ActivityIndicator size="large" color="#0000ff" style={styles.loading} />
+            ) : (
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={[styles.submitButton, { backgroundColor: '#1DB954' }]} onPress={handleSubmit}>
+                  <Text style={styles.buttonText}>Submit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.cancelButton, { backgroundColor: '#1DB954' }]} onPress={onClose}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </Animated.View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -148,7 +166,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -186,7 +204,6 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     flex: 1,
-    backgroundColor: '#1e90ff',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -194,7 +211,6 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#aaa',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',

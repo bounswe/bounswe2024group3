@@ -1,6 +1,6 @@
 // app/(tabs)/index.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   FlatList,
@@ -76,9 +76,10 @@ function App() {
     setIsModalVisible(false);
   };
 
-  const handlePostCreated = () => {
+  // Memoize the callback to prevent unnecessary re-renders
+  const handlePostCreated = useCallback(() => {
     fetchPosts(); // Refresh posts after a new post is created
-  };
+  }, []);
 
   return (
     <SafeAreaView

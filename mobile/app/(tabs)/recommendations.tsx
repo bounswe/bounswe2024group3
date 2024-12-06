@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import { REACT_APP_BACKEND_URL } from '@env';
+// import { REACT_APP_BACKEND_URL } from '@env';
 import PostCard from '../../components/PostCard';
 
 export default function CombinedPosts() {
@@ -23,7 +23,7 @@ export default function CombinedPosts() {
 
   const fetchRandomPosts = async () => {
     try {
-      const response = await axios.get(`${REACT_APP_BACKEND_URL}get-posts`);
+      const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
       const posts = response.data.posts;
       console.log('Fetched posts:', posts);
 

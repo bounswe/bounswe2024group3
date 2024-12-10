@@ -16,6 +16,7 @@ from .models import NowPlaying, PasswordReset, Post, Profile, Tag, Content
 import time
 from os import getenv
 from django.db.models import Count, Q
+import random
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -761,3 +762,63 @@ def search(request):
     }
 
     return JsonResponse(response)
+
+@require_http_methods(["GET"])
+def get_random_songs(request):
+    """
+    Fetch random songs from Spotify.
+    Query parameters:
+    - limit: number of songs to return (default: 5, max: 20)
+    - genre: specific genre to filter by (optional)
+    - market: market code (default: US)
+    """
+    try:
+        limit = min(int(request.GET.get('limit', 5)), 20)  
+        genre = request.GET.get('genre', '')
+        market = request.GET.get('market', 'US')
+
+        access_token = get_access_token()
+        if not access_token:
+            return JsonResponse({"error": "Failed to get Spotify access token"}, status=500)
+
+        headers = {"Authorization": f"Bearer {access_token}"}
+        
+        search_params = {
+            'type': 'track',
+            'market': market,
+            'limit': 50,  
+        }
+        
+        if genre:
+            search_params['q'] = f'genre:{genre}'
+        else:
+            search_params['q'] = 'year:2000-2024'  
+            
+        response = requests.get(
+            'https://api.spotify.com/v1/search',
+            headers=headers,
+            params=search_params
+        )
+
+        if response.status_code != 200:
+            return JsonResponse({"error": "Failed to fetch from Spotify API"}, status=500)
+
+        tracks = response.json()['tracks']['items']
+        
+        selected_tracks = random.sample(tracks, min(limit, len(tracks)))
+        
+        songs = [{
+            'link': track['external_urls']['spotify'],
+            'name': track['name'],
+            'artist': track['artists'][0]['name']
+        } for track in selected_tracks]
+
+        return JsonResponse({
+            'songs': songs,
+            'count': len(songs)
+        })
+
+    except ValueError:
+        return JsonResponse({"error": "Invalid limit parameter"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -56,10 +56,7 @@ export const FeedPage = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPopup, setShowPopup] = useState(false);
-  const [showCreateButton, setShowCreateButton] = useState(true);
   const [mostListenedNearbys, setMostListenedNearbys] = useState<string[]>([]);
-  const [mostSharedNearbys, setMostSharedNearbys] = useState<string[]>([]);
   const [posts, setPosts] = useState<PostDetails[]>([]);
 
   async function getMostListenedNearby(
@@ -77,7 +74,6 @@ export const FeedPage = () => {
       const requestUrl = `most-listened-nearby/?${queryParams.toString()}`;
       console.log("Requesting:", requestUrl);
 
-      // Make the GET request
       const response = await req(requestUrl, "get", {});
 
       if (!response.data || !response.data.tracks) {
@@ -85,15 +81,13 @@ export const FeedPage = () => {
         return [];
       }
 
-      // Process and set tracks
       const trackLinks = response.data.tracks.map((track: Track) => track.link);
       setMostListenedNearbys(trackLinks);
 
       return response.data.tracks;
     } catch (error) {
-      // Gracefully handle errors
       console.error("Error fetching most listened nearby tracks:", error);
-      return []; // Return empty array to avoid uncaught runtime errors
+      return [];
     }
   }
 
@@ -104,7 +98,6 @@ export const FeedPage = () => {
       setPosts([]);
 
       try {
-        // Fetch posts
         const feedQuery = `get-posts/`;
         const response = await req(feedQuery, "get", {});
         console.log("Feed response:", response.data);
@@ -113,18 +106,9 @@ export const FeedPage = () => {
         if (!posts.length) {
           throw new Error("No posts found");
         }
-        getMostListenedNearby({
-          latitude: localStorage.getItem("latitude")
-            ? parseFloat(localStorage.getItem("latitude")!)
-            : 41.080895,
-          longitude: localStorage.getItem("longitude")
-            ? parseFloat(localStorage.getItem("longitude")!)
-            : 29.0343434,
-        });
 
         setPosts(posts);
 
-        // Fetch most listened nearby
         const mostListenedTracks = await getMostListenedNearby({
           latitude: localStorage.getItem("latitude")
             ? parseFloat(localStorage.getItem("latitude")!)
@@ -148,29 +132,23 @@ export const FeedPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col justify-center items-center pt-10">
+      <div
+        className="flex flex-col justify-center items-center pt-10"
+        role="alert"
+        aria-busy="true"
+        aria-label="Loading feed"
+      >
         <span className="loading loading-spinner loading-lg"></span>
       </div>
     );
   }
+
   return username ? (
-    <div className="flex justify-center items-start">
+    <div className="flex justify-center items-start" aria-label="Feed content">
       {/* Main content area */}
-      {/* <div className="w-64 bg-gray-100 p-4 mr-4">
-        <h3 className=" text-lg font-semibold mb-4">Most Shared Nearby</h3>
-        {mostSharedNearbys.slice(0, 5).map((rec) => (
-          <RecommendationItem
-            key={parseSpotifyLink(rec).id}
-            rec={{
-              type: parseSpotifyLink(rec).type,
-              spotifyId: parseSpotifyLink(rec).id,
-            }}
-          />
-        ))}
-      </div> */}
       <div className="flex-1 max-w-2xl w-full">
         <CreatePostForm />
-        {error && <p className="text-red-500">{error}</p>}
+        {error && <p className="text-red-500" role="alert">{error}</p>}
 
         {posts.map((post) => (
           <PostCard key={post.id} post={post} isFeed={true} />
@@ -178,7 +156,10 @@ export const FeedPage = () => {
       </div>
 
       {/* Most Listened Nearby Sidebar */}
-      <div className="w-64 bg-gray-100 p-4 ml-4">
+      <div
+        className="w-64 bg-gray-100 p-4 ml-4"
+        aria-label="Sidebar: Most Listened Nearby"
+      >
         <h3 className="text-lg font-semibold mb-4">Most Listened Nearby</h3>
         {mostListenedNearbys.slice(0, 5).map((rec) => (
           <RecommendationItem
@@ -192,8 +173,8 @@ export const FeedPage = () => {
       </div>
     </div>
   ) : (
-    <div className="flex justify-center items-start">
-      <h1>Please login to see feed. </h1>
+    <div className="flex justify-center items-start" role="alert">
+      <h1>Please login to see feed.</h1>
     </div>
   );
 };

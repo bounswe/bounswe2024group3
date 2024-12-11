@@ -255,8 +255,22 @@ def create_post(request):
         if response.status_code != 200:
             return JsonResponse({"error": "Failed to fetch content description"}, status=500)
 
-        content_description = response.json()
-        content = Content(link=link, content_type=post_content_type, description=content_description)
+        if post_content_type == "track":
+            parsed_content = parse_spotify_track_response(response)
+        elif post_content_type == "artist":
+            parsed_content = parse_spotify_artist_response(response)
+        elif post_content_type == "album":
+            parsed_content = parse_spotify_album_response(response)
+        elif post_content_type == "playlist":
+            parsed_content = parse_spotify_playlist_response(response)
+        content = Content(link=link,
+                        content_type=post_content_type,
+                        artist_names=parsed_content.get("artist_names", []),
+                            album_name=parsed_content.get("album_name", ""),
+                            playlist_name=parsed_content.get("playlist_name", ""),
+                            genres=parsed_content.get("genres", []),
+                            song_name=parsed_content.get("song_name", ""),
+                        )
         content.save()
 
     # Create and save the post

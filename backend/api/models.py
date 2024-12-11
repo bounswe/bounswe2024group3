@@ -92,6 +92,7 @@ class Content(models.Model):
     album_name = models.CharField(max_length=200, blank=True)  # Album name
     song_name = models.CharField(max_length=200, blank=True)  # Song name
     genres = ArrayField(models.CharField(max_length=100), blank=True, default=list)  # Array of genres  
+    ai_description = models.TextField(blank=True, null=True)  # New field for AI-generated content
     def __str__(self):
         str_to_return = ""
         for artist in self.artist_names:
@@ -126,3 +127,17 @@ class NowPlaying(models.Model):
 
     def __str__(self):
         return f"{self.user.username} played {self.link} at {self.latitude}, {self.longitude}"
+
+class ContentSuggestion(models.Model):
+    content = models.ForeignKey(Content, on_delete=models.CASCADE, related_name='suggestions')
+    name = models.CharField(max_length=200)
+    artist = models.CharField(max_length=200)
+    spotify_url = models.URLField()
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Suggestion for {self.content}: {self.name} by {self.artist}"

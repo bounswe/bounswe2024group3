@@ -284,6 +284,89 @@ def get_content_type(link):
     else:
         return "track"
 
+def parse_spotify_track_response(response):
+    """Parses the Spotify API response for a track."""
+    try:
+        data = response.json()
+        try:
+            album_name= data["album"]["name"]
+        except:
+            album_name = None
+        try:
+            artist_names = [artist["name"] for artist in data["artists"]]
+        except:
+            artist_names = None
+        try:
+            song_name = data["name"]
+        except:
+            song_name = None
+
+
+        if "error" in data:
+            return None
+        return {
+            "album_name": album_name,
+            "artist_names": artist_names,
+            "song_name": song_name
+
+        }
+    except json.JSONDecodeError:
+        return None
+    
+def parse_spotify_artist_response(response):
+    """Parses the Spotify API response for an artist."""
+    try:
+        data = response.json()
+        try:
+            artist_name = data["name"]
+        except:
+            artist_name = None
+        try:
+            genres = data["genres"]
+        except:
+            genres = None
+        
+        return {
+            "artist_names": [artist_name],
+            "genres": genres
+        }
+    except json.JSONDecodeError:
+        return None
+
+def parse_spotify_album_response(response):
+    """Parses the Spotify API response for an album."""
+    try:
+        data = response.json()
+        try:
+            album_name = data["name"]
+        except:
+            album_name = None
+        try:
+            artist_names = [artist["name"] for artist in data["artists"]]
+        except:
+            artist_names = None
+        
+        return {
+            "album_name": album_name,
+            "artist_names": artist_names
+        }
+    except json.JSONDecodeError:
+        return None
+
+def parse_spotify_playlist_response(response):
+    """Parses the Spotify API response for a playlist."""
+    try:
+        data = response.json()
+        try:
+            playlist_name = data["name"]
+        except:
+            playlist_name = None
+        return {
+            "playlist_name": playlist_name,
+        }
+    except json.JSONDecodeError:
+        return None
+
 @require_http_methods(["GET"])
 def get_user_posts(request):
     req_user = request.user

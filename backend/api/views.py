@@ -235,6 +235,7 @@ def create_post(request):
     if not link or not comment:
         return JsonResponse({"error": "Link, comment, latitude, and longitude are required!"}, status=400)
 
+    link = link.split('?')[0]  # Remove query parameters from the link
     # Detect the content type of the Spotify link
     post_content_type = get_content_type(link)
     existing_content = Content.objects.filter(link=link).first()

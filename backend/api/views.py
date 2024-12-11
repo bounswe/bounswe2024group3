@@ -236,6 +236,7 @@ def create_post(request):
     if not link or not comment:
         return JsonResponse({"error": "Link, comment, latitude, and longitude are required!"}, status=400)
 
+    link = link.split('?')[0]  # Remove query parameters from the link
     # Detect the content type of the Spotify link
     post_content_type = get_content_type(link)
     existing_content = Content.objects.filter(link=link).first()
@@ -256,8 +257,22 @@ def create_post(request):
         if response.status_code != 200:
             return JsonResponse({"error": "Failed to fetch content description"}, status=500)
 
-        content_description = response.json()
-        content = Content(link=link, content_type=post_content_type, description=content_description)
+        if post_content_type == "track":
+            parsed_content = parse_spotify_track_response(response)
+        elif post_content_type == "artist":
+            parsed_content = parse_spotify_artist_response(response)
+        elif post_content_type == "album":
+            parsed_content = parse_spotify_album_response(response)
+        elif post_content_type == "playlist":
+            parsed_content = parse_spotify_playlist_response(response)
+        content = Content(link=link,
+                        content_type=post_content_type,
+                        artist_names=parsed_content.get("artist_names", []),
+                            album_name=parsed_content.get("album_name", ""),
+                            playlist_name=parsed_content.get("playlist_name", ""),
+                            genres=parsed_content.get("genres", []),
+                            song_name=parsed_content.get("song_name", ""),
+                        )
         content.save()
 
     # Create and save the post
@@ -284,6 +299,89 @@ def get_content_type(link):
         return "artist"
     else:
         return "track"
+
+def parse_spotify_track_response(response):
+    """Parses the Spotify API response for a track."""
+    try:
+        data = response.json()
+        try:
+            album_name= data["album"]["name"]
+        except:
+            album_name = None
+        try:
+            artist_names = [artist["name"] for artist in data["artists"]]
+        except:
+            artist_names = None
+        try:
+            song_name = data["name"]
+        except:
+            song_name = None
+
+
+        if "error" in data:
+            return None
+        return {
+            "album_name": album_name,
+            "artist_names": artist_names,
+            "song_name": song_name
+
+        }
+    except json.JSONDecodeError:
+        return None
+    
+def parse_spotify_artist_response(response):
+    """Parses the Spotify API response for an artist."""
+    try:
+        data = response.json()
+        try:
+            artist_name = data["name"]
+        except:
+            artist_name = None
+        try:
+            genres = data["genres"]
+        except:
+            genres = None
+        
+        return {
+            "artist_names": [artist_name],
+            "genres": genres
+        }
+    except json.JSONDecodeError:
+        return None
+
+def parse_spotify_album_response(response):
+    """Parses the Spotify API response for an album."""
+    try:
+        data = response.json()
+        try:
+            album_name = data["name"]
+        except:
+            album_name = None
+        try:
+            artist_names = [artist["name"] for artist in data["artists"]]
+        except:
+            artist_names = None
+        
+        return {
+            "album_name": album_name,
+            "artist_names": artist_names
+        }
+    except json.JSONDecodeError:
+        return None
+
+def parse_spotify_playlist_response(response):
+    """Parses the Spotify API response for a playlist."""
+    try:
+        data = response.json()
+        try:
+            playlist_name = data["name"]
+        except:
+            playlist_name = None
+        return {
+            "playlist_name": playlist_name,
+        }
+    except json.JSONDecodeError:
+        return None
 
 @require_http_methods(["GET"])
 def get_user_posts(request):

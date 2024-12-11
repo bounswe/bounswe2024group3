@@ -21,7 +21,7 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
       setError(error.message);
     }
     setUsername("");
-    localStorage.clear();  // Clear all localStorage data (or selectively remove keys)
+    localStorage.clear(); // Clear all localStorage data (or selectively remove keys)
 
     navigate("/");
   };
@@ -32,24 +32,37 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
         <div
           tabIndex={0}
           role="button"
+          aria-haspopup="menu"
+          aria-expanded="false"
           className="btn btn-ghost btn-circle avatar"
+          aria-label="User menu"
         >
           <div className="w-10 rounded-full">
-            <img alt={username} src="https://i.pravatar.cc/300" />
+            <img
+              alt={`Avatar of ${username}`}
+              src="https://i.pravatar.cc/300"
+              aria-hidden="true"
+            />
           </div>
         </div>
         <ul
           tabIndex={0}
+          role="menu"
           className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52"
+          aria-label="User options menu"
         >
-          <li>
-            <Link to="/profile" aria-label="profile">Profile</Link>
+          <li role="none">
+            <Link to="/profile" role="menuitem" aria-label="Go to Profile">
+              Profile
+            </Link>
           </li>
-          <li>
-            <Link to="/settings" aria-label="settings">Settings</Link>
+          <li role="none">
+            <Link to="/settings" role="menuitem" aria-label="Go to Settings">
+              Settings
+            </Link>
           </li>
-          <li>
-            <Link to="/" onClick={logout} aria-label="Logout">
+          <li role="none">
+            <Link to="/" onClick={logout} role="menuitem" aria-label="Logout">
               Logout
             </Link>
           </li>
@@ -58,12 +71,20 @@ const NavbarAccount = ({ username }: NavbarAccountProps) => {
     );
   } else {
     return (
-      <ul className="menu menu-horizontal px-1">
-        <li>
-          <Link to="/login" aria-label="Login">Login</Link>
+      <ul
+        className="menu menu-horizontal px-1"
+        role="menu"
+        aria-label="Navigation menu"
+      >
+        <li role="none">
+          <Link to="/login" role="menuitem" aria-label="Go to Login">
+            Login
+          </Link>
         </li>
-        <li>
-          <Link to="/register" aria-label="Register">Register</Link>
+        <li role="none">
+          <Link to="/register" role="menuitem" aria-label="Go to Register">
+            Register
+          </Link>
         </li>
       </ul>
     );

@@ -37,8 +37,8 @@ urlpatterns = [
     path('api/save-now-playing/', views.save_now_playing, name='save_now_playing'),
     path('api/most-listened-nearby/', views.most_listened_nearby, name='most_listened_nearby'),
     path('api/search/', views.search, name='search'),
-    path('api/random-songs/', views.get_random_songs, name='random_songs'),  # New endpoint
-
-
+    path('api/random-songs/', views.get_random_songs, name='random_songs'),
+     path('api/get_pages_of_spot_embeds/', views.get_pages_of_spot_embeds, name='get_pages_of_spot_embeds'),
+  # New endpoint
 
 ]

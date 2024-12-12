@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 import json
 import requests
 import time
+from bs4 import BeautifulSoup
+import random
 
 
 load_dotenv()
@@ -135,11 +137,9 @@ def fetch_posts(post_id=None, post_link=None, start_date=None, end_date=None, pa
 
 def get_content_description(content_type, metadata):
     """
-    Generate AI description for content using LangChain
+    Generate AI description and genres for content using LangChain
+    Returns a dict with 'description' and 'genres' (genres only for tracks/albums)
     """
-
-    print(os.getenv("OPENAI_API_KEY"))
-    print(metadata)
     llm = ChatOpenAI(
         model_name="gpt-3.5-turbo",
         temperature=0.7,
@@ -148,25 +148,43 @@ def get_content_description(content_type, metadata):
 
     # Different prompts based on content type
     prompts = {
-        "track": """You are a music expert. Given the following song information, provide an interesting 2-3 sentence description about the song and its artists:
+        "track": """You are a music expert. Given the following song information:
         Song: {song_name}
         Artist(s): {artist_names}
         Album: {album_name}
-        Focus on making it engaging and informative.""",
+
+        Provide two things in JSON format:
+        1. A concise description (up to 100 words) about the song, its artists, and its significance. Include information about the song's style, 
+           musical elements, impact, or any interesting context about its creation or reception.
+        2. A list of 1-4 relevant genres/subgenres for this song (can be just one if it clearly belongs to a specific genre)
+
+        Format your response as a JSON object with 'description' and 'genres' keys. Example:
+        {{"description": "Your concise description here", "genres": ["Genre 1", "Genre 2"]}}""",
         
-        "artist": """You are a music expert. Given the following artist information, provide an interesting 2-3 sentence description about the artist and their impact:
-        Artist: {artist_names}
-        Genres: {genres}
-        Focus on their musical style and significance.""",
-        
-        "album": """You are a music expert. Given the following album information, provide an interesting 2-3 sentence description about the album and its significance:
+        "album": """You are a music expert. Given the following album information:
         Album: {album_name}
         Artist(s): {artist_names}
-        Focus on the album's impact and style.""",
+
+        Provide two things in JSON format:
+        1. A concise description (up to 100 words) about the album, including its musical style, themes, significance, 
+           and impact. You can mention standout tracks, production quality, or its place in the artist's discography.
+        2. A list of 1-4 relevant genres/subgenres for this album (can be just one if it clearly belongs to a specific genre)
+
+        Format your response as a JSON object with 'description' and 'genres' keys. Example:
+        {{"description": "Your concise description here", "genres": ["Genre 1", "Genre 2"]}}""",
         
-        "playlist": """You are a music expert. Given the following playlist information, provide an interesting 2-3 sentence description about what listeners might expect:
+        "artist": """You are a music expert. Given the following artist information:
+        Artist: {artist_names}
+        Genres: {genres}
+        
+        Provide a concise description (up to 100 words) about the artist. Include information about their musical style, 
+        career highlights, influence on music, signature sound, and artistic evolution.""",
+        
+        "playlist": """You are a music expert. Given the following playlist information:
         Playlist: {playlist_name}
-        Focus on the mood and experience."""
+        
+        Provide a concise description (up to 100 words) about what listeners might expect from this playlist. 
+        Discuss the potential mood, atmosphere, and musical journey it might offer."""
     }
 
     # Create prompt template based on content type
@@ -175,13 +193,18 @@ def get_content_description(content_type, metadata):
     # Create chain
     chain = LLMChain(llm=llm, prompt=prompt_template)
     
-    # Run chain with metadata
     try:
         response = chain.run(**metadata)
-        return response.strip()
+        if content_type in ["track", "album"]:
+            # Parse JSON response for tracks and albums
+            response_data = json.loads(response.strip())
+            return response_data
+        else:
+            # For artists and playlists, just return description
+            return {"description": response.strip(), "genres": []}
     except Exception as e:
         print(f"Error generating AI description: {e}")
-        return None 
+        return None
 
 def get_content_suggestions(metadata, limit=5):
     """
@@ -211,6 +234,8 @@ def get_content_suggestions(metadata, limit=5):
         """
 
         prompt = ChatPromptTemplate.from_template(prompt_template)
+
+        print(prompt)
         
         # Create chain
         chain = LLMChain(llm=llm, prompt=prompt)
@@ -260,7 +285,11 @@ def get_or_create_content_suggestions(content):
         headers = {"Authorization": f"Bearer {access_token}"}
         
         for suggestion in ai_suggestions:
-            search_query = f"{suggestion['track_name']} {suggestion['artist']}"
+            # Handle multiple artists in the suggestion
+            artists = suggestion['artist'].split(',')  # Split if multiple artists
+            primary_artist = artists[0].strip()  # Use the first artist for search
+            
+            search_query = f"track:{suggestion['track_name']} artist:{primary_artist}"
             search_params = {
                 'q': search_query,
                 'type': 'track',
@@ -277,10 +306,12 @@ def get_or_create_content_suggestions(content):
                 results = response.json()
                 if results['tracks']['items']:
                     track = results['tracks']['items'][0]
+                    # Join all artists for storage
+                    all_artists = ', '.join([artist['name'] for artist in track['artists']])
                     suggestion = ContentSuggestion.objects.create(
                         content=content,
                         name=track['name'],
-                        artist=track['artists'][0]['name'],
+                        artist=all_artists,  # Store all artists
                         spotify_url=track['external_urls']['spotify'],
                         reason=suggestion['reason']
                     )
@@ -291,3 +322,100 @@ def get_or_create_content_suggestions(content):
     except Exception as e:
         print(f"Error getting/creating content suggestions: {e}")
         return []
+
+def fetch_lyrics(url: str) -> str:
+    """
+    Fetch lyrics from the Musixmatch URL and parse the content.
+    """
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find all parent divs for verses/choruses
+        parent_divs = soup.find_all('div', class_=lambda x: x and 'r-zd98yo' in x)
+        
+        if parent_divs:
+            lyrics_lines = []
+            for parent_div in parent_divs:
+                # Collect all text from nested divs in the current parent div
+                lines = [
+                    nested_div.get_text(strip=True) 
+                    for nested_div in parent_div.find_all('div')
+                    if nested_div.get_text(strip=True) and nested_div.get_text(strip=True).lower() not in ['verse', 'chorus']
+                ]
+                # Avoid duplicates and add to lyrics lines
+                unique_lines = list(dict.fromkeys(lines))
+                lyrics_lines.extend(unique_lines)
+            
+            # Join all lines with a dot and space, separating stanzas with a single space
+            formatted_lyrics = '. '.join(lyrics_lines) + '.'
+            return formatted_lyrics.strip()
+        
+        return "Lyrics not found."
+    
+    except Exception as e:
+        print(f"Error fetching lyrics: {e}")
+        return None
+
+def get_random_songs_util(search_params=None, limit=5):
+    """
+    Utility function to fetch random songs from Spotify
+    Args:
+        search_params: Optional dictionary of search parameters (including genre)
+        limit: Number of songs to return (default: 5)
+    Returns:
+        List of tracks or None if error
+    """
+    try:
+        access_token = get_access_token()
+        if not access_token:
+            return None
+
+        headers = {"Authorization": f"Bearer {access_token}"}
+        
+        # Default search parameters
+        default_params = {
+            'type': 'track',
+            'market': 'US',
+            'limit': 50  # Maximum allowed by Spotify API
+        }
+        
+        if not search_params:
+            # If no search params, just use a random year
+            year = random.randint(1950, 2024)
+            default_params['q'] = f'year:{year}'
+        else:
+            # Keep user's search parameters (especially genre)
+            default_params.update(search_params)
+        
+        # Add random offset to get different sections of results
+        # Spotify limits offset to 1000, so we keep it under that
+        default_params['offset'] = random.randint(0, 950)  # 950 = 1000 - limit
+            
+        response = requests.get(
+            'https://api.spotify.com/v1/search',
+            headers=headers,
+            params=default_params
+        )
+
+        if response.status_code != 200:
+            return None
+
+        tracks = response.json()['tracks']['items']
+        if not tracks:
+            # If no tracks found, try again with a different offset
+            return get_random_songs_util(search_params=search_params, limit=limit)
+            
+        selected_tracks = random.sample(tracks, min(limit, len(tracks)))
+        
+        return selected_tracks
+
+    except Exception as e:
+        print(f"Error fetching random songs: {e}")
+        return None

@@ -17,7 +17,8 @@ import time
 from os import getenv
 from django.db.models import Count, Q
 import random
-from .utils import fetch_posts,get_content_description, get_or_create_content_suggestions,get_access_token
+from .utils import fetch_posts,get_content_description, get_or_create_content_suggestions,get_access_token,fetch_lyrics,get_random_songs_util
+import re
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -292,9 +293,14 @@ def create_post(request):
             }
 
             # Generate AI description
-            ai_description = get_content_description(post_content_type, metadata)
-            if not ai_description:
-                ai_description = "AI description generation failed"
+        ai_response = get_content_description(post_content_type, metadata)
+        if ai_response:
+            ai_description = ai_response.get('description', '')
+            # Update genres if they were generated and it's a track/album
+            if post_content_type in ['track', 'album']:
+                parsed_content['genres'] = ai_response.get('genres', parsed_content.get('genres', []))
+        else:
+            ai_description = "AI description generation failed"
 
             # Create new content
             content = Content(
@@ -832,42 +838,21 @@ def get_random_songs(request):
     Query parameters:
     - limit: number of songs to return (default: 5, max: 20)
     - genre: specific genre to filter by (optional)
-    - market: market code (default: US)
+    - q: search query (optional)
     """
     try:
-        limit = min(int(request.GET.get('limit', 5)), 20)  
-        genre = request.GET.get('genre', '')
-        market = request.GET.get('market', 'US')
-
-        access_token = get_access_token()
-        if not access_token:
-            return JsonResponse({"error": "Failed to get Spotify access token"}, status=500)
-
-        headers = {"Authorization": f"Bearer {access_token}"}
+        limit = min(int(request.GET.get('limit', 5)), 20)
         
-        search_params = {
-            'type': 'track',
-            'market': market,
-            'limit': 50,  
-        }
-        
-        if genre:
-            search_params['q'] = f'genre:{genre}'
-        else:
-            search_params['q'] = 'year:2000-2024'  
-            
-        response = requests.get(
-            'https://api.spotify.com/v1/search',
-            headers=headers,
-            params=search_params
-        )
+        # Build search params from request
+        search_params = {}
+        if request.GET.get('q'):
+            search_params['q'] = request.GET.get('q')
+        if request.GET.get('genre'):
+            search_params['q'] = f"genre:{request.GET.get('genre')}"
 
-        if response.status_code != 200:
+        selected_tracks = get_random_songs_util(search_params=search_params, limit=limit)
+        if not selected_tracks:
             return JsonResponse({"error": "Failed to fetch from Spotify API"}, status=500)
-
-        tracks = response.json()['tracks']['items']
-        
-        selected_tracks = random.sample(tracks, min(limit, len(tracks)))
         
         songs = [{
             'link': track['external_urls']['spotify'],
@@ -909,17 +894,111 @@ def get_pages_of_spot_embeds(request):
             page_size=page_size
         )
 
-        if status_code != 200:
+        if status_code != 200 and not post_link:
             return JsonResponse({"error": pagination_or_error}, status=status_code)
 
-        # Process posts and get content data
-        processed_posts = []
         content_data = None
-
+        
+        # Try to get content either from posts or directly
         if posts_data:
-            # Get content from first post (since it's the same for all posts)
             content = Content.objects.get(id=posts_data[0]['content']['id'])
+        elif post_link:
+            # Clean the link
+            clean_link = post_link.split('?')[0]
             
+            # Try to get existing content
+            content = Content.objects.filter(link=clean_link).first()
+            
+            if not content:
+                # Generate new content similar to create_post
+                post_content_type = get_content_type(clean_link)
+                
+                # Fetch Spotify content
+                access_token = get_access_token()
+                if not access_token:
+                    return JsonResponse({"error": "Failed to get Spotify access token"}, status=500)
+
+                # Get content details from Spotify
+                headers = {"Authorization": f"Bearer {access_token}"}
+                spotify_id = clean_link.split('/')[-1]
+                spotify_url = f"https://api.spotify.com/v1/{post_content_type}s/{spotify_id}"
+                
+                response = requests.get(spotify_url, headers=headers)
+                if response.status_code != 200:
+                    return JsonResponse({
+                        "error": f"Failed to fetch Spotify content: {response.status_code}"
+                    }, status=500)
+
+                # Parse Spotify response
+                content_parsers = {
+                    "track": parse_spotify_track_response,
+                    "artist": parse_spotify_artist_response,
+                    "album": parse_spotify_album_response,
+                    "playlist": parse_spotify_playlist_response
+                }
+                
+                parser = content_parsers.get(post_content_type)
+                if not parser:
+                    return JsonResponse({
+                        "error": f"Unsupported content type: {post_content_type}"
+                    }, status=400)
+                    
+                parsed_content = parser(response)
+
+                # Prepare metadata for AI description
+                metadata = {
+                    "content_type": post_content_type,
+                    "song_name": parsed_content.get("song_name", ""),
+                    "artist_names": ", ".join(parsed_content.get("artist_names", [])),
+                    "album_name": parsed_content.get("album_name", ""),
+                    "playlist_name": parsed_content.get("playlist_name", ""),
+                    "genres": ", ".join(parsed_content.get("genres", [])),
+                }
+
+                # Generate AI description
+                ai_response = get_content_description(post_content_type, metadata)
+                if ai_response:
+                    ai_description = ai_response.get('description', '')
+                    # Update genres if they were generated and it's a track/album
+                    if post_content_type in ['track', 'album']:
+                        parsed_content['genres'] = ai_response.get('genres', parsed_content.get('genres', []))
+                else:
+                    ai_description = "AI description generation failed"
+
+                # Create new content
+                content = Content(
+                    link=clean_link,
+                    content_type=post_content_type,
+                    artist_names=parsed_content.get("artist_names", []),
+                    album_name=parsed_content.get("album_name", ""),
+                    playlist_name=parsed_content.get("playlist_name", ""),
+                    genres=parsed_content.get("genres", []),
+                    song_name=parsed_content.get("song_name", ""),
+                    ai_description=ai_description
+                )
+                content.save()
+
+        if content:
+
+            if content.ai_description == "AI description generation failed" or not content.ai_description:
+                # Prepare metadata for AI description
+                metadata = {
+                    "content_type": content.content_type,
+                    "song_name": content.song_name,
+                    "artist_names": ", ".join(content.artist_names),
+                    "album_name": content.album_name,
+                    "playlist_name": content.playlist_name,
+                    "genres": ", ".join(content.genres),
+                }
+
+                # Try to generate AI description again
+                new_ai_response = get_content_description(content.content_type, metadata)
+                if new_ai_response:
+                    content.ai_description = new_ai_response.get('description', '')
+                    # Update genres if they were generated and it's a track/album
+                    if content.content_type in ['track', 'album']:
+                        content.genres = new_ai_response.get('genres', content.genres)
+                    content.save()
             # Get or create suggestions for the content
             suggestions = get_or_create_content_suggestions(content)
 
@@ -942,7 +1021,9 @@ def get_pages_of_spot_embeds(request):
                 } for suggestion in suggestions]
             }
 
-            # Process posts without content information
+        # Process posts without content information
+        processed_posts = []
+        if posts_data:
             for post in posts_data:
                 post_copy = post.copy()
                 del post_copy['content']  # Remove content since we're returning it separately
@@ -962,3 +1043,257 @@ def get_pages_of_spot_embeds(request):
         return JsonResponse({"error": "Content not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def get_lyrics(request):
+    """
+    Get lyrics from database or fetch from Musixmatch if not available.
+    Query parameters:
+    - spotify_url: Spotify URL to lookup content and fetch lyrics
+    - force_refresh: Optional boolean to force refresh lyrics from Musixmatch
+    """
+    try:
+        spotify_url = request.GET.get('spotify_url')
+        force_refresh = request.GET.get('force_refresh', '').lower() == 'true'
+        
+        if not spotify_url:
+            return JsonResponse({"error": "spotify_url parameter is required"}, status=400)
+
+        # Clean the URL by removing query parameters
+        spotify_url = spotify_url.split('?')[0]
+
+        # Find the content in database
+        content = Content.objects.filter(link=spotify_url).first()
+        if not content:
+            return JsonResponse({"error": "Content not found in database"}, status=404)
+
+        # Only tracks have lyrics
+        if content.content_type != 'track':
+            return JsonResponse({"error": "Lyrics are only available for tracks"}, status=400)
+
+        # Return existing lyrics if available and not forcing refresh
+        if content.lyrics and not force_refresh:
+            return JsonResponse({
+                "lyrics": content.lyrics,
+                "source": "database"
+            })
+
+        # If we need to fetch new lyrics
+        if not content.artist_names or not content.song_name:
+            return JsonResponse({"error": "Missing artist or song information"}, status=400)
+
+        # Format artist name for URL (use first artist if multiple)
+        artist_name = '-'.join(content.artist_names).replace(' ', '-')        
+        print(artist_name)
+        song_name = content.song_name.split(' - ')[0]
+        
+        # Replace quotes and clean up special characters
+        song_name = song_name.replace('"', '')
+        song_name = song_name.replace(' ', '-')
+        # Remove special characters from names
+        artist_name = re.sub(r'[^a-zA-Z0-9-]', '', artist_name)
+        song_name = re.sub(r'[^a-zA-Z0-9-]', '', song_name)
+
+        musixmatch_url = f"https://www.musixmatch.com/lyrics/{artist_name}/{song_name}"
+
+        # Fetch and parse lyrics
+        lyrics = fetch_lyrics(musixmatch_url)
+        if not lyrics or lyrics == "Lyrics not found.":
+            if content.lyrics:  # Keep old lyrics if fetch fails
+                return JsonResponse({
+                    "lyrics": content.lyrics,
+                    "source": "database"
+                })
+            return JsonResponse({"error": "Failed to fetch lyrics"}, status=404)
+
+        # Update the database with new lyrics
+        content.lyrics = lyrics
+        content.save()
+
+        return JsonResponse({
+            "lyrics": lyrics,
+            "source": "musixmatch",
+            "source_url": musixmatch_url
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+@require_http_methods(["GET"])
+def get_song_quiz_lyrics(request):
+    try:
+        base_query = Content.objects.filter(
+            content_type='track',
+            lyrics__isnull=False
+        ).exclude(
+            lyrics__exact=''
+        ).exclude(
+            lyrics='Lyrics not found.'
+        )
+
+        print(base_query)
+
+        # Apply genre filter if provided
+        if request.GET.get('genre'):
+            requested_genre = request.GET.get('genre')
+            # Use __icontains for case-insensitive search within the array
+            base_query = base_query.filter(genres__icontains=requested_genre)
+
+
+        # Get a random track from the filtered query
+        correct_content = base_query.order_by('?').first()
+
+        if not correct_content:
+            return JsonResponse({"error": "No songs with lyrics found in database"}, status=404)
+
+        # Build search params from request for the other 3 songs
+        search_params = {}
+        query_parts = []
+        
+        if request.GET.get('genre'):
+            query_parts.append(f"genre:{request.GET.get('genre')}")
+        if request.GET.get('year'):
+            query_parts.append(f"year:{request.GET.get('year')}")
+            
+        if query_parts:
+            search_params['q'] = ' '.join(query_parts)
+
+        # Get 3 random tracks from Spotify
+        other_tracks = get_random_songs_util(search_params=search_params, limit=3)
+        if not other_tracks:
+            return JsonResponse({"error": "Failed to fetch additional songs from Spotify"}, status=500)
+
+        # Combine all tracks for options
+        all_tracks = [{
+            "link": correct_content.link,
+            "name": correct_content.song_name,
+            "artist": correct_content.artist_names[0]
+        }] + [{
+            "link": track['external_urls']['spotify'],
+            "name": track['name'],
+            "artist": track['artists'][0]['name']
+        } for track in other_tracks]
+
+        # Shuffle the options
+        random.shuffle(all_tracks)
+
+        # Get a random lyric snippet from the correct track
+        lyrics_lines = [line.strip() for line in correct_content.lyrics.split('.') if line.strip()]
+        if not lyrics_lines:
+            return JsonResponse({"error": "No valid lyrics found"}, status=404)
+            
+        start_idx = random.randint(0, len(lyrics_lines) - 1)
+        num_lines = random.randint(1, min(2, len(lyrics_lines) - start_idx))
+        lyric_snippet = ' '.join(lyrics_lines[start_idx:start_idx + num_lines])
+
+        # Prepare the quiz data
+        quiz_data = {
+            "lyric_snippet": lyric_snippet,
+            "options": all_tracks,
+            "correct_link": correct_content.link
+        }
+
+        return JsonResponse(quiz_data)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def search_spotify(request):
+    """
+    Simple Spotify search endpoint.
+    Query parameters:
+    - q: search query (required)
+    - type: comma-separated list of types to search (optional, default: 'track,album,artist')
+    - limit: maximum number of results (optional, default: 20)
+    """
+    try:
+        # Get query parameters
+        query = request.GET.get('q')
+        types = request.GET.get('type', 'track,album,artist')
+        limit = min(int(request.GET.get('limit', 20)), 50)  # Cap at 50 results
+
+        if not query:
+            return JsonResponse({
+                "error": "Search query is required"
+            }, status=400)
+
+        # Get Spotify access token
+        access_token = get_access_token()
+        if not access_token:
+            return JsonResponse({
+                "error": "Failed to get Spotify access token"
+            }, status=500)
+
+        # Make request to Spotify Search API
+        response = requests.get(
+            'https://api.spotify.com/v1/search',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                'q': query,
+                'type': types,
+                'limit': limit
+            }
+        )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Spotify API error: {response.status_code}"
+            }, status=response.status_code)
+
+        data = response.json()
+        results = {}
+
+        # Process tracks
+        if 'tracks' in data:
+            results['tracks'] = [{
+                'id': track['id'],
+                'name': track['name'],
+                'artists': [artist['name'] for artist in track['artists']],
+                'album': track['album']['name'],
+                'preview_url': track['preview_url'],
+                'external_url': track['external_urls']['spotify'],
+                'image_url': track['album']['images'][0]['url'] if track['album']['images'] else None
+            } for track in data['tracks']['items']]
+
+        # Process albums
+        if 'albums' in data:
+            results['albums'] = [{
+                'id': album['id'],
+                'name': album['name'],
+                'artists': [artist['name'] for artist in album['artists']],
+                'release_date': album['release_date'],
+                'external_url': album['external_urls']['spotify'],
+                'image_url': album['images'][0]['url'] if album['images'] else None
+            } for album in data['albums']['items']]
+
+        # Process artists
+        if 'artists' in data:
+            results['artists'] = [{
+                'id': artist['id'],
+                'name': artist['name'],
+                'genres': artist['genres'],
+                'external_url': artist['external_urls']['spotify'],
+                'image_url': artist['images'][0]['url'] if artist['images'] else None
+            } for artist in data['artists']['items']]
+
+        return JsonResponse({
+            "results": results,
+            "query": query
+        })
+
+    except ValueError:
+        return JsonResponse({
+            "error": "Invalid limit parameter"
+        }, status=400)
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": f"Failed to communicate with Spotify API: {str(e)}"
+        }, status=503)
+    except Exception as e:
+        return JsonResponse({
+            "error": str(e)
+        }, status=500)
+

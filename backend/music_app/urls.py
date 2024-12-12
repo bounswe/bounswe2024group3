@@ -38,7 +38,10 @@ urlpatterns = [
     path('api/most-listened-nearby/', views.most_listened_nearby, name='most_listened_nearby'),
     path('api/search/', views.search, name='search'),
     path('api/random-songs/', views.get_random_songs, name='random_songs'),
-     path('api/get_pages_of_spot_embeds/', views.get_pages_of_spot_embeds, name='get_pages_of_spot_embeds'),
-  # New endpoint
+    path('api/get_pages_of_spot_embeds/', views.get_pages_of_spot_embeds, name='get_pages_of_spot_embeds'),
+    path('api/get_lyrics/', views.get_lyrics, name='get_lyrics'),  
+    path('api/get_song_quiz_lyrics/', views.get_song_quiz_lyrics, name='get_song_quiz_lyrics'),
+    path('api/search_spotify/', views.search_spotify, name='search_spotify'),
 
+  # New endpoint
 ]

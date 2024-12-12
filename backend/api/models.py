@@ -93,6 +93,8 @@ class Content(models.Model):
     song_name = models.CharField(max_length=200, blank=True)  # Song name
     genres = ArrayField(models.CharField(max_length=100), blank=True, default=list)  # Array of genres  
     ai_description = models.TextField(blank=True, null=True)  # New field for AI-generated content
+    lyrics = models.TextField(blank=True, null=True)  # New field for storing lyrics
+
     def __str__(self):
         str_to_return = ""
         for artist in self.artist_names:

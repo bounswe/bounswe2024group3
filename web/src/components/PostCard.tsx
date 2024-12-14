@@ -12,25 +12,25 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
   const [likes, setLikes] = useState(post.total_likes);
   const [dislikes, setDislikes] = useState(post.total_dislikes);
   const [userAction, setUserAction] = useState<string | null>(post.userAction);
-  const [isFollowing, setIsFollowing] = useState(post.isFollowing); // Check if the user is already followed
+  // const [isFollowing, setIsFollowing] = useState(post.isFollowing); // Check if the user is already followed
   useAccessibility();
 
   // Handle Follow/Unfollow
-  const handleFollowToggle = async () => {
-    try {
-      const endpoint = isFollowing
-        ? `/api/users/${post.username}/unfollow`
-        : `/api/users/${post.username}/follow`;
+  // const handleFollowToggle = async () => {
+  //   try {
+  //     const endpoint = isFollowing
+  //       ? `/api/users/${post.username}/unfollow`
+  //       : `/api/users/${post.username}/follow`;
 
-      const response = await fetch(endpoint, { method: "POST" });
-      if (!response.ok) throw new Error("Failed to toggle follow status");
+  //     const response = await fetch(endpoint, { method: "POST" });
+  //     if (!response.ok) throw new Error("Failed to toggle follow status");
 
-      // Toggle the follow state
-      setIsFollowing(!isFollowing);
-    } catch (error) {
-      console.error("Error while toggling follow/unfollow:", error);
-    }
-  };
+  //     // Toggle the follow state
+  //     setIsFollowing(!isFollowing);
+  //   } catch (error) {
+  //     console.error("Error while toggling follow/unfollow:", error);
+  //   }
+  // };
 
   // Handle like
   const handleLike = async () => {
@@ -88,13 +88,13 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
           </a>
         </h2>
 
-        {/* Follow/Unfollow button */}
+        {/* Follow/Unfollow button
         <button
           onClick={handleFollowToggle}
           className={`btn ${isFollowing ? "btn-secondary" : "btn-primary"}`}
         >
           {isFollowing ? "Unfollow" : "Follow"}
-        </button>
+        </button> */}
         
         {isFeed && (
           <div className="relative">

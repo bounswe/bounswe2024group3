@@ -8,7 +8,7 @@ import useAccessibility from "../components/Accessibility";
 import { PostDetails } from "./FeedPage";
 import { createSpotifyLink, parseSpotifyLink, req } from "../utils/client";
 import CreatePostForm from "../components/CreatePostForm";
-
+import LyricsCard from "../components/LyricsCard";
 interface PostPageProps {
   type: string;
 }
@@ -19,6 +19,9 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [newPostContent, setNewPostContent] = useState(""); // To track new post content
   const { username } = useUser();
+  const [lyrics, setLyrics] = useState<string | null>(null);
+  const [lyricsLoading, setLyricsLoading] = useState(false);
+  const [lyricsError, setLyricsError] = useState<string | null>(null);
 
   useEffect(() => {
     // If spotifyId is provided, filter posts by it; otherwise, show all posts
@@ -59,7 +62,26 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
         console.error("Failed to add now playing:", error);
       }
     };
-
+    
+    const fetchLyrics = async () => {
+      if (type !== "track" || !spotifyId) return;
+      setLyricsLoading(true);
+      setLyricsError(null);
+      try {
+        const response = await req(
+          `get_lyrics?spotify_url=${createSpotifyLink({ type, id: spotifyId })}`,
+          "get",
+          {}
+        );
+        setLyrics(response.data.lyrics);
+      } catch (error: any) {
+        console.error("Failed to fetch lyrics:", error);
+        setLyricsError(error.message || "Unable to fetch lyrics");
+      } finally {
+        setLyricsLoading(false);
+      }
+    };
+    
     const getRecommendations = async () => {
       try {
         const response = await req("get-posts/", "get", {});
@@ -84,7 +106,9 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
     handleQuery();
     addNowPlaying();
     getRecommendations();
-  }, [spotifyId]);
+    fetchLyrics(); // Fetch lyrics if type is "track"
+
+  }, [spotifyId, type]);
 
   if (!posts || !posts.length || !spotifyId) {
     return <div>No posts found!</div>;
@@ -92,6 +116,16 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
 
   return (
     <div className="flex justify-center">
+       {/* Left Column: Lyrics */}
+       {type === "track" && (
+      <div className="mr-10"> {/* Added margin to create space */}
+        <LyricsCard 
+          lyrics={lyrics || ''} 
+          isLoading={lyricsLoading}
+          error={lyricsError}
+        />
+      </div>
+    )}
       {/* Main Content Section */}
       <div className="flex-1  max-w-2xl w-full">
         <Spotify wide link={`https://open.spotify.com/${type}/${spotifyId}`} />
@@ -115,7 +149,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
         <CreatePostForm
           initialLink={createSpotifyLink({ type, id: spotifyId })}
         />
-
+        
         {/* Render the list of posts */}
         {posts.map((post) => (
           <PostCard key={post.id} isFeed={false} post={post} />
@@ -123,7 +157,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       </div>
 
       {/* Recommendations Bar */}
-      <div className="w-64 bg-gray-100 p-4 ml-4">
+      <div className="w-64 bg-base-200 p-4 ml-10">
         <h3 className="text-lg font-semibold mb-4">Recommended for You</h3>
         {recommendations
           .filter((x) => parseSpotifyLink(x).id !== spotifyId)

@@ -12,6 +12,8 @@ import { UserProvider } from "./providers/UserContext";
 import ResetRequestPage from "./pages/ResetRequestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { FeedPage } from "./pages/FeedPage";
+import ListPlaylistsPage from "./pages/ListPlaylistsPage"; 
+import PlaylistDetailPage from "./pages/PlaylistDetailPage";
 
 
 const root = ReactDOM.createRoot(
@@ -33,7 +35,9 @@ root.render(
                 <Route path="/request-reset" element={<ResetRequestPage />} />
                 <Route path="/reset" element={<ResetPasswordPage />} />
                 <Route path="/search/:query" element={<SearchPage />} />
-                
+                <Route path="/view-playlist" element={<ListPlaylistsPage />} />
+                <Route path="/view-playlist/:id" element={<PlaylistDetailPage />} />
+              
               </Routes>
             </Layout>
           </UserProvider>

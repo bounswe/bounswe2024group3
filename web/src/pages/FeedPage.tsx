@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { parseSpotifyLink, req } from "../utils/client";
 import PostCard from "../components/PostCard";
 import CreatePostForm from "../components/CreatePostForm";
@@ -153,45 +153,59 @@ export const FeedPage = () => {
       </div>
     );
   }
+
+
   return username ? (
-    <div className="flex justify-center items-start">
-      {/* Main content area */}
-      {/* <div className="w-64 bg-gray-100 p-4 mr-4">
-        <h3 className=" text-lg font-semibold mb-4">Most Shared Nearby</h3>
-        {mostSharedNearbys.slice(0, 5).map((rec) => (
-          <RecommendationItem
-            key={parseSpotifyLink(rec).id}
-            rec={{
-              type: parseSpotifyLink(rec).type,
-              spotifyId: parseSpotifyLink(rec).id,
-            }}
-          />
-        ))}
-      </div> */}
-      <div className="flex-1 max-w-2xl w-full">
+    <div className="flex justify-between max-w-screen-xl mx-auto w-full">
+      {/* Main content */}
+      <div className="flex-1 max-w-2xl mx-auto">
         <CreatePostForm />
         {error && <p className="text-red-500">{error}</p>}
-
         {posts.map((post) => (
           <PostCard key={post.id} post={post} isFeed={true} />
         ))}
       </div>
 
-      {/* Most Listened Nearby Sidebar */}
-      <div className="w-64 bg-gray-100 p-4 ml-4">
-        <h3 className="text-lg font-semibold mb-4">Most Listened Nearby</h3>
-        {mostListenedNearbys.slice(0, 5).map((rec) => (
-          <RecommendationItem
-            key={parseSpotifyLink(rec).id}
-            rec={{
-              type: parseSpotifyLink(rec).type,
-              spotifyId: parseSpotifyLink(rec).id,
-            }}
-          />
-        ))}
+      {/* Right sidebar - Fixed position */}
+      <div className="w-64 ml-4 fixed right-4 top-20">
+        {/* Playlists Button */}
+        <Link 
+          to="/view-playlist" 
+          className="btn btn-primary w-full mb-4"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-5 w-5 mr-2" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" 
+            />
+          </svg>
+          My Playlists
+        </Link>
+
+        {/* Most Listened Nearby */}
+        <div className="bg-base-200 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Most Listened Nearby</h3>
+          {mostListenedNearbys.slice(0, 5).map((rec) => (
+            <RecommendationItem
+              key={parseSpotifyLink(rec).id}
+              rec={{
+                type: parseSpotifyLink(rec).type,
+                spotifyId: parseSpotifyLink(rec).id,
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
-  ) : (
+) : (
     <div className="flex justify-center items-start">
       <h1>Please login to see feed. </h1>
     </div>

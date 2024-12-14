@@ -81,7 +81,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
         {/* Username links to the user's profile */}
         <h2 className="card-title">
           <a
-            href={`/profile/${post.username}`}
+            href={`/user/${post.username}`}
             className="text-blue-500 hover:underline"
           >
             {post.username}

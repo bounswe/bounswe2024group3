@@ -12,7 +12,7 @@ import { UserProvider } from "./providers/UserContext";
 import ResetRequestPage from "./pages/ResetRequestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { FeedPage } from "./pages/FeedPage";
-
+import UserPage from "./pages/UserPage";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -33,7 +33,8 @@ root.render(
                 <Route path="/request-reset" element={<ResetRequestPage />} />
                 <Route path="/reset" element={<ResetPasswordPage />} />
                 <Route path="/search/:query" element={<SearchPage />} />
-                
+                <Route path="/profile" element={<UserPage />} />
+                <Route path="/user/:user" element={<UserPage />} />
               </Routes>
             </Layout>
           </UserProvider>

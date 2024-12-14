@@ -43,6 +43,12 @@ urlpatterns = [
     path('api/get_lyrics/', views.get_lyrics, name='get_lyrics'),  
     path('api/get_song_quiz_lyrics/', views.get_song_quiz_lyrics, name='get_song_quiz_lyrics'),
     path('api/search_spotify/', views.search_spotify, name='search_spotify'),
+    path('api/spotify/auth/', views.spotify_auth, name='spotify_auth'),
+    path('api/spotify/callback/', views.spotify_callback, name='spotify_callback'),
+    path('api/spotify/status/', views.spotify_status, name='spotify_status'),
+    path('api/spotify/playlists/', views.get_user_playlists, name='get_user_playlists'),
+    path('api/spotify/playlist/<str:playlist_id>/', views.get_playlist_details, name='get_playlist_details'),
+    path('api/spotify/playlist/<str:playlist_id>/tracks/', views.add_track_to_playlist, name='add_track_to_playlist'),
 
   # New endpoint
 ]

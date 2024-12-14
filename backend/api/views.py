@@ -484,12 +484,15 @@ def parse_spotify_playlist_response(response):
 @require_http_methods(["GET"])
 def get_user_posts(request):
     req_user = request.user
-    user_id = request.GET.get('user_id')
+    username = request.GET.get('username')
     page_number = request.GET.get('page', 1)
     page_size = request.GET.get('page_size', 10)
 
+    if not username:
+        return JsonResponse({"error": "Username parameter is required"}, status=400)
+
     try:
-        target_user = User.objects.get(id=user_id)
+        target_user = User.objects.get(username=username)
     except User.DoesNotExist:
         return JsonResponse({"error": "User not found"}, status=404)
 
@@ -530,7 +533,6 @@ def get_user_posts(request):
         },
         status=200
     )
-
     
 
 

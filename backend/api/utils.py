@@ -1,5 +1,5 @@
-from .models import ContentSuggestion, Post
-from datetime import datetime
+from .models import ContentSuggestion, Post,SpotifyToken
+from datetime import datetime, timedelta, timezone
 from django.core.paginator import Paginator
 from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -21,10 +21,33 @@ load_dotenv()
 ACCESS_TOKEN = None
 TOKEN_EXPIRY = 0
 
+
+def refresh_spotify_token(user):
+    spotify_token = SpotifyToken.objects.get(user=user)
+    if spotify_token.expires_at <= timezone.now():
+        response = requests.post(
+            'https://accounts.spotify.com/api/token',
+            data={
+                'grant_type': 'refresh_token',
+                'refresh_token': spotify_token.refresh_token,
+            },
+            auth=(os.getenv("SPOTIFY_CLIENT_ID"), os.getenv("SPOTIFY_CLIENT_SECRET"))
+        )
+        
+        tokens = response.json()
+        spotify_token.access_token = tokens['access_token']
+        spotify_token.expires_at = timezone.now() + timedelta(seconds=tokens['expires_in'])
+        spotify_token.save()
+    
+    return spotify_token.access_token
+
+
 def get_access_token():
     """Fetch a new access token from Spotify."""
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    print(client_id)
+    print(client_secret)
     url = "https://accounts.spotify.com/api/token"
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"grant_type": "client_credentials"}

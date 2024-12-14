@@ -56,8 +56,13 @@ def login(request):
 
 @require_http_methods(["GET"])
 def get_user(request):
-    if request.user.is_authenticated:
-        user = request.user
+    username = request.GET.get('username')
+    
+    if not username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+    
+    try:
+        user = User.objects.get(username=username)
         try:
             profile = Profile.objects.get(user=user)
             name = profile.name
@@ -77,8 +82,40 @@ def get_user(request):
             'email': user.email,
             'labels': labels
         })
-    else:
-        return JsonResponse({'error': 'User not authenticated'}, status=400)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+@require_http_methods(["GET"])
+def check_following(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'User not authenticated'}, status=401)
+        
+    target_username = request.GET.get('username')
+    
+    if not target_username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+    
+    try:
+        # Get the target user
+        target_user = User.objects.get(username=target_username)
+        
+        # Get the profiles
+        user_profile = Profile.objects.get(user=request.user)
+        target_profile = Profile.objects.get(user=target_user)
+        
+        # Check if current user follows target user
+        is_following = user_profile.following.filter(id=target_profile.id).exists()
+        
+        return JsonResponse({
+            'is_following': is_following,
+            'current_user': request.user.username,
+            'target_user': target_username
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Target user not found'}, status=404)
+    except Profile.DoesNotExist:
+        return JsonResponse({'error': 'Profile not found'}, status=404)
 
 @require_http_methods(["POST"])
 @csrf_exempt

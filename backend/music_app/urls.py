@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/logout/', views.logout, name='logout'),
     path('api/follow/<int:user_id>/', views.follow_user, name='follow_user'),
     path('api/unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
+    path('api/check-following/', views.check_following, name='check_following'),
     path('api/create-post/', views.create_post, name='create_post'),
     path('api/get-user-posts/', views.get_user_posts, name= 'get_user_posts'),
     path('api/get-posts/', views.get_posts, name='get_posts'),

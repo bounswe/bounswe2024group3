@@ -483,7 +483,6 @@ def parse_spotify_playlist_response(response):
 
 @require_http_methods(["GET"])
 def get_user_posts(request):
-    req_user = request.user
     username = request.GET.get('username')
     page_number = request.GET.get('page', 1)
     page_size = request.GET.get('page_size', 10)
@@ -496,12 +495,6 @@ def get_user_posts(request):
     except User.DoesNotExist:
         return JsonResponse({"error": "User not found"}, status=404)
 
-    if req_user != target_user:
-        # Check if the requesting user follows the target user
-        req_user_profile = req_user.profile
-        if not req_user_profile.following.filter(id=target_user.profile.id).exists():
-            return JsonResponse({"error": "You do not follow this user"}, status=403)
-
     posts = Post.objects.filter(belongs_to=target_user).order_by('-created_at')
     
     paginator = Paginator(posts, page_size)
@@ -510,8 +503,23 @@ def get_user_posts(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
-    posts_data = [
-        {
+    posts_data = []
+    for post in page.object_list:
+        content_data = None
+        if post.content:
+            content_data = {
+                'id': post.content.id,
+                'link': post.content.link,
+                'content_type': post.content.content_type,
+                'artist_names': post.content.artist_names,
+                'playlist_name': post.content.playlist_name,
+                'album_name': post.content.album_name,
+                'song_name': post.content.song_name,
+                'genres': post.content.genres,
+                'ai_description': post.content.ai_description or "AI description not yet generated",
+            }
+
+        post_data = {
             "id": post.id,
             "comment": post.comment,
             "image": post.image,
@@ -520,20 +528,18 @@ def get_user_posts(request):
             "total_likes": post.total_likes,
             "total_dislikes": post.total_dislikes,
             "tags": [tag.name for tag in post.tags.all()],
+            "content": content_data
         }
-        for post in page.object_list
-    ]
+        posts_data.append(post_data)
 
-    return JsonResponse(
-        {
-            "posts": posts_data,
+    return JsonResponse({
+        "posts": posts_data,
+        "pagination": {
             "current_page": page.number,
             "total_pages": paginator.num_pages,
             "total_posts": paginator.count,
-        },
-        status=200
-    )
-    
+        }
+    })    
 
 
 @require_http_methods(["GET"])

@@ -43,9 +43,9 @@ export default function TabsLayout() {
         name="MostListenedNearby"
         options={{
           title: 'Most Listened Nearby',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="musical-notes-outline" color={color} size={size} />
-          ),
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="location-outline" color={color} size={size} />
+        ),
         }}
       />
       <Tabs.Screen

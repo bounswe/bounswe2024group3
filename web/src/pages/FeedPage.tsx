@@ -58,6 +58,8 @@ export const FeedPage = () => {
   const [mostListenedNearbys, setMostListenedNearbys] = useState<string[]>([]);
   const [mostSharedNearbys, setMostSharedNearbys] = useState<string[]>([]);
   const [posts, setPosts] = useState<PostDetails[]>([]);
+  const [selectedTab, setSelectedTab] = useState<"All" | "Following">("All");
+
 
   async function getMostListenedNearby(
     params: MostListenedNearbyParams
@@ -130,55 +132,63 @@ export const FeedPage = () => {
     }
   }
 
-  useEffect(() => {
-    const handleQuery = async () => {
-      setIsLoading(true);
-      setError("");
-      setPosts([]);
 
-      try {
-        // Fetch posts
-        const feedQuery = `get-posts/`;
-        const response = await req(feedQuery, "get", {});
-        console.log("Feed response:", response.data);
 
-        const posts: PostDetails[] = response.data.posts;
-        if (!posts.length) {
-          throw new Error("No posts found");
-        }
-        const mostSharedSongs = await getMostSharedNearby({
-          latitude: localStorage.getItem("latitude")
-            ? parseFloat(localStorage.getItem("latitude")!)
-            : 41.080895,
-          longitude: localStorage.getItem("longitude")
-            ? parseFloat(localStorage.getItem("longitude")!)
-            : 29.0343434,
-        });
-        console.log("Most shared songs:", mostSharedSongs);
+  const handleQuery = async (endpoint:string) => {
+    setIsLoading(true);
+    setError("");
+    setPosts([]);
 
-        setPosts(posts);
+    try {
+      // Fetch posts
+   
+      const response = await req(endpoint, "get", {});
+      console.log("Feed response:", response.data);
 
-        // Fetch most listened nearby
-        const mostListenedTracks = await getMostListenedNearby({
-          latitude: localStorage.getItem("latitude")
-            ? parseFloat(localStorage.getItem("latitude")!)
-            : 41.080895,
-          longitude: localStorage.getItem("longitude")
-            ? parseFloat(localStorage.getItem("longitude")!)
-            : 29.0343434,
-        });
-
-        console.log("Most listened tracks:", mostListenedTracks);
-      } catch (error: any) {
-        console.error("Error occurred:", error);
-        setError(error.message || "An unexpected error occurred");
-      } finally {
-        setIsLoading(false);
+      const posts: PostDetails[] = response.data.posts;
+      if (!posts.length) {
+        throw new Error("No posts found");
       }
-    };
+      const mostSharedSongs = await getMostSharedNearby({
+        latitude: localStorage.getItem("latitude")
+          ? parseFloat(localStorage.getItem("latitude")!)
+          : 41.080895,
+        longitude: localStorage.getItem("longitude")
+          ? parseFloat(localStorage.getItem("longitude")!)
+          : 29.0343434,
+      });
+      console.log("Most shared songs:", mostSharedSongs);
 
-    handleQuery();
-  }, [query]);
+      setPosts(posts);
+
+      // Fetch most listened nearby
+      const mostListenedTracks = await getMostListenedNearby({
+        latitude: localStorage.getItem("latitude")
+          ? parseFloat(localStorage.getItem("latitude")!)
+          : 41.080895,
+        longitude: localStorage.getItem("longitude")
+          ? parseFloat(localStorage.getItem("longitude")!)
+          : 29.0343434,
+      });
+
+      console.log("Most listened tracks:", mostListenedTracks);
+    } catch (error: any) {
+      console.error("Error occurred:", error);
+      setError(error.message || "An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    if (selectedTab === "All") {
+      handleQuery("get-posts/");
+    } else if (selectedTab === "Following") {
+      handleQuery("get-following-posts/");
+    }
+
+  }, [selectedTab]);
 
   if (isLoading) {
     return (
@@ -221,6 +231,26 @@ export const FeedPage = () => {
 
   {/* Main Content */}
   <div className="flex-1 max-w-2xl mx-auto relative">
+
+    {/* Tab Selection */}
+    <div className="flex border-b mb-4">
+          <button
+            className={`px-4 py-2 text-sm font-semibold ${
+              selectedTab === "All" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"
+            }`}
+            onClick={() => setSelectedTab("All")}
+          >
+            All
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-semibold ${
+              selectedTab === "Following" ? "border-b-2 border-blue-500 text-blue-600" : "text-gray-500"
+            }`}
+            onClick={() => setSelectedTab("Following")}
+          >
+            Following
+          </button>
+        </div>
     <CreatePostForm /> {/* Prioritize Create Post */}
     {error && <p className="text-red-500">{error}</p>}
     {posts.map((post) => (

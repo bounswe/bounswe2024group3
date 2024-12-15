@@ -565,6 +565,7 @@ def get_following_posts(request):
             post_data = {
                 "id": post.id,
                 "user": user_info,
+                "username": post.belongs_to.username,
                 "comment": post.comment,
                 "image": post.image,
                 "link": post.link,

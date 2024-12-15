@@ -49,6 +49,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="SongQuizScreen"
+        options={{
+          title: 'Lyrics Quiz',
+        tabBarIcon: ({ color, size }) => (
+          <Ionicons name="location-outline" color={color} size={size} />
+        ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

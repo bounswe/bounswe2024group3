@@ -144,9 +144,12 @@ class ContentSuggestion(models.Model):
     def __str__(self):
         return f"Suggestion for {self.content}: {self.name} by {self.artist}"
 
-
 class SpotifyToken(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    access_token = models.CharField(max_length=255)
-    refresh_token = models.CharField(max_length=255)
-    expires_at = models.DateTimeField()
+    spotify_user_id = models.CharField(max_length=255, null=True, blank=True)
+    access_token = models.TextField()
+    refresh_token = models.TextField()
+    expires_at = models.DateTimeField()  # Add this field
+    
+    def __str__(self):
+        return f"{self.user.username}'s Spotify Token"

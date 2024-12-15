@@ -28,13 +28,10 @@ export type PostDetails = {
 
 interface Track {
   link: string;
-  description: string;
   count: number;
 }
 interface Song {
   content__link: string;
-  content__description: string;
-  count: number;
 }
 interface MostSharedNearbyResponse {
   tracks: Song[];
@@ -97,6 +94,42 @@ export const FeedPage = () => {
     }
   }
 
+
+  async function getMostSharedNearby(
+    params: MostListenedNearbyParams
+  ): Promise<Song[]> {
+    const { latitude, longitude, radius = 10 } = params;
+
+    try {
+      const queryParams = new URLSearchParams({
+        latitude: latitude.toString(),
+        longitude: longitude.toString(),
+        radius: radius.toString(),
+      });
+
+      const requestUrl = `most-shared-nearby-things/?${queryParams.toString()}`;
+      console.log("Requesting:", requestUrl);
+
+      // Make the GET request
+      const response = await req(requestUrl, "get", {});
+
+      if (!response.data || !response.data.songs) {
+        console.warn("No songs data found in response");
+        return [];
+      }
+
+      // Process and set tracks
+      const trackLinks = response.data.songs.map((song: Song) => song.content__link);
+      setMostSharedNearbys(trackLinks);
+
+      return response.data.songs;
+    } catch (error) {
+      // Gracefully handle errors
+      console.error("Error fetching most listened nearby tracks:", error);
+      return []; // Return empty array to avoid uncaught runtime errors
+    }
+  }
+
   useEffect(() => {
     const handleQuery = async () => {
       setIsLoading(true);
@@ -113,7 +146,7 @@ export const FeedPage = () => {
         if (!posts.length) {
           throw new Error("No posts found");
         }
-        getMostListenedNearby({
+        const mostSharedSongs = await getMostSharedNearby({
           latitude: localStorage.getItem("latitude")
             ? parseFloat(localStorage.getItem("latitude")!)
             : 41.080895,
@@ -121,6 +154,7 @@ export const FeedPage = () => {
             ? parseFloat(localStorage.getItem("longitude")!)
             : 29.0343434,
         });
+        console.log("Most shared songs:", mostSharedSongs);
 
         setPosts(posts);
 
@@ -157,6 +191,21 @@ export const FeedPage = () => {
 
   return username ? (
     <div className="flex justify-between max-w-screen-xl mx-auto w-full">
+
+
+         {/* Most Listened Nearby */}
+         <div className="bg-base-200 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Most Shared Nearby</h3>
+          {mostSharedNearbys.slice(0, 5).map((rec) => (
+            <RecommendationItem
+              key={parseSpotifyLink(rec).id}
+              rec={{
+                type: parseSpotifyLink(rec).type,
+                spotifyId: parseSpotifyLink(rec).id,
+              }}
+            />
+          ))}
+        </div>
       {/* Main content */}
       <div className="flex-1 max-w-2xl mx-auto">
         <CreatePostForm />

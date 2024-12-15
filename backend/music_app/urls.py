@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/logout/', views.logout, name='logout'),
     path('api/follow/<int:user_id>/', views.follow_user, name='follow_user'),
     path('api/unfollow/<int:user_id>/', views.unfollow_user, name='unfollow_user'),
+    path('api/check-following/', views.check_following, name='check_following'),
     path('api/create-post/', views.create_post, name='create_post'),
     path('api/get-user-posts/', views.get_user_posts, name= 'get_user_posts'),
     path('api/get-posts/', views.get_posts, name='get_posts'),
@@ -37,6 +38,18 @@ urlpatterns = [
     path('api/save-now-playing/', views.save_now_playing, name='save_now_playing'),
     path('api/most-listened-nearby/', views.most_listened_nearby, name='most_listened_nearby'),
     path('api/search/', views.search, name='search'),
+    path('api/random-songs/', views.get_random_songs, name='random_songs'),
+    path('api/get_pages_of_spot_embeds/', views.get_pages_of_spot_embeds, name='get_pages_of_spot_embeds'),
+    path('api/get_lyrics/', views.get_lyrics, name='get_lyrics'),  
+    path('api/get_song_quiz_lyrics/', views.get_song_quiz_lyrics, name='get_song_quiz_lyrics'),
+    path('api/search_spotify/', views.search_spotify, name='search_spotify'),
+    path('api/spotify/auth/', views.spotify_auth, name='spotify_auth'),
+    path('api/spotify/callback/', views.spotify_callback, name='spotify_callback'),
+    path('api/spotify/status/', views.spotify_status, name='spotify_status'),
+    path('api/spotify/playlists/', views.get_user_playlists, name='get_user_playlists'),
+    path('api/spotify/playlist/<str:playlist_id>/', views.get_playlist_details, name='get_playlist_details'),
+    path('api/spotify/playlist/<str:playlist_id>/tracks/', views.add_track_to_playlist, name='add_track_to_playlist'),
+    path('api/spotify/get_user_spotify_playlists/<int:user_id>/', views.get_user_spotify_playlists, name='get_user_spotify_playlists'),
 
-
+  # New endpoint
 ]

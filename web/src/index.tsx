@@ -12,6 +12,10 @@ import { UserProvider } from "./providers/UserContext";
 import ResetRequestPage from "./pages/ResetRequestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { FeedPage } from "./pages/FeedPage";
+import UserPage from "./pages/UserPage";
+import ListPlaylistsPage from "./pages/ListPlaylistsPage"; 
+import PlaylistDetailPage from "./pages/PlaylistDetailPage";
+import MapPageWithRadius from "./pages/MapPage";
 
 
 const root = ReactDOM.createRoot(
@@ -26,14 +30,20 @@ root.render(
                 <Route path= "/"    element={<FeedPage/>} />,
                 <Route path="/feed" element={<FeedPage />} />
                 <Route path="track/:spotifyId" element={<PostPage type="track" />} />
-                <Route path="playlist/:spotifyId" element={<PostPage type="playlist" />} />
+                <Route path="artist/:spotifyId" element={<PostPage type="artist" />} />
                 <Route path="album/:spotifyId" element={<PostPage type="album" />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/request-reset" element={<ResetRequestPage />} />
                 <Route path="/reset" element={<ResetPasswordPage />} />
                 <Route path="/search/:query" element={<SearchPage />} />
-                
+                <Route path="/profile" element={<UserPage />} />
+                <Route path="/user/:user" element={<UserPage />} />
+                <Route path="/view-playlist" element={<ListPlaylistsPage />} />
+                <Route path="/view-playlist/:id" element={<PlaylistDetailPage />} />
+                <Route path="/map" element={<MapPageWithRadius />} />
+
+              
               </Routes>
             </Layout>
           </UserProvider>

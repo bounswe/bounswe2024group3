@@ -43,7 +43,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="MostListenedNearby"
         options={{
-          title: 'Most Listened Nearby',
+          title: 'Nearby',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="location-outline" color={color} size={size} />
           ),

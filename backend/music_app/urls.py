@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/create-post/', views.create_post, name='create_post'),
     path('api/get-user-posts/', views.get_user_posts, name= 'get_user_posts'),
     path('api/get-posts/', views.get_posts, name='get_posts'),
+    path('api/get-following-posts/', views.get_following_posts, name='get_following_posts'),
     path('api/posts/<int:post_id>/like/', views.like_post, name='like_post'),
     path('api/posts/<int:post_id>/dislike/', views.dislike_post, name='dislike_post'),
     path('api/most-shared-nearby-things/', views.most_shared_nearby_things, name='most_shared_nearby_things'),
@@ -50,6 +51,6 @@ urlpatterns = [
     path('api/spotify/playlist/<str:playlist_id>/', views.get_playlist_details, name='get_playlist_details'),
     path('api/spotify/playlist/<str:playlist_id>/tracks/', views.add_track_to_playlist, name='add_track_to_playlist'),
     path('api/spotify/get_user_spotify_playlists/<int:user_id>/', views.get_user_spotify_playlists, name='get_user_spotify_playlists'),
-
+    path('api/spotify/get_user_spotify_tracks/<int:user_id>/', views.get_user_spotify_tracks, name='get_user_spotify_tracks'),
   # New endpoint
 ]

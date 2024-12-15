@@ -39,6 +39,7 @@ interface Post {
   content?: string;  // Assuming there's content
 }
 
+
 const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [likes, setLikes] = useState<number>(post.likes);
   const [dislikes, setDislikes] = useState<number>(post.dislikes);
@@ -151,6 +152,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           setLikes((prevLikes) => prevLikes - 1);
         }
       }
+
 
       setUserAction('dislike');
 

@@ -34,7 +34,7 @@ services:
       DB_PASSWORD: topsecret
       SPOTIFY_CLIENT_ID: c62a7c9ab8724af590583cf994eb285a
       SPOTIFY_CLIENT_SECRET: 3ffb6e9ee94b47788078cffdcdd6f31b
-      OPENAI_API_KEY : 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
+      OPENAI_API_KEY : your_openai_api_key
 
     depends_on:
       - db

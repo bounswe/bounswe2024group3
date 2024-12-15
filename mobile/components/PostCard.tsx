@@ -62,7 +62,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   // Handle Like Action
   const handleLike = async () => {
     if (userAction === 'like') {
-      Alert.alert('Error', 'You have already liked this post.');
+      Alert.alert('Oops!', 'You have already liked this post.');
       return;
     }
 
@@ -124,7 +124,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   // Handle Dislike Action
   const handleDislike = async () => {
     if (userAction === 'dislike') {
-      Alert.alert('Error', 'You have already disliked this post.');
+      Alert.alert('Oops!', 'You have already disliked this post.');
       return;
     }
 

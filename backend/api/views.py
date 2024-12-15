@@ -676,7 +676,7 @@ def most_shared_nearby_things(request):
                 "artist_names": song['content__artist_names'],
                 "album_name": song['content__album_name'],
                 "description": song['content__ai_description'],
-                "share_count": song['share_count']
+                "share_count": song['count']
             } for song in songs],
             "pagination": {
                 "page": page,

@@ -12,7 +12,6 @@ import {
 import PostCard from '../../components/PostCard';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import { req } from '../../utils/client';
 import FloatingButton from '../../components/FloatingButton';
 import CreatePostModal from '../../components/CreatePostModal';
 
@@ -24,7 +23,7 @@ interface Post {
   spotifyId: string;
   likes: number;
   dislikes: number;
-  userAction: any;
+  userAction: 'like' | 'dislike' | null;
   created_at: Date;
 }
 
@@ -39,8 +38,14 @@ function App() {
 
   const fetchPosts = async () => {
     try {
-      console.log('URL:', `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
-      const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
+      // Ensure base URL has trailing slash
+      let baseUrl = process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL;
+      if (!baseUrl.endsWith('/')) {
+        baseUrl += '/';
+      }
+
+      console.log('Fetching posts from URL:', `${baseUrl}get-posts/`);
+      const response = await axios.get(`${baseUrl}get-posts/`);
       const fetchedPosts = response.data.posts.map((item: any) => ({
         id: item.id,
         title: item.comment || 'Untitled',
@@ -49,7 +54,7 @@ function App() {
         spotifyId: item.content.link.split('/').pop(),
         likes: item.total_likes || 0,
         dislikes: item.total_dislikes || 0,
-        userAction: null,
+        userAction: null,  // or 'like'/'dislike' if your backend returns user-specific action
         created_at: new Date(item.created_at),
       }));
       setPosts(fetchedPosts);
@@ -65,7 +70,12 @@ function App() {
   }, []);
 
   const renderPost = ({ item }: { item: Post }) => (
-    <PostCard isFeed={true} post={item} isDarkTheme={isDarkTheme} />
+    <PostCard 
+      isFeed={true} 
+      post={item} 
+      isDarkTheme={isDarkTheme}
+      onUpdate={fetchPosts} // Pass the fetchPosts function as a callback
+    />
   );
 
   const openModal = () => {
@@ -106,6 +116,8 @@ function App() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderPost}
           contentContainerStyle={styles.listContent}
+          refreshing={false} // You can implement pull-to-refresh if desired
+          // onRefresh={fetchPosts}
         />
       </View>
 

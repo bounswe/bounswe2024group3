@@ -1,3 +1,5 @@
+// components/PostCard.tsx
+
 import React, { useState } from 'react';
 import {
   View,
@@ -6,13 +8,34 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Alert,
 } from 'react-native';
 import SpotifyEmbed from './SpotifyEmbed'; // Ensure this path is correct
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Import icons
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
 
-// ... (Keep the PostDetails and PostCardProps interfaces as they are)
+interface PostDetails {
+  id: number;
+  title: string;
+  username: string;
+  type: string;
+  spotifyId: string;
+  likes: number;
+  dislikes: number;
+  userAction: 'like' | 'dislike' | null;
+  created_at: Date;
+  imageUrl?: string;    // If you have images 
+  content?: string;     // Additional content
+}
 
-const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
+interface PostCardProps {
+  post: PostDetails;
+  isFeed?: boolean;
+  isDarkTheme?: boolean;
+  onUpdate?: () => void; // Callback to parent to refresh posts
+}
+
+const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme, onUpdate }) => {
   const [likes, setLikes] = useState<number>(post.likes);
   const [dislikes, setDislikes] = useState<number>(post.dislikes);
   const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(
@@ -23,62 +46,100 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const likeScale = useState(new Animated.Value(1))[0];
   const dislikeScale = useState(new Animated.Value(1))[0];
 
-  const handleLike = () => {
-    if (userAction !== 'like') {
-      setLikes(likes + 1);
+  const animateButton = (scaleRef: Animated.Value) => {
+    Animated.sequence([
+      Animated.timing(scaleRef, {
+        toValue: 1.2,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleRef, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleLike = async () => {
+    if (userAction === 'like') return; // Already liked
+
+    try {
+      console.log(`Sending like request for post ID: ${post.id}`);
+
+      // Ensure base URL has trailing slash
+      let baseUrl = process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL;
+      if (!baseUrl.endsWith('/')) {
+        baseUrl += '/';
+      }
+
+      // Make POST request to the "like" endpoint
+      const response = await axios.post(
+        `${baseUrl}posts/${post.id}/like/`
+      );
+
+      // Suppose the server returns updated counts:
+      // { id: <postId>, total_likes: X, total_dislikes: Y, ... }
+      const updatedData = response.data;
+
+      setLikes(updatedData.total_likes);
+      setDislikes(updatedData.total_dislikes);
       setUserAction('like');
-      if (userAction === 'dislike') {
-        setDislikes(dislikes - 1);
-      }
+      animateButton(likeScale);
 
-      // Animate button
-      Animated.sequence([
-        Animated.timing(likeScale, {
-          toValue: 1.2,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(likeScale, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Optionally, trigger parent to refresh posts
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+      Alert.alert('Error', 'Failed to like the post. Please try again.');
     }
   };
 
-  const handleDislike = () => {
-    if (userAction !== 'dislike') {
-      setDislikes(dislikes + 1);
+  const handleDislike = async () => {
+    if (userAction === 'dislike') return; // Already disliked
+
+    try {
+      console.log(`Sending dislike request for post ID: ${post.id}`);
+
+      // Ensure base URL has trailing slash
+      let baseUrl = process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL;
+      if (!baseUrl.endsWith('/')) {
+        baseUrl += '/';
+      }
+
+      // Make POST request to the "dislike" endpoint
+      const response = await axios.post(
+        `${baseUrl}posts/${post.id}/dislike/`
+      );
+
+      // Suppose the server returns updated counts:
+      const updatedData = response.data;
+
+      setLikes(updatedData.total_likes);
+      setDislikes(updatedData.total_dislikes);
       setUserAction('dislike');
-      if (userAction === 'like') {
-        setLikes(likes - 1);
-      }
+      animateButton(dislikeScale);
 
-      // Animate button
-      Animated.sequence([
-        Animated.timing(dislikeScale, {
-          toValue: 1.2,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(dislikeScale, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Optionally, trigger parent to refresh posts
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error disliking post:', error);
+      Alert.alert('Error', 'Failed to dislike the post. Please try again.');
     }
   };
 
-  // Define colors based on the theme
+  // Theme-based styles
   const backgroundColor = isDarkTheme ? '#1e1e1e' : '#fff';
   const textColor = isDarkTheme ? '#fff' : '#000';
 
-  // Helper function to determine action button color
+  // Helper to get dynamic icon color
   const getActionColor = (action: 'like' | 'dislike') => {
     if (userAction === action) {
-      return 'blue';
+      return '#2f95dc'; // Active color
     }
     return isDarkTheme ? '#aaa' : '#555';
   };
@@ -98,7 +159,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       {isFeed && (
         <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />
       )}
-      <Text style={[styles.content, { color: textColor }]}>{post.content}</Text>
+
+      {/* If "post.content" exists and you want to display it */}
+      {post.content && (
+        <Text style={[styles.content, { color: textColor }]}>
+          {post.content}
+        </Text>
+      )}
+
       <Text style={[styles.date, { color: textColor }]}>
         {new Date(post.created_at).toLocaleString()}
       </Text>
@@ -111,8 +179,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
               styles.actionButton,
               {
                 transform: [{ scale: likeScale }],
-                backgroundColor:
-                  userAction === 'like' ? '#e0f7fa' : 'transparent',
+                backgroundColor: userAction === 'like' ? '#e0f7fa' : 'transparent',
               },
             ]}
           >
@@ -134,8 +201,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
               styles.actionButton,
               {
                 transform: [{ scale: dislikeScale }],
-                backgroundColor:
-                  userAction === 'dislike' ? '#ffebee' : 'transparent',
+                backgroundColor: userAction === 'dislike' ? '#ffebee' : 'transparent',
               },
             ]}
           >
@@ -155,6 +221,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   );
 };
 
+export default PostCard;
+
 const styles = StyleSheet.create({
   container: {
     padding: 16,
@@ -162,9 +230,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 2, // For Android shadow
     shadowColor: '#000', // For iOS shadow
-    shadowOffset: { width: 0, height: 1 }, // For iOS shadow
-    shadowOpacity: 0.2, // For iOS shadow
-    shadowRadius: 1.41, // For iOS shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   image: {
     width: '100%',
@@ -207,5 +275,3 @@ const styles = StyleSheet.create({
     // Additional styling if needed
   },
 });
-
-export default PostCard;

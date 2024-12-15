@@ -874,23 +874,36 @@ def search(request):
             # Q(ai_description__icontains=search_query)
 
         )
+
+        profiles = Profile.objects.filter(
+            Q(name__icontains=search_query) |
+            Q(surname__icontains=search_query) |
+            Q(user__username__icontains=search_query)  # Search by username
+        )
+
     else:
         contents = Content.objects.all()
+        profiles = Profile.objects.all()
 
-    total_results = contents.count()
+    content_results_count = contents.count()
+    profile_results_count = profiles.count()
 
     # Implement pagination
     start = (page - 1) * page_size
     end = start + page_size
     contents_paginated = contents[start:end]
+    profiles_paginated = profiles[start:end]
     
     content_list = list(contents_paginated.values())
+    profile_list = list(profiles_paginated.values())
 
     response = {
-        'total_results': total_results,
+        'content_results_count': content_results_count,
+        'profile_results_count': profile_results_count,
         'page': page,
         'page_size': page_size,
-        'contents': content_list
+        'contents': content_list,
+        'profiles': profile_list
     }
 
     return JsonResponse(response)

@@ -13,6 +13,7 @@ const FormInput = (props:any) => {
         value={props.value}
         onChange={props.onChange}
         required
+        aria-label=""
       />
     </label>
   );

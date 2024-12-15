@@ -53,10 +53,7 @@ export const FeedPage = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showPopup, setShowPopup] = useState(false);
-  const [showCreateButton, setShowCreateButton] = useState(true);
   const [mostListenedNearbys, setMostListenedNearbys] = useState<string[]>([]);
-  const [mostSharedNearbys, setMostSharedNearbys] = useState<string[]>([]);
   const [posts, setPosts] = useState<PostDetails[]>([]);
 
   async function getMostListenedNearby(
@@ -74,7 +71,6 @@ export const FeedPage = () => {
       const requestUrl = `most-listened-nearby/?${queryParams.toString()}`;
       console.log("Requesting:", requestUrl);
 
-      // Make the GET request
       const response = await req(requestUrl, "get", {});
 
       if (!response.data || !response.data.tracks) {
@@ -82,15 +78,13 @@ export const FeedPage = () => {
         return [];
       }
 
-      // Process and set tracks
       const trackLinks = response.data.tracks.map((track: Track) => track.link);
       setMostListenedNearbys(trackLinks);
 
       return response.data.tracks;
     } catch (error) {
-      // Gracefully handle errors
       console.error("Error fetching most listened nearby tracks:", error);
-      return []; // Return empty array to avoid uncaught runtime errors
+      return [];
     }
   }
 
@@ -137,7 +131,6 @@ export const FeedPage = () => {
       setPosts([]);
 
       try {
-        // Fetch posts
         const feedQuery = `get-posts/`;
         const response = await req(feedQuery, "get", {});
         console.log("Feed response:", response.data);
@@ -146,6 +139,7 @@ export const FeedPage = () => {
         if (!posts.length) {
           throw new Error("No posts found");
         }
+
         const mostSharedSongs = await getMostSharedNearby({
           latitude: localStorage.getItem("latitude")
             ? parseFloat(localStorage.getItem("latitude")!)
@@ -158,7 +152,6 @@ export const FeedPage = () => {
 
         setPosts(posts);
 
-        // Fetch most listened nearby
         const mostListenedTracks = await getMostListenedNearby({
           latitude: localStorage.getItem("latitude")
             ? parseFloat(localStorage.getItem("latitude")!)
@@ -182,15 +175,21 @@ export const FeedPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col justify-center items-center pt-10">
+      <div
+        className="flex flex-col justify-center items-center pt-10"
+        role="alert"
+        aria-busy="true"
+        aria-label="Loading feed"
+      >
         <span className="loading loading-spinner loading-lg"></span>
       </div>
     );
   }
 
 
+
   return username ? (
-    <div className="flex justify-center max-w-screen-xl mx-auto w-full gap-6">
+    <div className="flex justify-center max-w-screen-xl mx-auto w-full gap-6"  aria-label="Feed content">
   {/* Left Sidebar: Most Shared Nearby */}
   <div className="w-64 hidden lg:block"> {/* Hide on small screens */}
   <Link to="/map" className="btn btn-primary w-full mb-4 flex items-center">

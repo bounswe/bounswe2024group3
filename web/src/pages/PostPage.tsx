@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import PostCard from "../components/PostCard";
 import { Spotify } from "react-spotify-embed";
 import RecommendationItem from "../components/RecommendationItem";
+
 import { PostDetails } from "./FeedPage";
 import { createSpotifyLink, req } from "../utils/client";
 import CreatePostForm from "../components/CreatePostForm";
@@ -57,6 +58,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
 
   const { spotifyId } = useParams<{ spotifyId: string }>();
   const [posts, setPosts] = useState<PostDetails[]>([]);
+
   const [content, setContent] = useState<ContentDetails | null>(null);
   const [lyrics, setLyrics] = useState<string | null>(null);
   const [lyricsLoading, setLyricsLoading] = useState(false);
@@ -98,6 +100,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   };
   // Handle return from Spotify auth
   useEffect(() => {
+
     const code = new URLSearchParams(window.location.search).get('code');
     const returnPath = localStorage.getItem('returnToPath');
     
@@ -133,6 +136,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
         if (response.data.posts) {
           setPosts(response.data.posts);
         }
+
         if (response.data.content) {
           setContent(response.data.content);
         }
@@ -163,6 +167,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
 
     fetchData();
     addNowPlaying();
+
 
   }, [spotifyId, type]);
 
@@ -245,7 +250,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   }
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center" aria-label="Post details page">
       {/* Left Column: Lyrics (only for tracks) */}
       {type === "track" && (
         <div className="mr-10">
@@ -258,7 +263,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
       )}
 
       {/* Main Content Section */}
-      <div className="flex-1 max-w-2xl w-full">
+      <div className="flex-1 max-w-2xl w-full" aria-labelledby="main-content">
         {/* Spotify Embed */}
         <Spotify wide link={`https://open.spotify.com/${type}/${spotifyId}`} />
 
@@ -295,15 +300,22 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
           initialLink={createSpotifyLink({ type, id: spotifyId })}
         />
 
+
         {/* Posts */}
+      <div aria-labelledby="posts-list">
+
+ 
         {posts.map((post) => (
           <PostCard key={post.id} isFeed={false} post={post} />
         ))}
+                  </div>
+
+
       </div>
 
       {/* Right Column: Recommendations */}
       {content && content.suggestions && content.suggestions.length > 0 && (
-        <div className="w-64 bg-base-200 p-4 ml-10">
+        <div className="w-64 bg-base-200 p-4 ml-10"  aria-labelledby="recommendations-bar">
           <h3 className="text-lg font-semibold mb-4">You might also like</h3>
           {content.suggestions.map((suggestion, index) => (
             <div key={index} className="mb-4">

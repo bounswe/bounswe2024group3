@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { parseSpotifyLink, req } from "../utils/client";
 import RecommendationItem from "../components/RecommendationItem";
+import { Link } from "react-router-dom"; // Add this import at the top
 
 interface PostContent {
     id: number;
@@ -71,22 +72,27 @@ export const SearchPage = () => {
     ];
 
     const renderContent = () => {
-        if (activeTab === 'profiles' && profiles.length > 0) {
-            return (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {profiles.map((profile) => (
-                        <div key={profile.id} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+      if (activeTab === 'profiles' && profiles.length > 0) {
+        return (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {profiles.map((profile) => (
+                    <Link 
+                        to={`/user/${profile.username}`} 
+                        key={profile.id} 
+                        className="block hover:no-underline"
+                    >
+                        <div className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
                             <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3"></div>
-                            <p className="font-semibold text-center">{profile.name} {profile.surname}</p>
+                            <p className="font-semibold text-center text-gray-800">{profile.name} {profile.surname}</p>
                             <p className="text-sm text-gray-500 text-center">
                                 {profile.labels.replace(/[\[\]']/g, '')}
                             </p>
                         </div>
-                    ))}
-                </div>
-            );
-        }
-
+                    </Link>
+                ))}
+            </div>
+        );
+    }
         const filteredContents = activeTab === 'all' 
             ? contents 
             : contents.filter(content => content.content_type === activeTab);

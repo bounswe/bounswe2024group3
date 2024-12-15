@@ -26,7 +26,26 @@ class Profile(models.Model):
         choices=UserLabel.choices,
         blank=False
     )
-    
+    # Description field
+    description = models.TextField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="A brief description about the user or their profile."
+    )
+    # Profile Picture
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
+        blank=True,
+        null=True,
+        help_text="Upload a profile picture."
+    )
+    # Age (derived from date of birth)
+    date_of_birth = models.DateField(
+        blank=True,
+        null=True,
+        help_text="User's date of birth (used to calculate age)."
+    )
     # Following and Followers relationships
     following = models.ManyToManyField(
         'self', 
@@ -43,6 +62,15 @@ class Profile(models.Model):
 
     def get_followers(self):
         return self.followers.all()
+
+    def calculate_age(self):
+        """Calculate the user's age based on their date of birth."""
+        if self.date_of_birth:
+            today = date.today()
+            return today.year - self.date_of_birth.year - (
+                (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
+            )
+        return None
 
 class PasswordReset(models.Model):
     email = models.EmailField()
@@ -156,6 +184,6 @@ class SpotifyToken(models.Model):
     access_token = models.TextField()
     refresh_token = models.TextField()
     expires_at = models.DateTimeField()  # Add this field
-    
+
     def __str__(self):
         return f"{self.user.username}'s Spotify Token"

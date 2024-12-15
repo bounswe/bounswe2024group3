@@ -470,3 +470,109 @@ class SearchTests(TestCase):
         data = response.json()
         self.assertEqual(data['total_results'], 1)
         self.assertEqual(data['contents'][0]['description'], 'First content description')
+class EditProfileTests(TestCase):
+    def setUp(self):
+        """Set up a test user and profile."""
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.profile = Profile.objects.create(
+            user=self.user,
+            name='OriginalName',
+            surname='OriginalSurname',
+            description='Original description'
+        )
+        self.url = reverse('edit_profile')
+
+    def test_edit_profile_success(self):
+        """Test successful profile update."""
+        self.client.login(username='testuser', password='testpass')
+        data = {
+            'name': 'UpdatedName',
+            'surname': 'UpdatedSurname',
+            'description': 'Updated description'
+        }
+        response = self.client.post(self.url, data=data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.name, 'UpdatedName')
+        self.assertEqual(self.profile.surname, 'UpdatedSurname')
+        self.assertEqual(self.profile.description, 'Updated description')
+
+    def test_partial_update(self):
+        """Test partial update with only one field."""
+        self.client.login(username='testuser', password='testpass')
+        data = {'name': 'PartialUpdate'}
+        response = self.client.post(self.url, data=data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.name, 'PartialUpdate')
+        self.assertEqual(self.profile.surname, 'OriginalSurname')
+        self.assertEqual(self.profile.description, 'Original description')
+
+    def test_invalid_request_format(self):
+        """Test invalid request format."""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(self.url, data="Invalid Data", content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_unauthenticated_request(self):
+        """Test unauthenticated user trying to edit profile."""
+        data = {'name': 'ShouldFail'}
+        response = self.client.post(self.url, data=data, content_type='application/json')
+        self.assertEqual(response.status_code, 302)  # Should redirect to login
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+class AddProfilePictureTests(TestCase):
+    def setUp(self):
+        """Set up a test user and profile."""
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.profile = Profile.objects.create(
+            user=self.user,
+            name='OriginalName',
+            surname='OriginalSurname',
+            description='Original description'
+        )
+        self.url = reverse('add_profile_picture')
+
+    def test_add_profile_picture_success(self):
+        """Test successfully uploading a profile picture."""
+        self.client.login(username='testuser', password='testpass')
+        picture = SimpleUploadedFile("test.jpg", b"file_content", content_type="image/jpeg")
+        response = self.client.post(self.url, {'profile_picture': picture})
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertIsNotNone(self.profile.profile_picture)
+        self.assertIn('test.jpg', self.profile.profile_picture.name)
+
+    def test_replace_profile_picture(self):
+        """Test replacing an existing profile picture."""
+        self.client.login(username='testuser', password='testpass')
+        # Add an initial profile picture
+        initial_picture = SimpleUploadedFile("initial.jpg", b"file_content", content_type="image/jpeg")
+        self.client.post(self.url, {'profile_picture': initial_picture})
+        self.profile.refresh_from_db()
+        initial_picture_path = self.profile.profile_picture.path
+
+        # Add a new profile picture
+        new_picture = SimpleUploadedFile("new.jpg", b"new_file_content", content_type="image/jpeg")
+        response = self.client.post(self.url, {'profile_picture': new_picture})
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertIn('new.jpg', self.profile.profile_picture.name)
+
+        # Check that the initial picture has been deleted
+        from os.path import exists
+        self.assertFalse(exists(initial_picture_path))
+
+    def test_missing_profile_picture(self):
+        """Test trying to upload without providing a file."""
+        self.client.login(username='testuser', password='testpass')
+        response = self.client.post(self.url, {})
+        self.assertEqual(response.status_code, 400)
+
+    def test_unauthenticated_request(self):
+        """Test unauthenticated user trying to upload a profile picture."""
+        picture = SimpleUploadedFile("test.jpg", b"file_content", content_type="image/jpeg")
+        response = self.client.post(self.url, {'profile_picture': picture})
+        self.assertEqual(response.status_code, 302)  # Should redirect to login

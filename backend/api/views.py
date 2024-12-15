@@ -23,6 +23,8 @@ import re
 from django.shortcuts import redirect
 from urllib.parse import quote
 from django.http import JsonResponse, HttpResponseRedirect
+from django.core.files.storage import default_storage
+
 
 
 @require_http_methods(["POST"])
@@ -132,6 +134,7 @@ def register(request):
     email = data['email']
     password = data['password']
     labels = data['labels']  # Expecting labels like ['Artist', 'Listener']
+    age = data.get('age', None)
 
     if User.objects.filter(username=username).exists():
         return JsonResponse({'error': 'Username already exists'}, status=400)
@@ -1831,3 +1834,76 @@ def add_track_to_playlist(request, playlist_id):
         return JsonResponse({"error": str(e)}, status=503)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+@login_required
+@require_http_methods(["POST", "PUT"])
+def edit_profile(request):
+    """
+    Edit the logged-in user's profile.
+    The request body should contain 'name', 'surname', 'labels', and 'description'.
+    """
+    try:
+        user = request.user
+        profile = Profile.objects.get(user=user)
+
+        # Parse JSON data from the request body
+        data = json.loads(request.body)
+
+        # Update fields if provided
+        profile.name = data.get('name', profile.name)
+        profile.surname = data.get('surname', profile.surname)
+        profile.description = data.get('description', profile.description)
+        profile.date_of_birth = data.get('date_of_birth', profile.date_of_birth)
+        # Save changes
+        profile.save()
+
+        # Return updated profile details
+        return JsonResponse({
+            "success": True,
+            "message": "Profile updated successfully",
+            "profile": {
+                "name": profile.name,
+                "surname": profile.surname,
+                "description": profile.description,
+                "date_of_birth": profile.date_of_birth
+            }
+        })
+
+    except Profile.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Profile does not exist"}, status=404)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON data"}, status=400)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+@login_required
+@require_http_methods(["POST"])
+def add_profile_picture(request):
+    """
+    Add or update the profile picture for the logged-in user.
+    """
+    try:
+        user = request.user
+        profile = Profile.objects.get(user=user)
+
+        # Check if a file is uploaded
+        if 'profile_picture' not in request.FILES:
+            return JsonResponse({"success": False, "error": "No profile picture provided"}, status=400)
+
+        # Delete the old picture if it exists
+        if profile.profile_picture:
+            default_storage.delete(profile.profile_picture.path)
+
+        # Save the new profile picture
+        profile.profile_picture = request.FILES['profile_picture']
+        profile.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": "Profile picture updated successfully",
+            "profile_picture_url": profile.profile_picture.url
+        })
+
+    except Profile.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Profile does not exist"}, status=404)
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

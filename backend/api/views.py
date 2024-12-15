@@ -864,9 +864,15 @@ def search(request):
 
     if search_query:
         contents = Content.objects.filter(
-            Q(description__icontains=search_query) |
             Q(content_type__icontains=search_query) |
-            Q(link__icontains=search_query)
+            Q(link__icontains=search_query) |
+            Q(artist_names__icontains=search_query) |
+            Q(album_name__icontains=search_query) |
+            Q(playlist_name__icontains=search_query) |
+            Q(song_name__icontains=search_query) |
+            Q(genres__icontains=search_query)
+            # Q(ai_description__icontains=search_query)
+
         )
     else:
         contents = Content.objects.all()

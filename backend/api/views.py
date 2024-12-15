@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404
 import json
 from .models import NowPlaying, PasswordReset, Post, Profile, Tag, Content,SpotifyToken
 import time
+from django.utils import timezone  # Use this instead of datetime.timezone
 from os import getenv
 from django.db.models import Count, Q
 import random
@@ -314,6 +315,8 @@ def create_post(request):
                 "album": parse_spotify_album_response,
                 "playlist": parse_spotify_playlist_response
             }
+
+            print(f"Content type: {post_content_type}")
             
             parser = content_parsers.get(post_content_type)
             if not parser:
@@ -334,32 +337,33 @@ def create_post(request):
             }
 
             # Generate AI description
-        ai_response = get_content_description(post_content_type, metadata)
-        if ai_response:
-            ai_description = ai_response.get('description', '')
-            # Update genres if they were generated and it's a track/album
-            if post_content_type in ['track', 'album']:
-                parsed_content['genres'] = ai_response.get('genres', parsed_content.get('genres', []))
-        else:
-            ai_description = "AI description generation failed"
+            ai_response = get_content_description(post_content_type, metadata)
+            if ai_response:
+                ai_description = ai_response.get('description', '')
+                # Update genres if they were generated and it's a track/album
+                if post_content_type in ['track', 'album']:
+                    parsed_content['genres'] = ai_response.get('genres', parsed_content.get('genres', []))
+            else:
+                ai_description = "AI description generation failed"
 
-            # Create new content
-            content = Content(
-                link=link,
-                content_type=post_content_type,
-                artist_names=parsed_content.get("artist_names", []),
-                album_name=parsed_content.get("album_name", ""),
-                playlist_name=parsed_content.get("playlist_name", ""),
-                genres=parsed_content.get("genres", []),
-                song_name=parsed_content.get("song_name", ""),
-                ai_description=ai_description
-            )
-            content.save()
+                # Create new content
+                content = Content(
+                    link=link,
+                    content_type=post_content_type,
+                    artist_names=parsed_content.get("artist_names", []),
+                    album_name=parsed_content.get("album_name", ""),
+                    playlist_name=parsed_content.get("playlist_name", ""),
+                    genres=parsed_content.get("genres", []),
+                    song_name=parsed_content.get("song_name", ""),
+                    ai_description=ai_description
+                )
+                content.save()
 
-            # Generate and save AI suggestions
-            suggestions = get_or_create_content_suggestions(content)
-            if not suggestions:
-                print(f"Warning: Failed to generate suggestions for content {content.id}")
+                # Generate and save AI suggestions
+                suggestions = get_or_create_content_suggestions(content)
+                if not suggestions:
+                    print(f"Warning: Failed to generate suggestions for content {content.id}")
+
 
         # Create and save the post
         post = Post(
@@ -1410,6 +1414,7 @@ def spotify_status(request):
 
     return JsonResponse({"connected": True})
 
+
 def spotify_callback(request):
     code = request.GET.get("code")
 
@@ -1420,72 +1425,98 @@ def spotify_callback(request):
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
     redirect_uri = "http://localhost:8000/api/spotify/callback/"
 
-    # create post request to get access token
-    response = requests.post(
-        "https://accounts.spotify.com/api/token",
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": redirect_uri,
-            "client_id": client_id,
-            "client_secret": client_secret,
-        },
-    )
-
-    print(response.json())
-
-    if response.status_code != 200:
-        return JsonResponse({"error": "Failed to get access token"}, status=500)
-    
-    data = response.json()
-    access_token = data.get("access_token")
-    refresh_token = data.get("refresh_token")
-
-    if not access_token:
-        return JsonResponse({"error": "Access token not found"}, status=500)
-    
-    request.session["spotify_access_token"] = access_token
-    request.session["spotify_refresh_token"] = refresh_token
-
-    # Redirect user to the frontend
-    return HttpResponseRedirect("http://localhost:3000/create-playlist?connected=true")
-
-
-@require_http_methods(["GET"])
-def get_user_playlists(request):
-    """
-    Get the authenticated user's Spotify playlists.
-    Query parameters:
-    - limit: maximum number of playlists to return (optional, default: 20)
-    - offset: offset for pagination (optional, default: 0)
-    """
     try:
-        # Get access token from session
-        access_token = request.session.get("spotify_access_token")
+        # Get access token
+        token_response = requests.post(
+            "https://accounts.spotify.com/api/token",
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+        )
+
+        if token_response.status_code != 200:
+            return JsonResponse({"error": "Failed to get access token"}, status=500)
+        
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        expires_in = token_data.get("expires_in", 3600)  # Default to 1 hour if not provided
+
         if not access_token:
-            return JsonResponse({"error": "Not connected to Spotify"}, status=401)
+            return JsonResponse({"error": "Access token not found"}, status=500)
 
-        # Get query parameters
-        limit = min(int(request.GET.get('limit', 20)), 50)  # Cap at 50 playlists
-        offset = int(request.GET.get('offset', 0))
+        # Calculate expiration time
+        expires_at = timezone.now() + timedelta(seconds=expires_in)
 
-        # Make request to Spotify API
-        response = requests.get(
-            'https://api.spotify.com/v1/me/playlists',
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={
-                'limit': limit,
-                'offset': offset
+        # Fetch user's Spotify profile
+        profile_response = requests.get(
+            "https://api.spotify.com/v1/me",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if profile_response.status_code != 200:
+            return JsonResponse({"error": "Failed to fetch Spotify profile"}, status=500)
+
+        profile_data = profile_response.json()
+        spotify_user_id = profile_data.get("id")
+
+        # Save or update the SpotifyToken
+        spotify_token, created = SpotifyToken.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'spotify_user_id': spotify_user_id,
+                'expires_at': expires_at  # Add this line
             }
         )
 
-        # Handle expired token
-        if response.status_code == 401:
-            # Try to refresh the token
-            refresh_token = request.session.get("spotify_refresh_token")
-            if not refresh_token:
-                return JsonResponse({"error": "Spotify session expired"}, status=401)
+        request.session["spotify_access_token"] = access_token
+        request.session["spotify_refresh_token"] = refresh_token
 
+        return HttpResponseRedirect("http://localhost:3000/view-playlist?connected=true")
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)    
+    
+@require_http_methods(["GET"])
+def get_user_spotify_playlists(request, user_id):
+    """Get public playlists for a specific user."""
+    try:
+        # Get user's Spotify token
+        try:
+            user = User.objects.get(id=user_id)
+            spotify_token = SpotifyToken.objects.get(user=user)
+        except (User.DoesNotExist, SpotifyToken.DoesNotExist):
+            return JsonResponse({
+                "error": "User not found or not connected to Spotify",
+                "is_connected": False
+            }, status=200)  # Return 200 but indicate not connected
+
+        # Use the stored access token
+        access_token = spotify_token.access_token
+
+        # Fetch playlists from Spotify API
+        response = requests.get(
+            f'https://api.spotify.com/v1/users/{spotify_token.spotify_user_id}/playlists',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"limit": 50}
+        )
+
+        if response.status_code == 401:
+            # Token expired, try to refresh
+            refresh_token = spotify_token.refresh_token
+            if not refresh_token:
+                return JsonResponse({
+                    "error": "Spotify token expired and no refresh token available",
+                    "is_connected": False
+                }, status=401)
+
+            # Try to refresh the token
             refresh_response = requests.post(
                 "https://accounts.spotify.com/api/token",
                 data={
@@ -1497,71 +1528,57 @@ def get_user_playlists(request):
             )
 
             if refresh_response.status_code != 200:
-                return JsonResponse({"error": "Failed to refresh token"}, status=401)
+                return JsonResponse({
+                    "error": "Failed to refresh token",
+                    "is_connected": False
+                }, status=401)
 
-            # Update access token
+            # Update access token in database
             tokens = refresh_response.json()
-            access_token = tokens.get("access_token")
-            request.session["spotify_access_token"] = access_token
+            new_access_token = tokens.get("access_token")
+            spotify_token.access_token = new_access_token
+            spotify_token.save()
 
-            # Retry the playlist request
+            # Retry the playlist request with new token
             response = requests.get(
-                'https://api.spotify.com/v1/me/playlists',
-                headers={"Authorization": f"Bearer {access_token}"},
-                params={
-                    'limit': limit,
-                    'offset': offset
-                }
+                f'https://api.spotify.com/v1/users/{spotify_token.spotify_user_id}/playlists',
+                headers={"Authorization": f"Bearer {new_access_token}"},
+                params={"limit": 50}
             )
 
         if response.status_code != 200:
             return JsonResponse({
-                "error": f"Spotify API error: {response.status_code}"
-            }, status=response.status_code)
+                "error": f"Failed to fetch playlists: {response.status_code}",
+                "is_connected": True
+            }, status=500)
 
         data = response.json()
-
-        # Process the playlists
+        
+        # Process and return only public playlists
         playlists = [{
             'id': playlist['id'],
             'name': playlist['name'],
             'description': playlist['description'],
-            'public': playlist['public'],
+            'image_url': playlist['images'][0]['url'] if playlist['images'] else None,
             'tracks_total': playlist['tracks']['total'],
-            'external_url': playlist['external_urls']['spotify'],
-            'image_url': playlist['images'][0]['url'] if playlist['images'] else None
-        } for playlist in data['items']]
+            'external_url': playlist['external_urls']['spotify']
+        } for playlist in data['items'] if playlist['public']]
 
         return JsonResponse({
             "playlists": playlists,
-            "total": data['total'],
-            "limit": limit,
-            "offset": offset,
-            "next": data['next'],
-            "previous": data['previous']
+            "total": len(playlists),
+            "is_connected": True
         })
 
-    except ValueError:
-        return JsonResponse({
-            "error": "Invalid limit or offset parameter"
-        }, status=400)
     except requests.RequestException as e:
         return JsonResponse({
             "error": f"Failed to communicate with Spotify API: {str(e)}"
         }, status=503)
     except Exception as e:
-        return JsonResponse({
-            "error": str(e)
-        }, status=500)
-    
+        return JsonResponse({"error": str(e)}, status=500)
     
 # backend/api/views.py
 
-import os
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-import requests
-from datetime import datetime
 
 @require_http_methods(["GET"])
 def get_user_playlists(request):

@@ -93,9 +93,11 @@ const PlaylistDetailPage = () => {
     };    
     const handleAddTrack = async (trackId: string) => {
         try {
-            await req(`spotify/playlist/${id}/tracks/`, 'post', {
-                track_id: trackId,  // Make sure this matches your backend expectation
-            });
+            // Create FormData object
+            const formData = new FormData();
+            formData.append('track_id', trackId);
+    
+            await req(`spotify/playlist/${id}/tracks/`, 'post', formData);
             await fetchPlaylistDetails();
             // Optionally close the modal after successful addition
             modalRef.current?.close();
@@ -104,7 +106,6 @@ const PlaylistDetailPage = () => {
             setError('Failed to add track to playlist');
         }
     };
-
     
 
     const formatDuration = (ms: number) => {

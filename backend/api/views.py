@@ -1433,12 +1433,14 @@ def spotify_callback(request):
         )
 
         if token_response.status_code != 200:
+            print(f"Token response error: {token_response.status_code}")
+            print(f"Token response content: {token_response.text}")
             return JsonResponse({"error": "Failed to get access token"}, status=500)
         
         token_data = token_response.json()
         access_token = token_data.get("access_token")
         refresh_token = token_data.get("refresh_token")
-        expires_in = token_data.get("expires_in", 3600)  # Default to 1 hour if not provided
+        expires_in = token_data.get("expires_in", 3600)
 
         if not access_token:
             return JsonResponse({"error": "Access token not found"}, status=500)
@@ -1446,17 +1448,29 @@ def spotify_callback(request):
         # Calculate expiration time
         expires_at = timezone.now() + timedelta(seconds=expires_in)
 
-        # Fetch user's Spotify profile
+        # Fetch user's Spotify profile with error logging
         profile_response = requests.get(
             "https://api.spotify.com/v1/me",
             headers={"Authorization": f"Bearer {access_token}"}
         )
 
+        print(f"Profile response status: {profile_response.status_code}")
+        print(f"Profile response content: {profile_response.text}")
+
         if profile_response.status_code != 200:
-            return JsonResponse({"error": "Failed to fetch Spotify profile"}, status=500)
+            return JsonResponse({
+                "error": f"Failed to fetch Spotify profile. Status: {profile_response.status_code}, Response: {profile_response.text}"
+            }, status=500)
 
         profile_data = profile_response.json()
         spotify_user_id = profile_data.get("id")
+
+        if not spotify_user_id:
+            return JsonResponse({"error": "Spotify user ID not found in profile"}, status=500)
+
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "User not authenticated"}, status=401)
 
         # Save or update the SpotifyToken
         spotify_token, created = SpotifyToken.objects.update_or_create(
@@ -1465,7 +1479,7 @@ def spotify_callback(request):
                 'access_token': access_token,
                 'refresh_token': refresh_token,
                 'spotify_user_id': spotify_user_id,
-                'expires_at': expires_at  # Add this line
+                'expires_at': expires_at
             }
         )
 
@@ -1475,8 +1489,10 @@ def spotify_callback(request):
         return HttpResponseRedirect("http://localhost:3000/view-playlist?connected=true")
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)    
-    
+        print(f"Unexpected error: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+        
+            
 @require_http_methods(["GET"])
 def get_user_spotify_playlists(request, user_id):
     """Get public playlists for a specific user."""

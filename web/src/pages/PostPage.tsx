@@ -8,6 +8,7 @@ import { PostDetails } from "./FeedPage";
 import { createSpotifyLink, req } from "../utils/client";
 import CreatePostForm from "../components/CreatePostForm";
 import LyricsCard from "../components/LyricsCard";
+import { parseSpotifyLink } from "../utils/client";
 
 interface Suggestion {
   name: string;
@@ -308,8 +309,8 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
             <div key={index} className="mb-4">
               <RecommendationItem
                 rec={{
-                  type: "track",
-                  spotifyId: suggestion.spotify_url.split("/").pop() || "",
+                  type: parseSpotifyLink(suggestion.spotify_url).type,
+                  spotifyId: parseSpotifyLink(suggestion.spotify_url).id,
                 }}
               />
               <p className="text-sm mt-1 text-gray-600">{suggestion.reason}</p>

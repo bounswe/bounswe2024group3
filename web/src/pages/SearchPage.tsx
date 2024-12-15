@@ -1,83 +1,144 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { parseSpotifyLink, req } from "../utils/client";
-import PostCard from "../components/PostCard";
-import { PostContent, PostDetails } from "./FeedPage";
 import RecommendationItem from "../components/RecommendationItem";
 
-
+interface PostContent {
+    id: number;
+    link: string;
+    content_type: string;
+}
 
 export const SearchPage = () => {
     const { query } = useParams();
   
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    const [posts,setPosts] = useState<PostContent[]>([]);
-    const [trackLinks, setTrackLinks] = useState<string[]>([]);
+    const [contents, setContents] = useState<PostContent[]>([]);
+    const [profiles, setProfiles] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<string>("all");
     
+    // Group contents by their type
+    const groupedContents = contents.reduce((acc: { [key: string]: PostContent[] }, content) => {
+        const type = content.content_type || 'other';
+        if (!acc[type]) {
+            acc[type] = [];
+        }
+        acc[type].push(content);
+        return acc;
+    }, {});
+
     useEffect(() => {
+
+      if (!query) {
+        setContents([]);
+        setProfiles([]);
+        setError("");
+        return;
+    }
+
         const handleQuery = async () => {
-          setIsLoading(true);
-          setError("");
-          setPosts([]);
-          try {
-            const searchQuery = `search?search=${query}`;
-            const response = await req(searchQuery, "get", {});
-            console.log("Search response:", response.data);
-            const posts: PostContent[] = response.data.contents;
-            const trackLinks =  response.data.contents.map((track: PostContent) => track.link);
-            setTrackLinks(trackLinks);
-            if (response.data.total_results === 0) {
-                throw new Error("No items found");
+            setIsLoading(true);
+            setError("");
+            setContents([]);
+            setProfiles([]);
+            
+            try {
+                const searchQuery = `search?search=${query}`;
+                const response = await req(searchQuery, "get", {});
+                
+                setContents(response.data.contents || []);
+                setProfiles(response.data.profiles || []);
+                
+                if (response.data.content_results_count === 0 && response.data.profile_results_count === 0) {
+                    throw new Error("No results found");
+                }
+            } catch (error: any) {
+                console.error("Search failed:", error);
+                setError(error.message);
             }
-            setPosts(posts);
-          } catch (error: any) {
-            console.error("Search failed:", error);
-            setError(error.message);
-          }
-          setIsLoading(false);
+            setIsLoading(false);
         };
         handleQuery();
-      }, [query]);
-    
-      if (isLoading) {
+    }, [query]);
+
+    const tabs = [
+        { id: 'all', label: 'All' },
+        { id: 'track', label: 'Songs' },
+        { id: 'album', label: 'Albums' },
+        { id: 'artist', label: 'Artists' },
+        { id: 'profiles', label: 'Profiles' },
+    ];
+
+    const renderContent = () => {
+        if (activeTab === 'profiles' && profiles.length > 0) {
+            return (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {profiles.map((profile) => (
+                        <div key={profile.id} className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3"></div>
+                            <p className="font-semibold text-center">{profile.name} {profile.surname}</p>
+                            <p className="text-sm text-gray-500 text-center">
+                                {profile.labels.replace(/[\[\]']/g, '')}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        const filteredContents = activeTab === 'all' 
+            ? contents 
+            : contents.filter(content => content.content_type === activeTab);
+
         return (
-          <div className="flex flex-col justify-center items-center pt-10">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredContents.map((content) => (
+                    <RecommendationItem
+                        key={parseSpotifyLink(content.link).id}
+                        rec={{
+                            type: parseSpotifyLink(content.link).type,
+                            spotifyId: parseSpotifyLink(content.link).id,
+                        }}
+                    />
+                ))}
+            </div>
         );
-      }
-    
-      return (
+    };
+
+    return (
         <div className="flex flex-col items-center pt-10 min-h-screen bg-gray-50">
-        {/* Error Message */}
-        {error && <p className="text-red-500 text-lg mb-6">{error}</p>}
-      
-        {/* Search Results Container */}
-        <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg p-8">
-          <h3 className="text-3xl font-bold mb-8 text-center text-gray-800">
-            Search Results
-          </h3>
-          <div className="grid grid-cols-1 gap-6">
-            {trackLinks.length > 0 ? (
-              trackLinks.slice(0, 5).map((rec) => (
-                <RecommendationItem
-                  key={parseSpotifyLink(rec).id}
-                  rec={{
-                    type: parseSpotifyLink(rec).type,
-                    spotifyId: parseSpotifyLink(rec).id,
-                  }}
-                />
-              ))
-            ) : (
-              <p className="text-center text-gray-500">No results found</p>
-            )}
-          </div>
+            {error && <p className="text-red-500 text-lg mb-6">{error}</p>}
+            
+            <div className="w-full max-w-6xl px-4">
+                {/* Tabs */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-2 rounded-full transition-colors ${
+                                activeTab === tab.id
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-200 hover:bg-gray-300'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Content */}
+                <div className="bg-gray-100 rounded-lg p-6">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-40">
+                            <span className="loading loading-spinner loading-lg"></span>
+                        </div>
+                    ) : (
+                        renderContent()
+                    )}
+                </div>
+            </div>
         </div>
-      </div>
-      
-      );
-   
-
-
-}
+    );
+};

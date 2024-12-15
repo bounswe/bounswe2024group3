@@ -3,16 +3,16 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  FlatList, 
   TouchableOpacity, 
   ActivityIndicator, 
-  Alert 
+  ScrollView 
 } from 'react-native';
 import axios from 'axios';
 
-const TOTAL_QUESTIONS = 5;
+const QuizOptions = [1, 3, 5, 10];
 
 const SongQuizScreen = () => {
+  const [selectedQuizLength, setSelectedQuizLength] = useState(null); // Number of questions selected
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [points, setPoints] = useState(0);
   const [quizCompleted, setQuizCompleted] = useState(false);
@@ -48,13 +48,14 @@ const SongQuizScreen = () => {
     }
   };
 
-  // Initialize the first question
+  // Initialize the first question when quiz starts or currentQuestion changes
   useEffect(() => {
-    if (!quizCompleted) {
+    if (selectedQuizLength && !quizCompleted) {
       fetchQuizData();
     }
-  }, [currentQuestion, quizCompleted]);
+  }, [currentQuestion, selectedQuizLength, quizCompleted]);
 
+  // Handle user's option selection
   const handleOptionPress = (optionLink) => {
     if (selectedOption) {
       // Prevent multiple selections
@@ -68,22 +69,30 @@ const SongQuizScreen = () => {
     }
   };
 
+  // Navigate to the next question or complete the quiz
   const handleNextQuestion = () => {
-    if (currentQuestion < TOTAL_QUESTIONS) {
+    if (currentQuestion < selectedQuizLength) {
       setCurrentQuestion(prev => prev + 1);
     } else {
       setQuizCompleted(true);
     }
   };
 
+  // Restart the quiz by resetting all state variables
   const handleRestartQuiz = () => {
+    setSelectedQuizLength(null);
     setCurrentQuestion(1);
     setPoints(0);
     setQuizCompleted(false);
-    fetchQuizData();
+    setLyricSnippet('');
+    setOptions([]);
+    setCorrectLink('');
+    setSelectedOption(null);
+    setErrorMessage('');
   };
 
-  const renderOption = ({ item }) => {
+  // Render each quiz option
+  const renderOption = (item) => {
     const isSelected = item.link === selectedOption;
     const isCorrect = item.link === correctLink;
 
@@ -99,6 +108,7 @@ const SongQuizScreen = () => {
 
     return (
       <TouchableOpacity
+        key={item.link}
         style={[
           styles.optionButton,
           { backgroundColor }
@@ -113,52 +123,81 @@ const SongQuizScreen = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#999" />
-      </View>
-    );
-  }
+  // Render the selection screen
+  const renderSelectionScreen = () => (
+    <View style={styles.selectionContainer}>
+      <Text style={styles.title}>Choose Quiz Length</Text>
+      <ScrollView contentContainerStyle={styles.selectionButtonsContainer}>
+        {QuizOptions.map((item) => (
+          <TouchableOpacity 
+            key={item}
+            style={styles.selectionButton} 
+            onPress={() => setSelectedQuizLength(item)}
+          >
+            <Text style={styles.selectionButtonText}>
+              {item} Question{item > 1 ? 's' : ''}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
 
-  if (quizCompleted) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.summaryText}>Quiz Completed!</Text>
-        <Text style={styles.scoreText}>You scored {points} out of {TOTAL_QUESTIONS}</Text>
-        <TouchableOpacity style={styles.newQuizButton} onPress={handleRestartQuiz}>
-          <Text style={styles.newQuizText}>Restart Quiz</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
+  // Render the quiz screen
+  const renderQuizScreen = () => (
     <View style={styles.container}>
-      <Text style={styles.progressText}>Question {currentQuestion} of {TOTAL_QUESTIONS}</Text>
+      <View style={styles.header}>
+        <Text style={styles.progressText}>Question {currentQuestion} of {selectedQuizLength}</Text>
+        <Text style={styles.pointsText}>Points: {points}</Text>
+      </View>
       {errorMessage ? (
         <Text style={styles.errorText}>{errorMessage}</Text>
       ) : (
         <>
           <Text style={styles.snippet}>{lyricSnippet}</Text>
-          <FlatList
-            data={options}
-            keyExtractor={(item) => item.link}
-            renderItem={renderOption}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
+          <View style={styles.optionsContainer}>
+            {options.map(renderOption)}
+          </View>
         </>
       )}
       {selectedOption && (
         <TouchableOpacity style={styles.nextButton} onPress={handleNextQuestion}>
           <Text style={styles.nextButtonText}>
-            {currentQuestion < TOTAL_QUESTIONS ? 'Next Question' : 'See Results'}
+            {currentQuestion < selectedQuizLength ? 'Next Question' : 'See Results'}
           </Text>
         </TouchableOpacity>
       )}
-      <View style={styles.pointsContainer}>
-        <Text style={styles.pointsText}>Points: {points}</Text>
-      </View>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+    </View>
+  );
+
+  // Render the results screen
+  const renderResultsScreen = () => (
+    <View style={styles.container}>
+      <Text style={styles.summaryText}>Quiz Completed!</Text>
+      <Text style={styles.scoreText}>You scored {points} out of {selectedQuizLength}</Text>
+      <TouchableOpacity style={styles.newQuizButton} onPress={handleRestartQuiz}>
+        <Text style={styles.newQuizText}>Restart Quiz</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Main render logic
+  if (!selectedQuizLength) {
+    return renderSelectionScreen();
+  }
+
+  if (quizCompleted) {
+    return renderResultsScreen();
+  }
+
+  return (
+    <View style={styles.container}>
+      {!loading && renderQuizScreen()}
     </View>
   );
 };
@@ -171,16 +210,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
   },
-  loadingContainer: {
+  selectionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 16,
+  },
+  selectionButtonsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  selectionButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    marginVertical: 10,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  selectionButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  pointsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   snippet: {
     fontSize: 18,
     marginBottom: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  optionsContainer: {
+    marginTop: 10,
   },
   optionButton: {
     padding: 12,
@@ -190,6 +276,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    width: '100%',
   },
   optionText: {
     fontSize: 16,
@@ -209,7 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   newQuizButton: {
-    marginTop: 20,
+    marginTop: 30,
     padding: 14,
     backgroundColor: '#007AFF',
     borderRadius: 8,
@@ -217,20 +304,6 @@ const styles = StyleSheet.create({
   },
   newQuizText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  progressText: {
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  pointsContainer: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-  },
-  pointsText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -249,5 +322,20 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 16,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -25, // Half of ActivityIndicator size
+    marginTop: -25,
+    zIndex: 1,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
   },
 });

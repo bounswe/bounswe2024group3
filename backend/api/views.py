@@ -821,17 +821,11 @@ def most_listened_nearby(request):
             .order_by("-count")
         )
 
-        # Fetch descriptions from Post table for these links
-        posts_with_descriptions = {
-            post.link: post.content.description
-            for post in Post.objects.filter(link__in=[entry["link"] for entry in link_counts])
-        }
 
         # Prepare the result
         result = [
             {
                 "link": entry["link"],
-                "description": posts_with_descriptions.get(entry["link"], "No description available"),
                 "count": entry["count"]
             }
             for entry in link_counts

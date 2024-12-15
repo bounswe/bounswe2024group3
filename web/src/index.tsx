@@ -15,6 +15,7 @@ import { FeedPage } from "./pages/FeedPage";
 import UserPage from "./pages/UserPage";
 import ListPlaylistsPage from "./pages/ListPlaylistsPage"; 
 import PlaylistDetailPage from "./pages/PlaylistDetailPage";
+import MapPageWithRadius from "./pages/MapPage";
 
 
 const root = ReactDOM.createRoot(
@@ -40,6 +41,8 @@ root.render(
                 <Route path="/user/:user" element={<UserPage />} />
                 <Route path="/view-playlist" element={<ListPlaylistsPage />} />
                 <Route path="/view-playlist/:id" element={<PlaylistDetailPage />} />
+                <Route path="/map" element={<MapPageWithRadius />} />
+
               
               </Routes>
             </Layout>

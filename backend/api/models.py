@@ -132,6 +132,12 @@ class NowPlaying(models.Model):
 
 class ContentSuggestion(models.Model):
     content = models.ForeignKey(Content, on_delete=models.CASCADE, related_name='suggestions')
+    type = models.CharField(max_length=10, choices=[
+        ('track', 'Track'),
+        ('artist', 'Artist'),
+        ('album', 'Album')
+    ], default='track')
+
     name = models.CharField(max_length=200)
     artist = models.CharField(max_length=200)
     spotify_url = models.URLField()

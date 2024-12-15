@@ -347,22 +347,22 @@ def create_post(request):
                 ai_description = "AI description generation failed"
 
                 # Create new content
-                content = Content(
-                    link=link,
-                    content_type=post_content_type,
-                    artist_names=parsed_content.get("artist_names", []),
-                    album_name=parsed_content.get("album_name", ""),
-                    playlist_name=parsed_content.get("playlist_name", ""),
-                    genres=parsed_content.get("genres", []),
-                    song_name=parsed_content.get("song_name", ""),
-                    ai_description=ai_description
-                )
-                content.save()
+            content = Content(
+                link=link,
+                content_type=post_content_type,
+                artist_names=parsed_content.get("artist_names", []),
+                album_name=parsed_content.get("album_name", ""),
+                playlist_name=parsed_content.get("playlist_name", ""),
+                genres=parsed_content.get("genres", []),
+                song_name=parsed_content.get("song_name", ""),
+                ai_description=ai_description
+            )
+            content.save()
 
                 # Generate and save AI suggestions
-                suggestions = get_or_create_content_suggestions(content)
-                if not suggestions:
-                    print(f"Warning: Failed to generate suggestions for content {content.id}")
+            suggestions = get_or_create_content_suggestions(content)
+            if not suggestions:
+                print(f"Warning: Failed to generate suggestions for content {content.id}")
 
 
         # Create and save the post

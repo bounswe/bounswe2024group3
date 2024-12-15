@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
-import SpotifyEmbed from './SpotifyEmbed'; // Ensure this path is correct
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Import icons
+import SpotifyEmbed from './SpotifyEmbed';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
 
-// ... (Keep the PostDetails and PostCardProps interfaces as they are)
+// ... (Keep the PostDetails and PostCardProps interfaces the same)
 
 const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [likes, setLikes] = useState<number>(post.likes);
@@ -18,6 +20,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(
     post.userAction
   );
+
+  // State for lyrics
+  const [lyrics, setLyrics] = useState<string | null>(null);
+  const [isLyricsLoading, setIsLyricsLoading] = useState<boolean>(false);
+  const [showLyrics, setShowLyrics] = useState<boolean>(false);
 
   // Animation values
   const likeScale = useState(new Animated.Value(1))[0];
@@ -31,7 +38,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
         setDislikes(dislikes - 1);
       }
 
-      // Animate button
       Animated.sequence([
         Animated.timing(likeScale, {
           toValue: 1.2,
@@ -55,7 +61,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
         setLikes(likes - 1);
       }
 
-      // Animate button
       Animated.sequence([
         Animated.timing(dislikeScale, {
           toValue: 1.2,
@@ -68,6 +73,28 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           useNativeDriver: true,
         }),
       ]).start();
+    }
+  };
+
+  // Called when the user presses "Show lyrics"
+  const fetchLyrics = async () => {
+    try {
+      setIsLyricsLoading(true);
+      // Build the full Spotify URL using the ID
+      const spotifyUrl = `https://open.spotify.com/track/${post.spotifyId}`;
+      const { data } = await axios.get(
+        `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get_lyrics/`,
+        {
+          params: { spotify_url: spotifyUrl },
+        }
+      );
+      setLyrics(data.lyrics);
+    } catch (error) {
+      console.error('Error fetching lyrics:', error);
+      setLyrics('Failed to load lyrics. Please try again.');
+    } finally {
+      setIsLyricsLoading(false);
+      setShowLyrics(true); // Toggle the display
     }
   };
 
@@ -85,6 +112,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      {/* Title or image */}
       {post.imageUrl ? (
         <Image source={{ uri: post.imageUrl }} style={styles.image} />
       ) : (
@@ -92,18 +120,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           <Text style={[styles.title, { color: textColor }]}>{post.title}</Text>
         )
       )}
+
+      {/* Username and date */}
       <Text style={[styles.username, { color: textColor }]}>
         {post.username}
       </Text>
-      {isFeed && (
-        <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />
-      )}
-      <Text style={[styles.content, { color: textColor }]}>{post.content}</Text>
       <Text style={[styles.date, { color: textColor }]}>
         {new Date(post.created_at).toLocaleString()}
       </Text>
 
-      {/* Like and Dislike Actions */}
+      {/* Spotify embed if feed */}
+      {isFeed && <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />}
+
+      {/* If there's text content (post.content?), show it */}
+      {post.content && (
+        <Text style={[styles.content, { color: textColor }]}>
+          {post.content}
+        </Text>
+      )}
+
+      {/* Like and Dislike buttons */}
       <View style={styles.actions}>
         <TouchableOpacity onPress={handleLike} activeOpacity={0.7}>
           <Animated.View
@@ -151,6 +187,47 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           </Animated.View>
         </TouchableOpacity>
       </View>
+
+      {/* Show Lyrics Button */}
+      <View style={{ marginTop: 16 }}>
+        {!showLyrics ? (
+          <TouchableOpacity
+            style={[
+              styles.showLyricsButton,
+              { borderColor: isDarkTheme ? '#fff' : '#333' },
+            ]}
+            onPress={fetchLyrics}
+          >
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>
+              Show lyrics
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          // If we already have lyrics or are loading them, toggle the view
+          <TouchableOpacity
+            style={[
+              styles.showLyricsButton,
+              { borderColor: isDarkTheme ? '#fff' : '#333' },
+            ]}
+            onPress={() => setShowLyrics(false)}
+          >
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>
+              Hide lyrics
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Lyrics Display */}
+      {showLyrics && (
+        <View style={{ marginTop: 16 }}>
+          {isLyricsLoading ? (
+            <ActivityIndicator size="small" color={isDarkTheme ? '#fff' : '#000'} />
+          ) : (
+            <Text style={{ color: textColor }}>{lyrics}</Text>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -160,11 +237,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderRadius: 12,
-    elevation: 2, // For Android shadow
-    shadowColor: '#000', // For iOS shadow
-    shadowOffset: { width: 0, height: 1 }, // For iOS shadow
-    shadowOpacity: 0.2, // For iOS shadow
-    shadowRadius: 1.41, // For iOS shadow
+    elevation: 2, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 1 }, // iOS shadow
+    shadowOpacity: 0.2, // iOS shadow
+    shadowRadius: 1.41, // iOS shadow
   },
   image: {
     width: '100%',
@@ -178,15 +255,16 @@ const styles = StyleSheet.create({
   },
   username: {
     fontWeight: '600',
+    marginBottom: 4,
+  },
+  date: {
+    fontSize: 12,
+    color: '#888',
     marginBottom: 8,
   },
   content: {
     fontSize: 16,
     marginVertical: 8,
-  },
-  date: {
-    fontSize: 12,
-    color: '#888',
   },
   actions: {
     flexDirection: 'row',
@@ -205,6 +283,12 @@ const styles = StyleSheet.create({
   },
   icon: {
     // Additional styling if needed
+  },
+  showLyricsButton: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
   },
 });
 

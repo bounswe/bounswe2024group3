@@ -670,7 +670,14 @@ def most_shared_nearby_things(request):
 
         # Return response with pagination metadata
         return JsonResponse({
-            "songs": songs,
+            "songs": [{
+                "link": song['content__link'],
+                "song_name": song['content__song_name'],
+                "artist_names": song['content__artist_names'],
+                "album_name": song['content__album_name'],
+                "description": song['content__ai_description'],
+                "share_count": song['share_count']
+            } for song in songs],
             "pagination": {
                 "page": page,
                 "size": size,
@@ -678,7 +685,6 @@ def most_shared_nearby_things(request):
                 "total_songs": total_songs,
             }
         }, status=200)
-
     except ValueError:
         return JsonResponse({"error": "Invalid input for latitude, longitude, radius, page, or size."}, status=400)
     except Exception as e:
@@ -710,7 +716,12 @@ def get_most_shared_nearby_songs(user_lat, user_lon, radius_km, offset, limit):
         # Query songs with pagination
         songs = (
             Post.objects.filter(id__in=post_ids)
-            .values('content__link', 'content__description')
+            .values(        'content__link',
+                'content__song_name',
+                'content__artist_names',
+                'content__album_name',
+                'content__ai_description'
+                )
             .annotate(count=Count('content__link'))
             .order_by('-count')[offset:offset + limit]
         )

@@ -490,6 +490,111 @@ def parse_spotify_playlist_response(response):
         return None
 
 @require_http_methods(["GET"])
+@login_required
+def get_following_posts(request):
+    """
+    Fetch posts from users that the authenticated user follows.
+    Query parameters:
+    - page: page number (default: 1)
+    - page_size: number of posts per page (default: 10)
+    - start_date: filter posts after this date (optional)
+    - end_date: filter posts before this date (optional)
+    """
+    try:
+        # Get query parameters
+        page_number = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 10))
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # Get the user's profile
+        user_profile = Profile.objects.get(user=request.user)
+        
+        # Get IDs of users being followed
+        following_ids = user_profile.following.values_list('user', flat=True)
+
+        # Build the base query for posts
+        posts = Post.objects.filter(belongs_to__in=following_ids).order_by('-created_at')
+
+        # Apply date filters if provided
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+                posts = posts.filter(created_at__gte=start_datetime)
+            except ValueError:
+                return JsonResponse({"error": "Invalid start_date format. Use YYYY-MM-DD"}, status=400)
+
+        if end_date:
+            try:
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+                posts = posts.filter(created_at__lte=end_datetime)
+            except ValueError:
+                return JsonResponse({"error": "Invalid end_date format. Use YYYY-MM-DD"}, status=400)
+
+        # Implement pagination
+        paginator = Paginator(posts, page_size)
+        try:
+            page = paginator.page(page_number)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+        # Prepare the response data
+        posts_data = []
+        for post in page.object_list:
+            content_data = None
+            if post.content:
+                content_data = {
+                    'id': post.content.id,
+                    'link': post.content.link,
+                    'content_type': post.content.content_type,
+                    'artist_names': post.content.artist_names,
+                    'playlist_name': post.content.playlist_name,
+                    'album_name': post.content.album_name,
+                    'song_name': post.content.song_name,
+                    'genres': post.content.genres,
+                    'ai_description': post.content.ai_description or "AI description not yet generated",
+                }
+
+            # Get user information
+            user_info = {
+                'username': post.belongs_to.username,
+                'name': post.belongs_to.profile.name,
+                'surname': post.belongs_to.profile.surname
+            }
+
+            post_data = {
+                "id": post.id,
+                "user": user_info,
+                "comment": post.comment,
+                "image": post.image,
+                "link": post.link,
+                "created_at": post.created_at,
+                "total_likes": post.total_likes,
+                "total_dislikes": post.total_dislikes,
+                "tags": [tag.name for tag in post.tags.all()],
+                "content": content_data,
+                "latitude": post.latitude,
+                "longitude": post.longitude
+            }
+            posts_data.append(post_data)
+
+        return JsonResponse({
+            "posts": posts_data,
+            "pagination": {
+                "current_page": page.number,
+                "total_pages": paginator.num_pages,
+                "total_posts": paginator.count,
+                "has_next": page.has_next(),
+                "has_previous": page.has_previous()
+            }
+        })
+
+    except Profile.DoesNotExist:
+        return JsonResponse({"error": "User profile not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
 def get_user_posts(request):
     username = request.GET.get('username')
     page_number = request.GET.get('page', 1)

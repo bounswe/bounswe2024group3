@@ -879,7 +879,7 @@ def search(request):
             Q(name__icontains=search_query) |
             Q(surname__icontains=search_query) |
             Q(user__username__icontains=search_query)  # Search by username
-        )
+        ).select_related('user')
 
     else:
         contents = Content.objects.all()
@@ -895,7 +895,17 @@ def search(request):
     profiles_paginated = profiles[start:end]
     
     content_list = list(contents_paginated.values())
-    profile_list = list(profiles_paginated.values())
+    profile_list = []
+    for profile in profiles_paginated:
+        profile_dict = {
+            'id': profile.id,
+            'user_id': profile.user.id,
+            'name': profile.name,
+            'surname': profile.surname,
+            'labels': profile.labels,
+            'username': profile.user.username  # Include the username
+        }
+        profile_list.append(profile_dict)
 
     response = {
         'content_results_count': content_results_count,

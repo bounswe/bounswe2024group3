@@ -1,23 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  RefreshControl,
+  Button,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios'; 
-import PostCard from '../../components/PostCard'; // Use PostCard instead of RecommendationItem
+import axios from 'axios';
+import PostCard from '../../components/PostCard'; // Ensure PostCard can handle optional fields
 
-interface Track {
+// Unified data structure with optional fields for flexibility
+interface NearbyDataState {
   link: string;
-  description: string;
-  count: number;
+  count: number; // "most listened" uses 'count', "most shared" uses 'share_count' mapped to 'count'
+  song_name?: string;
+  artist_names?: string[];
+  album_name?: string;
+  description?: string;
 }
 
-export default function MostListenedNearbyScreen() {
+// Possible tabs
+type NearbyTab = 'listened' | 'shared';
+
+export default function NearbyScreen() {
   const [isLoading, setIsLoading] = useState(true);
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [data, setData] = useState<NearbyDataState[]>([]);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(false); // If you want a theme toggle
+  const [isDarkTheme, setIsDarkTheme] = useState(false); // Optional: Theme toggle
+  const [activeTab, setActiveTab] = useState<NearbyTab>('listened');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
@@ -32,31 +48,95 @@ export default function MostListenedNearbyScreen() {
         longitude = parseFloat(storedLongitude);
       }
 
-      const radius = 10; // adjust if needed
-      const url = `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}most-listened-nearby/?latitude=${latitude}&longitude=${longitude}&radius=${radius}`;
+      const radius = 10; // Adjust as needed
 
-      console.log("Requesting:", url);
+      let endpoint = '';
+      if (activeTab === 'listened') {
+        endpoint = 'most-listened-nearby'; // e.g., /most-listened-nearby/
+      } else {
+        endpoint = 'most-shared-nearby-things'; // e.g., /most-shared-nearby-things/
+      }
+
+      const url = `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}${endpoint}/?latitude=${latitude}&longitude=${longitude}&radius=${radius}`;
+      console.log('Requesting:', url);
+
       const response = await axios.get(url);
 
-      if (response.data && Array.isArray(response.data.tracks)) {
-        setTracks(response.data.tracks);
+      if (activeTab === 'listened') {
+        /**
+         * Response shape:
+         * {
+         *   "tracks": [
+         *     {
+         *       "link": "https://open.spotify.com/track/5DXKtoZLm31msT7tNGNHLG",
+         *       "count": 2
+         *     },
+         *     ...
+         *   ]
+         * }
+         */
+        if (!response.data || !Array.isArray(response.data.tracks)) {
+          console.warn('No valid tracks data found in response');
+          setError('No data found.');
+          setData([]);
+        } else {
+          const unifiedData: NearbyDataState[] = response.data.tracks.map(
+            (item: any) => ({
+              link: item.link,
+              count: item.count ?? 0,
+              // Optional fields remain undefined
+            })
+          );
+          setData(unifiedData);
+        }
       } else {
-        console.warn("No valid tracks data found in response");
-        setError('No tracks found.');
-        setTracks([]);
+        /**
+         * Response shape:
+         * {
+         *   "songs": [
+         *     {
+         *       "link": "https://open.spotify.com/track/5DXKtoZLm31msT7tNGNHLG",
+         *       "song_name": "Vossi Bop",
+         *       "artist_names": ["Stormzy"],
+         *       "album_name": "Heavy Is The Head",
+         *       "description": "AI description generation failed",
+         *       "share_count": 2
+         *     },
+         *     ...
+         *   ],
+         *   "pagination": {...}
+         * }
+         */
+        if (!response.data || !Array.isArray(response.data.songs)) {
+          console.warn('No valid songs data found in response');
+          setError('No data found.');
+          setData([]);
+        } else {
+          const unifiedData: NearbyDataState[] = response.data.songs.map(
+            (item: any) => ({
+              link: item.link,
+              count: item.share_count ?? 0,
+              song_name: item.song_name,
+              artist_names: item.artist_names,
+              album_name: item.album_name,
+              description: item.description,
+            })
+          );
+          setData(unifiedData);
+        }
       }
     } catch (err: any) {
-      console.error("Error fetching most listened nearby tracks:", err);
-      setError('Failed to fetch tracks.');
-      setTracks([]);
+      console.error('Error fetching data:', err);
+      setError('Failed to fetch data.');
+      setData([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [activeTab, fetchData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -80,33 +160,44 @@ export default function MostListenedNearbyScreen() {
     );
   }
 
-  if (tracks.length === 0) {
+  if (data.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.emptyText}>No tracks found nearby.</Text>
+        <Text style={styles.emptyText}>
+          {activeTab === 'listened'
+            ? 'No tracks found nearby.'
+            : 'No shared items found nearby.'}
+        </Text>
       </View>
     );
   }
 
-  const renderItem = ({ item }: { item: Track }) => {
+  const renderItem = ({ item }: { item: NearbyDataState }) => {
+    // Extract Spotify ID from the link
     const parts = item.link.split('/');
     const spotifyId = parts[parts.length - 1];
+    // e.g., "https://open.spotify.com/track/7qiZfU4dY1lWllzX7mPBI3"
     const type = parts[3] || 'track';
 
-    // Create a post object compatible with PostCard
-    // You can parse `description` if it has relevant info such as image, name, etc.
     const post = {
       id: spotifyId,
-      title: `${type.charAt(0).toUpperCase() + type.slice(1)}`, // e.g. "Track", "Album", etc.
-      content: 'Most listened track nearby', // You could parse description for something meaningful
-      username: 'Local Listener',           // Example placeholder
-      imageUrl: '',                         // If you can parse an image from description, do it here
-      type: type,                           // The content type inferred from the link
-      spotifyId: spotifyId,                 // Extracted Spotify ID
-      likes: item.count || 0,               // Using the count as likes or popularity score
-      dislikes: 0,                          // No dislikes data available, default to 0
-      userAction: null,                     // No user action data provided
-      created_at: new Date().toISOString(), // Current date, or parse from description if available
+      title: item.song_name || `${type.charAt(0).toUpperCase() + type.slice(1)}`,
+      content:
+        item.description ||
+        (activeTab === 'listened'
+          ? 'Most listened nearby'
+          : 'Most shared nearby'),
+      username:
+        item.artist_names && item.artist_names.length
+          ? item.artist_names.join(', ')
+          : '',
+      imageUrl: '', // Optionally, fetch album art based on spotifyId
+      type: type, // "track", "album", etc.
+      spotifyId: spotifyId, // Extracted from the link
+      likes: item.count, // Treat "count" as a popularity measure
+      dislikes: 0,
+      userAction: null,
+      created_at: new Date().toISOString(),
     };
 
     return <PostCard post={post} isFeed={true} isDarkTheme={isDarkTheme} />;
@@ -114,12 +205,33 @@ export default function MostListenedNearbyScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Most Listened Nearby</Text>
+      {/* Toggle Buttons */}
+      <View style={styles.toggleContainer}>
+        <Button
+          title="Most Listened"
+          onPress={() => setActiveTab('listened')}
+          color={activeTab === 'listened' ? '#007AFF' : '#8e8e8e'}
+        />
+        <Button
+          title="Most Shared"
+          onPress={() => setActiveTab('shared')}
+          color={activeTab === 'shared' ? '#007AFF' : '#8e8e8e'}
+        />
+      </View>
+
+      {/* Heading */}
+      <Text style={styles.header}>
+        {activeTab === 'listened' ? 'Most Listened Nearby' : 'Most Shared Nearby'}
+      </Text>
+
+      {/* List */}
       <FlatList
-        data={tracks}
+        data={data}
         keyExtractor={(item, index) => item.link + index}
         renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         contentContainerStyle={styles.listContent}
       />
     </View>
@@ -132,6 +244,11 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
   },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    marginBottom: 16,
+  },
   listContent: {
     paddingBottom: 50,
   },
@@ -139,15 +256,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center', 
+    justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center', 
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },

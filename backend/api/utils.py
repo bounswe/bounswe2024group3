@@ -228,7 +228,8 @@ def get_content_description(content_type, metadata):
     except Exception as e:
         print(f"Error generating AI description: {e}")
         return None
-def get_content_suggestions(metadata, limit=5):
+    
+def get_content_suggestions(metadata, limit=6):
     """
     Generate AI suggestions based on content metadata
     """
@@ -239,69 +240,61 @@ def get_content_suggestions(metadata, limit=5):
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
 
-        # Add limit to metadata BEFORE creating the prompt template
-        metadata = metadata.copy()  # Create a copy to avoid modifying the original
+        metadata = metadata.copy()
         metadata['limit'] = limit
+        prompt_template = """You are a music expert. Given this content:
+        {content_type}: {song_name}{artist_names}{album_name}
+        Genre: {genres}
 
-        prompt_template = """You are a music expert. Given this song:
-Song: {song_name}
-Artist: {artist_names}
-Album: {album_name}
-Genre: {genres}
-Type: {content_type}
+        Please suggest {limit} different music content that fans might enjoy. Important guidelines:
+        1. You can suggest any combination of songs, artists, or albums
+        2. Mix up your suggestions - don't just suggest the same type of content
+        3. Use exact names as they appear on Spotify
+        4. For tracks: ONLY include the song title (not the artist name)
+        5. For albums: ONLY include the album title (not the artist name)
+        6. For artists: include just the artist name
 
-Please suggest {limit} different songs that fans might enjoy. Important guidelines:
-1. Suggest only songs that are likely to be available on Spotify
-2. Prefer well-known songs from established artists
-3. Use exact official song titles as they appear on Spotify
-4. Use exact artist names as they appear on Spotify
+        Your response must be a valid JSON array with format:
+        [
+            {{
+                "type": "track",  # or "artist" or "album"
+                "name": "Name to search on Spotify",
+                "artist": "Artist name (required for tracks and albums)",
+                "reason": "Brief reason for suggestion"
+            }}
+        ]
 
-Your response must be a valid JSON array. Example format:
-[
-    {{
-        "track_name": "Example Song",
-        "artist": "Example Artist",
-        "reason": "Brief reason for suggestion"
-    }}
-]
 
-Provide your suggestions in the exact JSON format shown above."""
-
-        # Create prompt template
+        Make sure to vary your suggestions between tracks, artists, and albums."""
+        # Create prompt template and chain
         prompt = ChatPromptTemplate.from_template(prompt_template)
-        
-        # Print metadata for debugging
-        print("Metadata being sent:", metadata)
-        
-        # Create chain and run
         chain = LLMChain(llm=llm, prompt=prompt)
         
         # Get response
         response = chain.run(**metadata)
-        print("Raw AI response:", response)
+        print(f"Raw AI response:", response)
         
         # Clean and validate response
         try:
             response = response.strip()
-            
-            # Ensure response is proper JSON array
             if not response.startswith('['):
                 response = '[' + response
             if not response.endswith(']'):
                 response = response + ']'
             
-            # Parse JSON
             suggestions = json.loads(response)
             
             # Validate each suggestion
             valid_suggestions = []
             for suggestion in suggestions:
-                if isinstance(suggestion, dict) and all(key in suggestion for key in ['track_name', 'artist', 'reason']):
+                if (isinstance(suggestion, dict) and 
+                    suggestion.get('type') in ['track', 'artist', 'album'] and 
+                    all(key in suggestion for key in ['type', 'name', 'reason'])):
                     valid_suggestions.append(suggestion)
                 else:
                     print(f"Invalid suggestion format: {suggestion}")
-            
-            print(f"Found {len(valid_suggestions)} valid suggestions")
+
+            print(f"Valid suggestions: {valid_suggestions}")
             return valid_suggestions
 
         except json.JSONDecodeError as e:
@@ -312,7 +305,8 @@ Provide your suggestions in the exact JSON format shown above."""
     except Exception as e:
         print(f"Error generating AI suggestions: {e}")
         print(f"Metadata that caused error: {metadata}")
-        return []    
+        return []
+
 def get_or_create_content_suggestions(content):
     try:
         # Check if we already have suggestions
@@ -327,12 +321,8 @@ def get_or_create_content_suggestions(content):
             "album_name": content.album_name,
             "genres": ", ".join(content.genres),
         }
-
-        print(metadata)
         
         ai_suggestions = get_content_suggestions(metadata)
-        print(f"Generated {len(ai_suggestions)} AI suggestions")
-        
         access_token = get_access_token()
         if not access_token:
             return []
@@ -342,71 +332,41 @@ def get_or_create_content_suggestions(content):
         
         for suggestion in ai_suggestions:
             try:
-                # Try different search strategies
-                search_strategies = [
-                    # Strategy 1: Exact search
-                    f"track:{suggestion['track_name']} artist:{suggestion['artist']}",
-                    # Strategy 2: Just the track name
-                    f"track:{suggestion['track_name']}",
-                    # Strategy 3: Artist only
-                    f"artist:{suggestion['artist']}",
-                ]
-
-                track_found = False
+                suggestion_type = suggestion['type']
+                search_query = f"{suggestion_type}:{suggestion['name']}"
                 
-                for search_query in search_strategies:
-                    if track_found:
-                        break
-                        
-                    search_params = {
-                        'q': search_query,
-                        'type': 'track',
-                        'limit': 50  # Increase limit to find more potential matches
-                    }
-                    
-                    print(f"Trying search query: {search_query}")
-                    
-                    response = requests.get(
-                        'https://api.spotify.com/v1/search',
-                        headers=headers,
-                        params=search_params
-                    )
+                search_params = {
+                    'q': search_query,
+                    'type': suggestion_type,
+                    'limit': 1  # We only need the top result
+                }
+                
+                response = requests.get(
+                    'https://api.spotify.com/v1/search',
+                    headers=headers,
+                    params=search_params
+                )
 
-                    if response.status_code == 200:
-                        results = response.json()
-                        if results['tracks']['items']:
-                            # Try to find the best match from results
-                            for track in results['tracks']['items']:
-                                track_name = track['name'].lower()
-                                artist_names = [artist['name'].lower() for artist in track['artists']]
-                                
-                                # Check if either track name or artist matches
-                                if (suggestion['track_name'].lower() in track_name or 
-                                    any(suggested_artist.lower() in ' '.join(artist_names) 
-                                        for suggested_artist in suggestion['artist'].split(','))):
-                                    
-                                    all_artists = ', '.join([artist['name'] for artist in track['artists']])
-                                    
-                                    suggestion_obj = ContentSuggestion.objects.create(
-                                        content=content,
-                                        name=track['name'],
-                                        artist=all_artists,
-                                        spotify_url=track['external_urls']['spotify'],
-                                        reason=suggestion['reason']
-                                    )
-                                    saved_suggestions.append(suggestion_obj)
-                                    print(f"Successfully saved suggestion: {track['name']} by {all_artists}")
-                                    track_found = True
-                                    break
-
-                    if not track_found:
-                        print(f"No matching results found for: {suggestion['track_name']} by {suggestion['artist']}")
+                if response.status_code == 200:
+                    results = response.json()
+                    items = results.get(f"{suggestion_type}s", {}).get('items', [])
+                    
+                    if items:
+                        item = items[0]  # Take the first result
+                        suggestion_obj = ContentSuggestion.objects.create(
+                            content=content,
+                            type=suggestion_type,
+                            name=item.get('name', ''),
+                            spotify_url=item['external_urls']['spotify'],
+                            reason=suggestion['reason']
+                        )
+                        saved_suggestions.append(suggestion_obj)
+                        print(f"Successfully saved suggestion: {item['name']}")
 
             except Exception as inner_e:
-                print(f"Error processing suggestion {suggestion.get('track_name', 'unknown')}: {str(inner_e)}")
+                print(f"Error processing suggestion: {str(inner_e)}")
                 continue
 
-        print(f"Successfully saved {len(saved_suggestions)} out of {len(ai_suggestions)} suggestions")
         return saved_suggestions
 
     except Exception as e:

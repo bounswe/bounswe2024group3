@@ -1,3 +1,5 @@
+// components/PostCard.tsx
+
 import React, { useState } from 'react';
 import {
   View,
@@ -7,12 +9,36 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import SpotifyEmbed from './SpotifyEmbed';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
 
-// ... (Keep the PostDetails and PostCardProps interfaces the same)
+interface PostDetails {
+  // Define the structure based on your actual post details
+}
+
+interface PostCardProps {
+  post: Post;
+  isFeed: boolean;
+  isDarkTheme: boolean;
+}
+
+interface Post {
+  id: number;
+  title: string;
+  username: string;
+  type: string;
+  spotifyId: string;
+  likes: number;
+  dislikes: number;
+  userAction: 'like' | 'dislike' | null;
+  created_at: Date;
+  imageUrl?: string; // Assuming there's an image URL
+  content?: string;  // Assuming there's content
+}
+
 
 const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [likes, setLikes] = useState<number>(post.likes);
@@ -20,6 +46,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(
     post.userAction
   );
+
+  // Loading states
+  const [isLiking, setIsLiking] = useState<boolean>(false);
+  const [isDisliking, setIsDisliking] = useState<boolean>(false);
 
   // State for lyrics
   const [lyrics, setLyrics] = useState<string | null>(null);
@@ -30,14 +60,40 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const likeScale = useState(new Animated.Value(1))[0];
   const dislikeScale = useState(new Animated.Value(1))[0];
 
-  const handleLike = () => {
-    if (userAction !== 'like') {
-      setLikes(likes + 1);
-      setUserAction('like');
-      if (userAction === 'dislike') {
-        setDislikes(dislikes - 1);
+  // Handle Like Action
+  const handleLike = async () => {
+    if (userAction === 'like') {
+      Alert.alert('Oops!', 'You have already liked this post.');
+      return;
+    }
+
+    setIsLiking(true);
+
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}posts/${post.id}/like/`
+      );
+
+      console.log('Like Response:', response.data); // Debugging
+
+      // Scenario 1 & 3: Backend returns updated counts
+      if (response.data.likes !== undefined && response.data.dislikes !== undefined) {
+        setLikes(response.data.likes);
+        setDislikes(response.data.dislikes);
+      } else if (response.data.total_likes !== undefined && response.data.total_dislikes !== undefined) {
+        setLikes(response.data.total_likes);
+        setDislikes(response.data.total_dislikes);
+      } else {
+        // Scenario 2: Backend does not return updated counts
+        setLikes((prevLikes) => prevLikes + 1);
+        if (userAction === 'dislike') {
+          setDislikes((prevDislikes) => prevDislikes - 1);
+        }
       }
 
+      setUserAction('like');
+
+      // Trigger like animation
       Animated.sequence([
         Animated.timing(likeScale, {
           toValue: 1.2,
@@ -50,17 +106,57 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           useNativeDriver: true,
         }),
       ]).start();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          const message = error.response.data.message || 'Bad Request';
+          Alert.alert('Error', message);
+        } else {
+          Alert.alert('Error', 'Failed to like the post. Please try again.');
+        }
+      } else {
+        Alert.alert('Error', 'An unexpected error occurred.');
+      }
+    } finally {
+      setIsLiking(false);
     }
   };
 
-  const handleDislike = () => {
-    if (userAction !== 'dislike') {
-      setDislikes(dislikes + 1);
-      setUserAction('dislike');
-      if (userAction === 'like') {
-        setLikes(likes - 1);
+  // Handle Dislike Action
+  const handleDislike = async () => {
+    if (userAction === 'dislike') {
+      Alert.alert('Oops!', 'You have already disliked this post.');
+      return;
+    }
+
+    setIsDisliking(true);
+
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}posts/${post.id}/dislike/`
+      );
+
+      console.log('Dislike Response:', response.data); // Debugging
+
+      // Scenario 1 & 3: Backend returns updated counts
+      if (response.data.likes !== undefined && response.data.dislikes !== undefined) {
+        setLikes(response.data.likes);
+        setDislikes(response.data.dislikes);
+      } else if (response.data.total_likes !== undefined && response.data.total_dislikes !== undefined) {
+        setLikes(response.data.total_likes);
+        setDislikes(response.data.total_dislikes);
+      } else {
+        // Scenario 2: Backend does not return updated counts
+        setDislikes((prevDislikes) => prevDislikes + 1);
+        if (userAction === 'like') {
+          setLikes((prevLikes) => prevLikes - 1);
+        }
       }
 
+
+      setUserAction('dislike');
+
+      // Trigger dislike animation
       Animated.sequence([
         Animated.timing(dislikeScale, {
           toValue: 1.2,
@@ -73,6 +169,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           useNativeDriver: true,
         }),
       ]).start();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          const message = error.response.data.message || 'Bad Request';
+          Alert.alert('Error', message);
+        } else {
+          Alert.alert('Error', 'Failed to dislike the post. Please try again.');
+        }
+      } else {
+        Alert.alert('Error', 'An unexpected error occurred.');
+      }
+    } finally {
+      setIsDisliking(false);
     }
   };
 
@@ -105,7 +214,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   // Helper function to determine action button color
   const getActionColor = (action: 'like' | 'dislike') => {
     if (userAction === action) {
-      return 'blue';
+      return action === 'like' ? 'blue' : 'red';
     }
     return isDarkTheme ? '#aaa' : '#555';
   };
@@ -132,7 +241,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       {/* Spotify embed if feed */}
       {isFeed && <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />}
 
-      {/* If there's text content (post.content?), show it */}
+      {/* If there's text content, show it */}
       {post.content && (
         <Text style={[styles.content, { color: textColor }]}>
           {post.content}
@@ -141,7 +250,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
 
       {/* Like and Dislike buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity onPress={handleLike} activeOpacity={0.7}>
+        <TouchableOpacity onPress={handleLike} activeOpacity={0.7} disabled={isLiking}>
           <Animated.View
             style={[
               styles.actionButton,
@@ -161,10 +270,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
             <Text style={[styles.actionText, { color: textColor }]}>
               {likes}
             </Text>
+            {isLiking && (
+              <ActivityIndicator
+                size="small"
+                color={isDarkTheme ? '#fff' : '#000'}
+                style={{ marginLeft: 8 }}
+              />
+            )}
           </Animated.View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleDislike} activeOpacity={0.7}>
+        <TouchableOpacity onPress={handleDislike} activeOpacity={0.7} disabled={isDisliking}>
           <Animated.View
             style={[
               styles.actionButton,
@@ -184,6 +300,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
             <Text style={[styles.actionText, { color: textColor }]}>
               {dislikes}
             </Text>
+            {isDisliking && (
+              <ActivityIndicator
+                size="small"
+                color={isDarkTheme ? '#fff' : '#000'}
+                style={{ marginLeft: 8 }}
+              />
+            )}
           </Animated.View>
         </TouchableOpacity>
       </View>

@@ -61,6 +61,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
   const [lyricsLoading, setLyricsLoading] = useState(false);
   const [lyricsError, setLyricsError] = useState<string | null>(null);
 
+
   // Handle Spotify Authentication
   const handleSpotifyAuth = async () => {
     try {
@@ -76,6 +77,24 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
     }
   };
 
+
+  const addNowPlaying = async () => {
+    try {
+      if (!spotifyId) {
+        throw new Error("Invalid Spotify ID");
+      }
+      const storedLatitude = localStorage.getItem("latitude");
+      const storedLongitude = localStorage.getItem("longitude");
+      const response = await req("save-now-playing", "post", {
+        link: createSpotifyLink({ type, id: spotifyId }),
+        latitude: parseFloat(storedLatitude || "0"),
+        longitude: parseFloat(storedLongitude || "0"),
+      });
+      console.log("Added now playing:", response.data);
+    } catch (error: any) {
+      console.error("Failed to add now playing:", error);
+    }
+  };
   // Handle return from Spotify auth
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('code');
@@ -142,6 +161,8 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
     };
 
     fetchData();
+    addNowPlaying();
+
   }, [spotifyId, type]);
 
   // Fetch user playlists

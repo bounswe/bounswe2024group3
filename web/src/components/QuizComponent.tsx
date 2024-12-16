@@ -1,60 +1,63 @@
+// web/src/components/QuizComponent.tsx
 import { useState, useEffect } from "react";
 import { PostDetails } from "../pages/FeedPage";
 import { Spotify } from "react-spotify-embed";
+import { req } from "../utils/client";
 
 interface QuizProps {
   posts: PostDetails[];
 }
 
-const QuizComponent: React.FC<QuizProps> = ({ posts }) => {
-  const [quizTracks, setQuizTracks] = useState<string[]>([]);
-  const [correctTrack, setCorrectTrack] = useState<string>("");
+interface RandomSong {
+  link: string;
+  name: string;
+  artist: string;
+}
 
-  const shuffleArray = (array: string[]) => {
+const QuizComponent: React.FC<QuizProps> = ({ posts }) => {
+  const [quizTracks, setQuizTracks] = useState<RandomSong[]>([]);
+  const [correctTrack, setCorrectTrack] = useState<string>("");
+  const [score, setScore] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const shuffleArray = <T,>(array: T[]): T[] => {
     return array.sort(() => Math.random() - 0.5);
   };
 
-  const generateQuiz = () => {
+  const generateQuiz = async () => {
     try {
-      console.log("asdadasfagad");
-      // Extract unique links from posts
-      const uniqueLinks = Array.from(
-        new Set(posts.map((post) => post.content.link))
-      );
+      setLoading(true);
+      // Get 4 random tracks from Spotify API
+      const response = await req("random-songs/", "get", { limit: 4 });
+      const randomSongs: RandomSong[] = response.data.songs;
 
-      if (uniqueLinks.length < 4) {
-        alert("Not enough unique tracks to generate a quiz!");
-        return;
-      }
+      // Select one random song as the correct answer
+      const correctSong = randomSongs[0];
+      const otherSongs = randomSongs.slice(1);
 
-      // Randomly select 4 tracks
-      const selectedTracks = shuffleArray(uniqueLinks).slice(0, 4);
+      const allTracks = shuffleArray([correctSong, ...otherSongs]);
 
-      // Set one track as the correct answer
-      const correctAnswer =
-        selectedTracks[Math.floor(Math.random() * selectedTracks.length)];
-
-      console.log("Selected tracks:", selectedTracks);
-      console.log("Correct answer:", correctAnswer);
-
-      if (correctAnswer === correctTrack) {
+      if (correctSong.link === correctTrack) {
         generateQuiz();
         return;
       }
 
-      setQuizTracks(selectedTracks);
-      setCorrectTrack(correctAnswer);
+      setQuizTracks(allTracks);
+      setCorrectTrack(correctSong.link);
     } catch (error) {
       console.error("Error generating quiz:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAnswerClick = (track: string) => {
-    if (track === correctTrack) {
-      alert("Correct!");
+  const handleAnswerClick = (track: RandomSong) => {
+    if (track.link === correctTrack) {
+      setScore(prev => prev + 1);
+      alert("Correct! 🎉");
       generateQuiz();
     } else {
-      alert("Try Again!");
+      alert("Try Again! 🤔");
     }
   };
 
@@ -62,62 +65,76 @@ const QuizComponent: React.FC<QuizProps> = ({ posts }) => {
     generateQuiz();
   }, [posts]);
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center">
+      <div className="stats shadow mb-6">
+        <div className="stat">
+          <div className="stat-title">Score</div>
+          <div className="stat-value">{score}</div>
+        </div>
+      </div>
+
       <h2 className="text-2xl font-semibold mb-4">Guess the Correct Track</h2>
       {correctTrack && (
-        <div className="relative" style={{ width: 300, height: 100 }}>
-          {/* Spotify Embed */}
+        <div className="relative mb-8" style={{ width: 300, height: 100 }}>
           <Spotify width={300} height={100} link={correctTrack} />
 
-          {/* Overlay */}
+          {/* Left overlay */}
           <div
             className="absolute inset-0 bg-white"
             style={{
-              // pointerEvents: "none", // Allow interaction with the play button
-              clipPath: "polygon(0 0, 100% 0, 90% 60%, 100% 100%, 0 100%)", // Rectangle covering the leftmost part (60% width)
+              clipPath: "polygon(0 0, 100% 0, 90% 60%, 100% 100%, 0 100%)",
             }}
-          ></div>
+          />
 
+          {/* Right overlay */}
           <div
             className="absolute inset-0 bg-white"
             style={{
-              // pointerEvents: "none", // Allow interaction with the play button
-              clipPath: "polygon(190% 0, 75% 0, 97% 58%, 75% 100%, 190% 100%)", // Rectangle covering the leftmost part (60% width)
+              clipPath: "polygon(190% 0, 75% 0, 97% 58%, 75% 100%, 190% 100%)",
             }}
-          ></div>
+          />
 
+          {/* Main overlay */}
           <div
             className="absolute inset-0 bg-white"
             style={{
-              pointerEvents: "none", // Allow interaction with the play button
+              pointerEvents: "none",
             }}
-          ></div>
+          />
 
+          {/* Play text */}
           <div
             className="absolute text-center text-black"
             style={{
-              top: "41%", // Adjust y-axis (default center)
-              left: "88%", // Adjust x-axis (default center)
-              // transform: "translate(-50%, -50%)", // Center align the text
-              fontSize: "14px", // Adjust font size if needed
-              pointerEvents: "none", // Allow interaction with the play button
+              top: "41%",
+              left: "88%",
+              fontSize: "14px",
+              pointerEvents: "none",
             }}
-          >Play
+          >
+            Play
           </div>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
         {quizTracks.map((track, index) => (
-          <div key={index} className="flex flex-col items-center">
-            <Spotify width={200} height={100} link={track} />{" "}
-            <button
-              onClick={() => handleAnswerClick(track)}
-              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
-            >
-              Select
-            </button>
-          </div>
+          <button
+            key={index}
+            onClick={() => handleAnswerClick(track)}
+            className="btn btn-primary h-auto py-4 flex flex-col items-center"
+          >
+            <span className="font-bold">{track.name}</span>
+            <span className="text-sm opacity-90">{track.artist}</span>
+          </button>
         ))}
       </div>
     </div>

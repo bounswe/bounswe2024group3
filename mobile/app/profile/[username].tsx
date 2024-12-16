@@ -12,9 +12,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import axios from 'axios';
-import { useLocalSearchParams } from 'expo-router';
-import PostCard from '../../components/PostCard';
+import { useLocalSearchParams, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PostCard from '../../components/PostCard';
 
 interface UserData {
   message: string;
@@ -61,7 +61,6 @@ export default function UserProfileScreen() {
   const [loadingFollow, setLoadingFollow] = useState<boolean>(false);
 
   // We'll also need the logged-in user's data (with user_id).
-  // Stored in AsyncStorage, or provided by some context, etc.
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   // On mount, load the current logged-in user's info from AsyncStorage
@@ -71,7 +70,6 @@ export default function UserProfileScreen() {
         const stored = await AsyncStorage.getItem('userData');
         if (stored) {
           const parsed = JSON.parse(stored);
-          // E.g. parsed might contain { user_id, username, name, ... }
           if (parsed.user_id) {
             setCurrentUserId(parsed.user_id);
           }
@@ -86,7 +84,6 @@ export default function UserProfileScreen() {
   // Fetch user details
   const fetchUserData = useCallback(async () => {
     if (!username) return;
-
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get_user?username=${username}`
@@ -103,7 +100,6 @@ export default function UserProfileScreen() {
   // Fetch user posts
   const fetchUserPosts = useCallback(async () => {
     if (!username) return;
-
     try {
       const response = await axios.get(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-user-posts?username=${username}`
@@ -125,7 +121,6 @@ export default function UserProfileScreen() {
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}check-following`,
         { params: { username } }
       );
-      // response.data => { "is_following": true/false, "current_user": "a", "target_user": "aa" }
       setIsFollowing(response.data.is_following);
     } catch (error) {
       console.error("Failed to check following:", error);
@@ -134,14 +129,13 @@ export default function UserProfileScreen() {
 
   // Follow user
   const handleFollow = async () => {
-    if (!userData) return; // we need userData.user_id
+    if (!userData) return;
     setLoadingFollow(true);
 
     try {
       await axios.post(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}follow/${userData.user_id}/`
       );
-      // After successful follow, set isFollowing to true
       setIsFollowing(true);
     } catch (error) {
       console.error("Failed to follow:", error);
@@ -180,7 +174,7 @@ export default function UserProfileScreen() {
     return {
       id: userPost.id,
       title: userPost.comment || 'Untitled',
-      username: username, // We already know the user
+      username: username || 'unknown', 
       type: userPost.content.content_type || 'unknown',
       spotifyId: extractSpotifyId(userPost.link),
       likes: userPost.total_likes || 0,
@@ -192,7 +186,7 @@ export default function UserProfileScreen() {
     };
   };
 
-  // Extract the track ID from the Spotify link
+  // Extract the track/playlist/album ID from the Spotify link
   const extractSpotifyId = (link: string) => {
     const parts = link.split('/');
     const lastPart = parts[parts.length - 1];
@@ -253,7 +247,6 @@ export default function UserProfileScreen() {
             )}
           </View>
         ) : null}
-        {/* If the current logged-in user is viewing their own profile or no user info, hide the follow button */}
       </View>
 
       <View style={styles.divider} />
@@ -263,6 +256,13 @@ export default function UserProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Back Button */}
+      <View style={styles.backButtonContainer}>
+        <Link href="" style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </Link>
+      </View>
+
       <FlatList
         data={userPosts.map(mapUserPostToPost)}
         keyExtractor={(item) => item.id.toString()}
@@ -287,9 +287,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  backButtonContainer: {
+    padding: 16,
+    alignItems: 'flex-start',
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#2f95dc',
+  },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 80, // extra space so the last post isn't hidden
+    paddingBottom: 80,
   },
   userInfo: {
     marginVertical: 16,

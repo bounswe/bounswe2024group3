@@ -23,8 +23,6 @@ import re
 from django.shortcuts import redirect
 from urllib.parse import quote
 from django.http import JsonResponse, HttpResponseRedirect
-from langdetect import detect, DetectorFactory
-from langdetect.lang_detect_exception import LangDetectException
 
 @require_http_methods(["POST"])
 @csrf_exempt

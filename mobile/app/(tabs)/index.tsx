@@ -18,7 +18,7 @@ import CreatePostModal from '../../components/CreatePostModal';
 
 interface Post {
   id: number;
-  title: string;
+  content: string;
   username: string;
   type: string;
   spotifyId: string;
@@ -45,7 +45,7 @@ function App() {
       const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
       const fetchedPosts = response.data.posts.map((item: any) => ({
         id: item.id,
-        title: item.comment || 'Untitled',
+        content: item.comment || 'Untitled',
         username: item.username,
         type: item.content.content_type || 'unknown',
         spotifyId: item.content.link.split('/').pop(),
@@ -69,7 +69,7 @@ function App() {
       const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-following-posts/`);
       const fetchedPosts = response.data.posts.map((item: any) => ({
         id: item.id,
-        title: item.comment || 'Untitled',
+        content: item.comment || 'Untitled',
         username: item.username,
         type: item.content.content_type || 'unknown',
         spotifyId: item.content.link.split('/').pop(),

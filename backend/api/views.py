@@ -23,7 +23,8 @@ import re
 from django.shortcuts import redirect
 from urllib.parse import quote
 from django.http import JsonResponse, HttpResponseRedirect
-
+from langdetect import detect, DetectorFactory
+from langdetect.lang_detect_exception import LangDetectException
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -1317,66 +1318,67 @@ def get_lyrics(request):
 @require_http_methods(["GET"])
 def get_song_quiz_lyrics(request):
     try:
-        base_query = Content.objects.filter(
+        # 1. Fetch a random track with lyrics
+        correct_content = Content.objects.filter(
             content_type='track',
             lyrics__isnull=False
         ).exclude(
             lyrics__exact=''
         ).exclude(
             lyrics='Lyrics not found.'
-        )
-
-        print(base_query)
-
-        # Apply genre filter if provided
-        if request.GET.get('genre'):
-            requested_genre = request.GET.get('genre')
-            # Use __icontains for case-insensitive search within the array
-            base_query = base_query.filter(genres__icontains=requested_genre)
-
-
-        # Get a random track from the filtered query
-        correct_content = base_query.order_by('?').first()
+        ).order_by('?').first()
 
         if not correct_content:
             return JsonResponse({"error": "No songs with lyrics found in database"}, status=404)
 
-        # Build search params from request for the other 3 songs
-        search_params = {}
-        query_parts = []
-        
-        if request.GET.get('genre'):
-            query_parts.append(f"genre:{request.GET.get('genre')}")
-        if request.GET.get('year'):
-            query_parts.append(f"year:{request.GET.get('year')}")
-            
-        if query_parts:
-            search_params['q'] = ' '.join(query_parts)
+        # 2. Get two suggestions for this track
+        suggestions = list(correct_content.suggestions.filter(type='track'))
+        if len(suggestions) < 2:
+            return JsonResponse({"error": "Not enough track suggestions available"}, status=404)
 
-        # Get 3 random tracks from Spotify
-        other_tracks = get_random_songs_util(search_params=search_params, limit=3)
-        if not other_tracks:
-            return JsonResponse({"error": "Failed to fetch additional songs from Spotify"}, status=500)
+        two_suggestions = random.sample(suggestions, 2)
 
-        # Combine all tracks for options
-        all_tracks = [{
+        # 3. Fetch one random Spotify track as a distractor
+        #    We can just rely on get_random_songs_util with no special filters.
+        spotify_track = None
+        spotify_tracks = get_random_songs_util(search_params=None, limit=1, include_year=True)
+        if spotify_tracks:
+            spotify_track = spotify_tracks[0]
+        else:
+            return JsonResponse({"error": "Could not fetch a Spotify track"}, status=500)
+
+        # 4. Construct the answer and distractor lists
+        # Correct track
+        correct_option = {
             "link": correct_content.link,
             "name": correct_content.song_name,
-            "artist": correct_content.artist_names[0]
-        }] + [{
-            "link": track['external_urls']['spotify'],
-            "name": track['name'],
-            "artist": track['artists'][0]['name']
-        } for track in other_tracks]
+            "artist": correct_content.artist_names[0] if correct_content.artist_names else ""
+        }
 
-        # Shuffle the options
+        # Two suggestions
+        suggestion_options = [{
+            "link": suggestion.spotify_url,
+            "name": suggestion.name,
+            "artist": suggestion.artist
+        } for suggestion in two_suggestions]
+
+        # One Spotify track
+        spotify_option = {
+            "link": spotify_track['external_urls']['spotify'],
+            "name": spotify_track['name'],
+            "artist": spotify_track['artists'][0]['name'] if spotify_track['artists'] else ""
+        }
+
+        # Combine all options
+        all_tracks = [correct_option] + suggestion_options + [spotify_option]
         random.shuffle(all_tracks)
 
-        # Get a random lyric snippet from the correct track
-        lyrics_lines = [line.strip() for line in correct_content.lyrics.split('.') if line.strip()]
+        # 5. Generate the lyric snippet
+        lyrics = correct_content.lyrics or ''
+        lyrics_lines = [line.strip() for line in lyrics.split('.') if line.strip()]
         if not lyrics_lines:
             return JsonResponse({"error": "No valid lyrics found"}, status=404)
-            
+
         start_idx = random.randint(0, len(lyrics_lines) - 1)
         num_lines = random.randint(1, min(2, len(lyrics_lines) - start_idx))
         lyric_snippet = ' '.join(lyrics_lines[start_idx:start_idx + num_lines])

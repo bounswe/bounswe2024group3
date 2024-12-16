@@ -412,58 +412,71 @@ def fetch_lyrics(url: str) -> str:
         print(f"Error fetching lyrics: {e}")
         return None
 
-def get_random_songs_util(search_params=None, limit=5):
+def get_random_songs_util(search_params=None, limit=5, max_retries=3, market='US', include_year=True):
     """
     Utility function to fetch random songs from Spotify
     Args:
-        search_params: Optional dictionary of search parameters (including genre)
+        search_params: Optional dictionary of search parameters (e.g., {'q': 'lang:en genre:pop'})
         limit: Number of songs to return (default: 5)
+        max_retries: Maximum number of retries when no tracks are found (default: 3)
+        market: Market to search in (default: 'US')
+        include_year: Whether to include a random year in search if no other params (default: True)
     Returns:
         List of tracks or None if error
     """
     try:
-        access_token = get_access_token()
-        if not access_token:
-            return None
+        for attempt in range(max_retries):
+            access_token = get_access_token()
+            if not access_token:
+                return None
 
-        headers = {"Authorization": f"Bearer {access_token}"}
-        
-        # Default search parameters
-        default_params = {
-            'type': 'track',
-            'market': 'US',
-            'limit': 50  # Maximum allowed by Spotify API
-        }
-        
-        if not search_params:
-            # If no search params, just use a random year
-            year = random.randint(1950, 2024)
-            default_params['q'] = f'year:{year}'
-        else:
-            # Keep user's search parameters (especially genre)
-            default_params.update(search_params)
-        
-        # Add random offset to get different sections of results
-        # Spotify limits offset to 1000, so we keep it under that
-        default_params['offset'] = random.randint(0, 950)  # 950 = 1000 - limit
+            headers = {"Authorization": f"Bearer {access_token}"}
             
-        response = requests.get(
-            'https://api.spotify.com/v1/search',
-            headers=headers,
-            params=default_params
-        )
-
-        if response.status_code != 200:
-            return None
-
-        tracks = response.json()['tracks']['items']
-        if not tracks:
-            # If no tracks found, try again with a different offset
-            return get_random_songs_util(search_params=search_params, limit=limit)
+            # Default search parameters
+            default_params = {
+                'type': 'track',
+                'market': market,
+                'limit': 50  # Maximum allowed by Spotify API
+            }
             
-        selected_tracks = random.sample(tracks, min(limit, len(tracks)))
-        
-        return selected_tracks
+            if not search_params:
+                if include_year:
+                    # If no search params, use a random year
+                    year = random.randint(1990, 2024)
+                    default_params['q'] = f'year:{year}'
+                else:
+                    default_params['q'] = '*'  # Search all tracks
+            else:
+                # Use provided search parameters
+                default_params.update(search_params)
+            
+            # Add random offset to get different sections of results
+            max_offset = 950  # Spotify limits offset to 1000, so we keep it under that
+            default_params['offset'] = random.randint(0, max_offset)
+                
+            response = requests.get(
+                'https://api.spotify.com/v1/search',
+                headers=headers,
+                params=default_params
+            )
+
+            if response.status_code != 200:
+                print(f"Error response from Spotify: {response.status_code}")
+                continue
+
+            tracks = response.json()['tracks']['items']
+            if tracks:  # If we found tracks, return them
+                return random.sample(tracks, min(limit, len(tracks)))
+            
+            print(f"No tracks found on attempt {attempt + 1} of {max_retries}")
+            
+            # If this was the last attempt and still no tracks, try with just a year
+            if attempt == max_retries - 1 and search_params:
+                year = random.randint(1990, 2024)
+                search_params = {'q': f'year:{year}'}
+                print("Trying one last time with random year")
+
+        return None
 
     except Exception as e:
         print(f"Error fetching random songs: {e}")

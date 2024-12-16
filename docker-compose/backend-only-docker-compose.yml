@@ -37,7 +37,6 @@ services:
       SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI} 
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       DEBUG: ${DJANGO_DEBUG}
-      PROD_HOST: ${BACKEND_URL}
 
     depends_on:
       - db

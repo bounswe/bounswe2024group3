@@ -248,7 +248,7 @@ const PostPage: React.FC<PostPageProps> = ({ type }) => {
     <div className="flex justify-center">
       {/* Left Column: Lyrics (only for tracks) */}
       {type === "track" && (
-        <div className="mr-10">
+        <div className="mr-10 w-64">
           <LyricsCard
             lyrics={lyrics || "No lyrics found"}
             isLoading={lyricsLoading}

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import { REACT_APP_BACKEND_URL } from '@env';
+// import { REACT_APP_BACKEND_URL } from '@env';
 import PostCard from '../../components/PostCard';
 
 export default function CombinedPosts() {
@@ -23,7 +23,7 @@ export default function CombinedPosts() {
 
   const fetchRandomPosts = async () => {
     try {
-      const response = await axios.get(`${REACT_APP_BACKEND_URL}get-posts`);
+      const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get-posts/`);
       const posts = response.data.posts;
       console.log('Fetched posts:', posts);
 
@@ -46,23 +46,15 @@ export default function CombinedPosts() {
 
   const renderPost = ({ item }) => {
     // Extract image URL using regex to handle the description string
-    let imageUrl = '';
-    const imageMatch = item.content.description.match(/'images': \[{'url': '([^']+)'/);
-  
-    if (imageMatch) {
-      imageUrl = imageMatch[1]; // The URL is captured in the first capturing group
-    } else {
-      imageUrl = item.image || ''; // Fallback to `item.image` if no match
-    }
+    console.log('Item:', item);
   
     return (
       <PostCard
         post={{
           id: item.id,
-          title: item.comment || 'Untitled', // Use comment as title or default to "Untitled"
+          title: '', // Use comment as title or default to "Untitled"
           content: item.comment || 'No content available', // Fallback if no comment
           username: item.username,
-          imageUrl: imageUrl, // Use extracted image URL
           type: item.content.content_type || 'unknown', // Extract type from content
           spotifyId: item.content.link.split('/').pop(), // Extract Spotify ID from the link
           likes: item.total_likes || 0, // Fallback to 0 if no likes field

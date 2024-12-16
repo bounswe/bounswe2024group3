@@ -10,6 +10,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#2f95dc',
+        tabBarInactiveTintColor: 'gray', // Optional: Define inactive tint color
       }}
     >
       <Tabs.Screen
@@ -36,6 +37,25 @@ export default function TabsLayout() {
           title: 'Recommendations',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="star-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="MostListenedNearby"
+        options={{
+          title: 'Nearby',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="location-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="SongQuizScreen"
+        options={{
+          title: 'Lyrics Quiz',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="clipboard-outline" color={color} size={size} />
+            // Replace "clipboard-outline" with your chosen icon name
           ),
         }}
       />

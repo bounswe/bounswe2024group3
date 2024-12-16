@@ -84,11 +84,30 @@ class Post(models.Model):
 class Content(models.Model):
     id = models.AutoField(primary_key=True)
     link = models.URLField()  # URL for the content (e.g., Spotify link)
-    description = models.TextField()  # Response from the Spotify API
-    content_type = models.CharField(max_length=20, choices=[('artist', 'Artist'), ('album', 'Album'), ('track', 'Track')])
+
+    content_type = models.CharField(max_length=20, choices=[('artist', 'Artist'), ('album', 'Album'), ('track', 'Track')], default='track')
+
+    artist_names = ArrayField(models.CharField(max_length=100), blank=True, default=list)  # Array of artist names
+    playlist_name = models.CharField(max_length=200, blank=True)  # Playlist name
+    album_name = models.CharField(max_length=200, blank=True)  # Album name
+    song_name = models.CharField(max_length=200, blank=True)  # Song name
+    genres = ArrayField(models.CharField(max_length=100), blank=True, default=list)  # Array of genres  
+    ai_description = models.TextField(blank=True, null=True)  # New field for AI-generated content
+    lyrics = models.TextField(blank=True, null=True)  # New field for storing lyrics
 
     def __str__(self):
-        return f"{self.content_type.capitalize()} - {self.link}"
+        str_to_return = ""
+        for artist in self.artist_names:
+            str_to_return += artist + ", "
+        if self.album_name != "":
+            str_to_return += " - " + self.album_name
+        if self.song_name != "":
+            str_to_return += " - " + self.song_name
+        if self.link != "":
+            str_to_return += " - " + self.link
+        if self.playlist_name != "":
+            str_to_return += " - " + self.playlist_name
+        return str_to_return
 
 class Tag(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -110,3 +129,33 @@ class NowPlaying(models.Model):
 
     def __str__(self):
         return f"{self.user.username} played {self.link} at {self.latitude}, {self.longitude}"
+
+class ContentSuggestion(models.Model):
+    content = models.ForeignKey(Content, on_delete=models.CASCADE, related_name='suggestions')
+    type = models.CharField(max_length=10, choices=[
+        ('track', 'Track'),
+        ('artist', 'Artist'),
+        ('album', 'Album')
+    ], default='track')
+
+    name = models.CharField(max_length=200)
+    artist = models.CharField(max_length=200)
+    spotify_url = models.URLField()
+    reason = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Suggestion for {self.content}: {self.name} by {self.artist}"
+
+class SpotifyToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    spotify_user_id = models.CharField(max_length=255, null=True, blank=True)
+    access_token = models.TextField()
+    refresh_token = models.TextField()
+    expires_at = models.DateTimeField()  # Add this field
+    
+    def __str__(self):
+        return f"{self.user.username}'s Spotify Token"

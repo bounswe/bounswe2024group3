@@ -2,7 +2,7 @@ import math
 import os
 import requests
 from django.core.paginator import Paginator
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required  
 from django.http import JsonResponse
@@ -12,10 +12,18 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.shortcuts import get_object_or_404
 import json
-from .models import NowPlaying, PasswordReset, Post, Profile, Tag, Content
+from .models import NowPlaying, PasswordReset, Post, Profile, Tag, Content,SpotifyToken
 import time
+from django.utils import timezone  # Use this instead of datetime.timezone
 from os import getenv
 from django.db.models import Count, Q
+import random
+from .utils import fetch_posts,get_content_description, get_or_create_content_suggestions,get_access_token,fetch_lyrics,get_random_songs_util
+import re
+from django.shortcuts import redirect
+from urllib.parse import quote
+from django.http import JsonResponse, HttpResponseRedirect
+
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -53,8 +61,13 @@ def login(request):
 
 @require_http_methods(["GET"])
 def get_user(request):
-    if request.user.is_authenticated:
-        user = request.user
+    username = request.GET.get('username')
+    
+    if not username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+    
+    try:
+        user = User.objects.get(username=username)
         try:
             profile = Profile.objects.get(user=user)
             name = profile.name
@@ -74,8 +87,40 @@ def get_user(request):
             'email': user.email,
             'labels': labels
         })
-    else:
-        return JsonResponse({'error': 'User not authenticated'}, status=400)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+@require_http_methods(["GET"])
+def check_following(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'User not authenticated'}, status=401)
+        
+    target_username = request.GET.get('username')
+    
+    if not target_username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+    
+    try:
+        # Get the target user
+        target_user = User.objects.get(username=target_username)
+        
+        # Get the profiles
+        user_profile = Profile.objects.get(user=request.user)
+        target_profile = Profile.objects.get(user=target_user)
+        
+        # Check if current user follows target user
+        is_following = user_profile.following.filter(id=target_profile.id).exists()
+        
+        return JsonResponse({
+            'is_following': is_following,
+            'current_user': request.user.username,
+            'target_user': target_username
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Target user not found'}, status=404)
+    except Profile.DoesNotExist:
+        return JsonResponse({'error': 'Profile not found'}, status=404)
 
 @require_http_methods(["POST"])
 @csrf_exempt
@@ -213,65 +258,142 @@ def reset_password(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_post(request):
-    user = request.user  # Authenticated user
+    """
+    Create a new post with content and generate AI suggestions
+    """
+    user = request.user
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-    # Extract required fields from the request body
-    link = body.get('link')
+    # Extract fields
+    link = body.get('link', '').split('?')[0]  # Remove query parameters immediately
     image = body.get('image', '')
     comment = body.get('comment', '')
     latitude = body.get('latitude')
     longitude = body.get('longitude')
 
-    if(latitude is None or longitude is None):
+    # Validate required fields
+    if not link or not comment:
+        return JsonResponse({"error": "Link and comment are required!"}, status=400)
+
+    # Set location to None if either coordinate is missing
+    if latitude is None or longitude is None:
         latitude = None
         longitude = None
 
+    try:
+        # Check for existing content first
+        content = Content.objects.filter(link=link).first()
+        
+        if not content:
+            # Only create new content if it doesn't exist
+            post_content_type = get_content_type(link)
+            
+            # Fetch Spotify content
+            access_token = get_access_token()
+            if not access_token:
+                return JsonResponse({"error": "Failed to get Spotify access token"}, status=500)
 
-    # Validate required fields
-    if not link or not comment:
-        return JsonResponse({"error": "Link, comment, latitude, and longitude are required!"}, status=400)
+            # Get content details from Spotify
+            headers = {"Authorization": f"Bearer {access_token}"}
+            spotify_id = link.split('/')[-1]
+            spotify_url = f"https://api.spotify.com/v1/{post_content_type}s/{spotify_id}"
+            
+            response = requests.get(spotify_url, headers=headers)
 
-    # Detect the content type of the Spotify link
-    post_content_type = get_content_type(link)
-    existing_content = Content.objects.filter(link=link).first()
+            if response.status_code != 200:
+                return JsonResponse({
+                    "error": f"Failed to fetch Spotify content: {response.status_code}"
+                }, status=500)
 
-    if existing_content:
-        # Use the existing Content object
-        content = existing_content
-    else:
-        # Fetch and create a new Content object
-        access_token = get_access_token()
-        if not access_token:
-            return JsonResponse({"error": "Failed to get access token"}, status=500)
+            # Parse Spotify response based on content type
+            content_parsers = {
+                "track": parse_spotify_track_response,
+                "artist": parse_spotify_artist_response,
+                "album": parse_spotify_album_response,
+                "playlist": parse_spotify_playlist_response
+            }
 
-        headers = {"Authorization": f"Bearer {access_token}"}
-        spotify_url = f"https://api.spotify.com/v1/{post_content_type}s/{link.split('/')[-1]}"
-        response = requests.get(spotify_url, headers=headers)
+            print(f"Content type: {post_content_type}")
+            
+            parser = content_parsers.get(post_content_type)
+            if not parser:
+                return JsonResponse({
+                    "error": f"Unsupported content type: {post_content_type}"
+                }, status=400)
+                
+            parsed_content = parser(response)
 
-        if response.status_code != 200:
-            return JsonResponse({"error": "Failed to fetch content description"}, status=500)
+            # Prepare metadata for AI description
+            metadata = {
+                "content_type": post_content_type,
+                "song_name": parsed_content.get("song_name", ""),
+                "artist_names": ", ".join(parsed_content.get("artist_names", [])),
+                "album_name": parsed_content.get("album_name", ""),
+                "playlist_name": parsed_content.get("playlist_name", ""),
+                "genres": ", ".join(parsed_content.get("genres", [])),
+            }
 
-        content_description = response.json()
-        content = Content(link=link, content_type=post_content_type, description=content_description)
-        content.save()
+            # Generate AI description
+            ai_response = get_content_description(post_content_type, metadata)
+            if ai_response:
+                ai_description = ai_response.get('description', '')
+                # Update genres if they were generated and it's a track/album
+                if post_content_type in ['track', 'album']:
+                    parsed_content['genres'] = ai_response.get('genres', parsed_content.get('genres', []))
+            else:
+                ai_description = "AI description generation failed"
 
-    # Create and save the post
-    post = Post(
-        comment=comment,
-        image=image,
-        link=link,
-        content=content,
-        belongs_to=user,  # Assign to the authenticated user
-        latitude=latitude,
-        longitude=longitude,
-    )
-    post.save()
+                # Create new content
+            content = Content(
+                link=link,
+                content_type=post_content_type,
+                artist_names=parsed_content.get("artist_names", []),
+                album_name=parsed_content.get("album_name", ""),
+                playlist_name=parsed_content.get("playlist_name", ""),
+                genres=parsed_content.get("genres", []),
+                song_name=parsed_content.get("song_name", ""),
+                ai_description=ai_description
+            )
+            content.save()
 
-    return JsonResponse({"message": "Post created successfully", "post_id": post.id}, status=201)
+                # Generate and save AI suggestions
+            suggestions = get_or_create_content_suggestions(content)
+            if not suggestions:
+                print(f"Warning: Failed to generate suggestions for content {content.id}")
+
+
+        # Create and save the post
+        post = Post(
+            comment=comment,
+            image=image,
+            link=link,
+            content=content,
+            belongs_to=user,
+            latitude=latitude,
+            longitude=longitude,
+        )
+        post.save()
+
+        # Return success response with content details
+        return JsonResponse({
+            "message": "Post created successfully",
+            "post_id": post.id,
+            "content_id": content.id,
+            "content_type": content.content_type,
+            "has_suggestions": bool(content.suggestions.exists())
+        }, status=201)
+
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": f"Failed to communicate with Spotify API: {str(e)}"
+        }, status=503)
+    except Exception as e:
+        print(f"Error creating post: {str(e)}")  # Log the error
+        return JsonResponse({"error": "Failed to create post"}, status=500)
+
 
 def get_content_type(link):
     """Detects whether the Spotify link is for a track, album, playlist, or artist."""
@@ -284,23 +406,208 @@ def get_content_type(link):
     else:
         return "track"
 
+def parse_spotify_track_response(response):
+    """Parses the Spotify API response for a track."""
+    try:
+        data = response.json()
+        try:
+            album_name= data["album"]["name"]
+        except:
+            album_name = None
+        try:
+            artist_names = [artist["name"] for artist in data["artists"]]
+        except:
+            artist_names = None
+        try:
+            song_name = data["name"]
+        except:
+            song_name = None
+
+
+        if "error" in data:
+            return None
+        return {
+            "album_name": album_name,
+            "artist_names": artist_names,
+            "song_name": song_name
+
+        }
+    except json.JSONDecodeError:
+        return None
+    
+def parse_spotify_artist_response(response):
+    """Parses the Spotify API response for an artist."""
+    try:
+        data = response.json()
+        try:
+            artist_name = data["name"]
+        except:
+            artist_name = None
+        try:
+            genres = data["genres"]
+        except:
+            genres = None
+        
+        return {
+            "artist_names": [artist_name],
+            "genres": genres
+        }
+    except json.JSONDecodeError:
+        return None
+
+def parse_spotify_album_response(response):
+    """Parses the Spotify API response for an album."""
+    try:
+        data = response.json()
+        try:
+            album_name = data["name"]
+        except:
+            album_name = None
+        try:
+            artist_names = [artist["name"] for artist in data["artists"]]
+        except:
+            artist_names = None
+        
+        return {
+            "album_name": album_name,
+            "artist_names": artist_names
+        }
+    except json.JSONDecodeError:
+        return None
+
+def parse_spotify_playlist_response(response):
+    """Parses the Spotify API response for a playlist."""
+    try:
+        data = response.json()
+        try:
+            playlist_name = data["name"]
+        except:
+            playlist_name = None
+        return {
+            "playlist_name": playlist_name,
+        }
+    except json.JSONDecodeError:
+        return None
+
+@require_http_methods(["GET"])
+@login_required
+def get_following_posts(request):
+    """
+    Fetch posts from users that the authenticated user follows.
+    Query parameters:
+    - page: page number (default: 1)
+    - page_size: number of posts per page (default: 10)
+    - start_date: filter posts after this date (optional)
+    - end_date: filter posts before this date (optional)
+    """
+    try:
+        # Get query parameters
+        page_number = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 10))
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+
+        # Get the user's profile
+        user_profile = Profile.objects.get(user=request.user)
+        
+        # Get IDs of users being followed
+        following_ids = user_profile.following.values_list('user', flat=True)
+
+        # Build the base query for posts
+        posts = Post.objects.filter(belongs_to__in=following_ids).order_by('-created_at')
+
+        # Apply date filters if provided
+        if start_date:
+            try:
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+                posts = posts.filter(created_at__gte=start_datetime)
+            except ValueError:
+                return JsonResponse({"error": "Invalid start_date format. Use YYYY-MM-DD"}, status=400)
+
+        if end_date:
+            try:
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=timezone.utc)
+                posts = posts.filter(created_at__lte=end_datetime)
+            except ValueError:
+                return JsonResponse({"error": "Invalid end_date format. Use YYYY-MM-DD"}, status=400)
+
+        # Implement pagination
+        paginator = Paginator(posts, page_size)
+        try:
+            page = paginator.page(page_number)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+        # Prepare the response data
+        posts_data = []
+        for post in page.object_list:
+            content_data = None
+            if post.content:
+                content_data = {
+                    'id': post.content.id,
+                    'link': post.content.link,
+                    'content_type': post.content.content_type,
+                    'artist_names': post.content.artist_names,
+                    'playlist_name': post.content.playlist_name,
+                    'album_name': post.content.album_name,
+                    'song_name': post.content.song_name,
+                    'genres': post.content.genres,
+                    'ai_description': post.content.ai_description or "AI description not yet generated",
+                }
+
+            # Get user information
+            user_info = {
+                'username': post.belongs_to.username,
+                'name': post.belongs_to.profile.name,
+                'surname': post.belongs_to.profile.surname
+            }
+
+            post_data = {
+                "id": post.id,
+                "user": user_info,
+                "username": post.belongs_to.username,
+                "comment": post.comment,
+                "image": post.image,
+                "link": post.link,
+                "created_at": post.created_at,
+                "total_likes": post.total_likes,
+                "total_dislikes": post.total_dislikes,
+                "tags": [tag.name for tag in post.tags.all()],
+                "content": content_data,
+                "latitude": post.latitude,
+                "longitude": post.longitude
+            }
+            posts_data.append(post_data)
+
+        return JsonResponse({
+            "posts": posts_data,
+            "pagination": {
+                "current_page": page.number,
+                "total_pages": paginator.num_pages,
+                "total_posts": paginator.count,
+                "has_next": page.has_next(),
+                "has_previous": page.has_previous()
+            }
+        })
+
+    except Profile.DoesNotExist:
+        return JsonResponse({"error": "User profile not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 @require_http_methods(["GET"])
 def get_user_posts(request):
-    req_user = request.user
-    user_id = request.GET.get('user_id')
+    username = request.GET.get('username')
     page_number = request.GET.get('page', 1)
     page_size = request.GET.get('page_size', 10)
 
+    if not username:
+        return JsonResponse({"error": "Username parameter is required"}, status=400)
+
     try:
-        target_user = User.objects.get(id=user_id)
+        target_user = User.objects.get(username=username)
     except User.DoesNotExist:
         return JsonResponse({"error": "User not found"}, status=404)
-
-    if req_user != target_user:
-        # Check if the requesting user follows the target user
-        req_user_profile = req_user.profile
-        if not req_user_profile.following.filter(id=target_user.profile.id).exists():
-            return JsonResponse({"error": "You do not follow this user"}, status=403)
 
     posts = Post.objects.filter(belongs_to=target_user).order_by('-created_at')
     
@@ -310,8 +617,23 @@ def get_user_posts(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
-    posts_data = [
-        {
+    posts_data = []
+    for post in page.object_list:
+        content_data = None
+        if post.content:
+            content_data = {
+                'id': post.content.id,
+                'link': post.content.link,
+                'content_type': post.content.content_type,
+                'artist_names': post.content.artist_names,
+                'playlist_name': post.content.playlist_name,
+                'album_name': post.content.album_name,
+                'song_name': post.content.song_name,
+                'genres': post.content.genres,
+                'ai_description': post.content.ai_description or "AI description not yet generated",
+            }
+
+        post_data = {
             "id": post.id,
             "comment": post.comment,
             "image": post.image,
@@ -320,143 +642,49 @@ def get_user_posts(request):
             "total_likes": post.total_likes,
             "total_dislikes": post.total_dislikes,
             "tags": [tag.name for tag in post.tags.all()],
+            "content": content_data
         }
-        for post in page.object_list
-    ]
+        posts_data.append(post_data)
 
-    return JsonResponse(
-        {
-            "posts": posts_data,
+    return JsonResponse({
+        "posts": posts_data,
+        "pagination": {
             "current_page": page.number,
             "total_pages": paginator.num_pages,
             "total_posts": paginator.count,
-        },
-        status=200
+        }
+    })    
+
+
+@require_http_methods(["GET"])
+def get_posts(request):
+    post_id = request.GET.get('id')
+    post_link = request.GET.get('link')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    page_number = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 10))
+
+    posts_data, pagination_or_error, status_code = fetch_posts(
+        post_id=post_id,
+        post_link=post_link,
+        start_date=start_date,
+        end_date=end_date,
+        page_number=page_number,
+        page_size=page_size
     )
 
-    
+    if status_code != 200:
+        return JsonResponse({"error": pagination_or_error}, status=status_code)
+
+    response_data = {"posts": posts_data}
+    if pagination_or_error:
+        response_data["pagination"] = pagination_or_error
+
+    return JsonResponse(response_data)
 
 
-def get_posts(request):
-    post_id = request.GET.get('id')  # Get the ID from query params
-    post_link = request.GET.get('link')  # Get the link from query params
-    start_date = request.GET.get('start_date')  # Start of time interval
-    end_date = request.GET.get('end_date')  # End of time interval
-    page_number = request.GET.get('page', 1)  # Page number for pagination
-    page_size = request.GET.get('page_size', 10)  # Number of items per page
 
-    try:
-        if post_id:  # If an ID is provided, fetch a single post
-            post = Post.objects.filter(id=post_id).first()
-            if not post:
-                return JsonResponse({"error": "Post not found"}, status=404)
-            return JsonResponse({
-                "id": post.id,
-                "comment": post.comment,
-                "image": post.image,
-                "link": post.link,
-                "created_at": post.created_at.isoformat(),
-                "total_likes": post.total_likes,
-                "total_dislikes": post.total_dislikes,
-                "username": post.belongs_to.username, 
-                "content": {
-                    "id": post.content.id,
-                    "link": post.content.link,
-                    "description": post.content.description,
-                    "content_type": post.content.content_type,
-                },
-                "tags": [tag.name for tag in post.tags.all()],
-            })
-    
-        if post_link:  # If a link is provided, fetch posts with the same link
-            posts = Post.objects.filter(link=post_link)
-            if not posts:
-                return JsonResponse({"error": "Posts not found"}, status=404)
-            posts_data = [{
-                "id": post.id,
-                "comment": post.comment,
-                "image": post.image,
-                "link": post.link,
-                "created_at": post.created_at.isoformat(),
-                "total_likes": post.total_likes,
-                "total_dislikes": post.total_dislikes,
-                "username": post.belongs_to.username,
-                "content": {
-                    "id": post.content.id,
-                    "link": post.content.link,
-                    "description": post.content.description,
-                    "content_type": post.content.content_type,
-                },
-                "tags": [tag.name for tag in post.tags.all()],
-            } for post in posts]
-            return JsonResponse({"posts": posts_data})
-        
-
-        # If no ID is provided, fetch posts within a time interval
-        posts_query = Post.objects.all()
-
-        if start_date:
-            start_date_obj = datetime.fromisoformat(start_date)
-            posts_query = posts_query.filter(created_at__gte=start_date_obj)
-
-        if end_date:
-            end_date_obj = datetime.fromisoformat(end_date)
-            posts_query = posts_query.filter(created_at__lte=end_date_obj)
-
-        # Apply pagination
-        paginator = Paginator(posts_query.order_by('-created_at'), page_size)
-        posts_page = paginator.get_page(page_number)
-
-        # Serialize the paginated posts
-        posts_data = [{
-            "id": post.id,
-            "comment": post.comment,
-            "image": post.image,
-            "link": post.link,
-            "created_at": post.created_at.isoformat(),
-            "total_likes": post.total_likes,
-            "total_dislikes": post.total_dislikes,
-            "username": post.belongs_to.username,
-            "content": {
-                "id": post.content.id,
-                "link": post.content.link,
-                "description": post.content.description,
-                "content_type": post.content.content_type,
-            },
-            "tags": [tag.name for tag in post.tags.all()],
-        } for post in posts_page]
-
-        return JsonResponse({
-            "posts": posts_data,
-            "pagination": {
-                "current_page": posts_page.number,
-                "total_pages": paginator.num_pages,
-                "total_posts": paginator.count,
-            },
-        })
-
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
-ACCESS_TOKEN = None
-TOKEN_EXPIRY = 0
-
-def get_access_token():
-    """Fetch a new access token from Spotify."""
-    client_id = os.getenv("SPOTIFY_CLIENT_ID")
-    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
-    url = "https://accounts.spotify.com/api/token"
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    data = {"grant_type": "client_credentials"}
-    response = requests.post(url, headers=headers, auth=(client_id, client_secret), data=data)
-    if response.status_code == 200:
-        token_data = response.json()
-        global ACCESS_TOKEN, TOKEN_EXPIRY
-        ACCESS_TOKEN = token_data["access_token"]
-        TOKEN_EXPIRY = time.time() + token_data["expires_in"] - 60  # Buffer for token renewal
-        return ACCESS_TOKEN
-    else:
-        print(response)
-        raise Exception("Failed to get access token: " + response.text)
     
 @require_http_methods(["POST"])
 @login_required
@@ -548,7 +776,14 @@ def most_shared_nearby_things(request):
 
         # Return response with pagination metadata
         return JsonResponse({
-            "songs": songs,
+            "songs": [{
+                "link": song['content__link'],
+                "song_name": song['content__song_name'],
+                "artist_names": song['content__artist_names'],
+                "album_name": song['content__album_name'],
+                "description": song['content__ai_description'],
+                "share_count": song['count']
+            } for song in songs],
             "pagination": {
                 "page": page,
                 "size": size,
@@ -556,7 +791,6 @@ def most_shared_nearby_things(request):
                 "total_songs": total_songs,
             }
         }, status=200)
-
     except ValueError:
         return JsonResponse({"error": "Invalid input for latitude, longitude, radius, page, or size."}, status=400)
     except Exception as e:
@@ -588,7 +822,12 @@ def get_most_shared_nearby_songs(user_lat, user_lon, radius_km, offset, limit):
         # Query songs with pagination
         songs = (
             Post.objects.filter(id__in=post_ids)
-            .values('content__link', 'content__description')
+            .values(        'content__link',
+                'content__song_name',
+                'content__artist_names',
+                'content__album_name',
+                'content__ai_description'
+                )
             .annotate(count=Count('content__link'))
             .order_by('-count')[offset:offset + limit]
         )
@@ -699,17 +938,11 @@ def most_listened_nearby(request):
             .order_by("-count")
         )
 
-        # Fetch descriptions from Post table for these links
-        posts_with_descriptions = {
-            post.link: post.content.description
-            for post in Post.objects.filter(link__in=[entry["link"] for entry in link_counts])
-        }
 
         # Prepare the result
         result = [
             {
                 "link": entry["link"],
-                "description": posts_with_descriptions.get(entry["link"], "No description available"),
                 "count": entry["count"]
             }
             for entry in link_counts
@@ -737,27 +970,1079 @@ def search(request):
 
     if search_query:
         contents = Content.objects.filter(
-            Q(description__icontains=search_query) |
             Q(content_type__icontains=search_query) |
-            Q(link__icontains=search_query)
+            Q(link__icontains=search_query) |
+            Q(artist_names__icontains=search_query) |
+            Q(album_name__icontains=search_query) |
+            Q(playlist_name__icontains=search_query) |
+            Q(song_name__icontains=search_query) |
+            Q(genres__icontains=search_query)
+            # Q(ai_description__icontains=search_query)
+
         )
+
+        profiles = Profile.objects.filter(
+            Q(name__icontains=search_query) |
+            Q(surname__icontains=search_query) |
+            Q(user__username__icontains=search_query)  # Search by username
+        ).select_related('user')
+
     else:
         contents = Content.objects.all()
+        profiles = Profile.objects.all()
 
-    total_results = contents.count()
+    content_results_count = contents.count()
+    profile_results_count = profiles.count()
 
     # Implement pagination
     start = (page - 1) * page_size
     end = start + page_size
     contents_paginated = contents[start:end]
+    profiles_paginated = profiles[start:end]
     
     content_list = list(contents_paginated.values())
+    profile_list = []
+    for profile in profiles_paginated:
+        profile_dict = {
+            'id': profile.id,
+            'user_id': profile.user.id,
+            'name': profile.name,
+            'surname': profile.surname,
+            'labels': profile.labels,
+            'username': profile.user.username  # Include the username
+        }
+        profile_list.append(profile_dict)
 
     response = {
-        'total_results': total_results,
+        'content_results_count': content_results_count,
+        'profile_results_count': profile_results_count,
         'page': page,
         'page_size': page_size,
-        'contents': content_list
+        'contents': content_list,
+        'profiles': profile_list
     }
 
     return JsonResponse(response)
+
+@require_http_methods(["GET"])
+def get_random_songs(request):
+    """
+    Fetch random songs from Spotify.
+    Query parameters:
+    - limit: number of songs to return (default: 5, max: 20)
+    - genre: specific genre to filter by (optional)
+    - q: search query (optional)
+    """
+    try:
+        limit = min(int(request.GET.get('limit', 5)), 20)
+        
+        # Build search params from request
+        search_params = {}
+        if request.GET.get('q'):
+            search_params['q'] = request.GET.get('q')
+        if request.GET.get('genre'):
+            search_params['q'] = f"genre:{request.GET.get('genre')}"
+
+        selected_tracks = get_random_songs_util(search_params=search_params, limit=limit)
+        if not selected_tracks:
+            return JsonResponse({"error": "Failed to fetch from Spotify API"}, status=500)
+        
+        songs = [{
+            'link': track['external_urls']['spotify'],
+            'name': track['name'],
+            'artist': track['artists'][0]['name']
+        } for track in selected_tracks]
+
+        return JsonResponse({
+            'songs': songs,
+            'count': len(songs)
+        })
+
+    except ValueError:
+        return JsonResponse({"error": "Invalid limit parameter"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def get_pages_of_spot_embeds(request):
+    """
+    Fetch posts with AI descriptions and content suggestions
+    """
+    try:
+        # Get parameters from request
+        post_id = request.GET.get('id')
+        post_link = request.GET.get('link')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        page_number = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 10))
+
+        # Fetch posts using the utility function
+        posts_data, pagination_or_error, status_code = fetch_posts(
+            post_id=post_id,
+            post_link=post_link,
+            start_date=start_date,
+            end_date=end_date,
+            page_number=page_number,
+            page_size=page_size
+        )
+
+        if status_code != 200 and not post_link:
+            return JsonResponse({"error": pagination_or_error}, status=status_code)
+
+        content_data = None
+        
+        # Try to get content either from posts or directly
+        if posts_data:
+            content = Content.objects.get(id=posts_data[0]['content']['id'])
+        elif post_link:
+            # Clean the link
+            clean_link = post_link.split('?')[0]
+            
+            # Try to get existing content
+            content = Content.objects.filter(link=clean_link).first()
+            
+            if not content:
+                # Generate new content similar to create_post
+                post_content_type = get_content_type(clean_link)
+                
+                # Fetch Spotify content
+                access_token = get_access_token()
+                if not access_token:
+                    return JsonResponse({"error": "Failed to get Spotify access token"}, status=500)
+
+                # Get content details from Spotify
+                headers = {"Authorization": f"Bearer {access_token}"}
+                spotify_id = clean_link.split('/')[-1]
+                spotify_url = f"https://api.spotify.com/v1/{post_content_type}s/{spotify_id}"
+                
+                response = requests.get(spotify_url, headers=headers)
+                if response.status_code != 200:
+                    return JsonResponse({
+                        "error": f"Failed to fetch Spotify content: {response.status_code}"
+                    }, status=500)
+
+                # Parse Spotify response
+                content_parsers = {
+                    "track": parse_spotify_track_response,
+                    "artist": parse_spotify_artist_response,
+                    "album": parse_spotify_album_response,
+                    "playlist": parse_spotify_playlist_response
+                }
+                
+                parser = content_parsers.get(post_content_type)
+                if not parser:
+                    return JsonResponse({
+                        "error": f"Unsupported content type: {post_content_type}"
+                    }, status=400)
+                    
+                parsed_content = parser(response)
+
+                # Prepare metadata for AI description
+                metadata = {
+                    "content_type": post_content_type,
+                    "song_name": parsed_content.get("song_name", ""),
+                    "artist_names": ", ".join(parsed_content.get("artist_names", [])),
+                    "album_name": parsed_content.get("album_name", ""),
+                    "playlist_name": parsed_content.get("playlist_name", ""),
+                    "genres": ", ".join(parsed_content.get("genres", [])),
+                }
+
+                # Generate AI description
+                ai_response = get_content_description(post_content_type, metadata)
+                if ai_response:
+                    ai_description = ai_response.get('description', '')
+                    # Update genres if they were generated and it's a track/album
+                    if post_content_type in ['track', 'album']:
+                        parsed_content['genres'] = ai_response.get('genres', parsed_content.get('genres', []))
+                else:
+                    ai_description = "AI description generation failed"
+
+                # Create new content
+                content = Content(
+                    link=clean_link,
+                    content_type=post_content_type,
+                    artist_names=parsed_content.get("artist_names", []),
+                    album_name=parsed_content.get("album_name", ""),
+                    playlist_name=parsed_content.get("playlist_name", ""),
+                    genres=parsed_content.get("genres", []),
+                    song_name=parsed_content.get("song_name", ""),
+                    ai_description=ai_description
+                )
+                content.save()
+
+        if content:
+
+            if content.ai_description == "AI description generation failed" or not content.ai_description:
+                # Prepare metadata for AI description
+                metadata = {
+                    "content_type": content.content_type,
+                    "song_name": content.song_name,
+                    "artist_names": ", ".join(content.artist_names),
+                    "album_name": content.album_name,
+                    "playlist_name": content.playlist_name,
+                    "genres": ", ".join(content.genres),
+                }
+
+                # Try to generate AI description again
+                new_ai_response = get_content_description(content.content_type, metadata)
+                if new_ai_response:
+                    content.ai_description = new_ai_response.get('description', '')
+                    # Update genres if they were generated and it's a track/album
+                    if content.content_type in ['track', 'album']:
+                        content.genres = new_ai_response.get('genres', content.genres)
+                    content.save()
+            # Get or create suggestions for the content
+            suggestions = get_or_create_content_suggestions(content)
+
+            # Prepare content data with suggestions
+            content_data = {
+                'id': content.id,
+                'link': content.link,
+                'content_type': content.content_type,
+                'artist_names': content.artist_names,
+                'playlist_name': content.playlist_name,
+                'album_name': content.album_name,
+                'song_name': content.song_name,
+                'genres': content.genres,
+                'ai_description': content.ai_description or "AI description not yet generated",
+                'suggestions': [{
+                    'name': suggestion.name,
+                    'artist': suggestion.artist,
+                    'spotify_url': suggestion.spotify_url,
+                    'reason': suggestion.reason
+                } for suggestion in suggestions]
+            }
+
+        # Process posts without content information
+        processed_posts = []
+        if posts_data:
+            for post in posts_data:
+                post_copy = post.copy()
+                del post_copy['content']  # Remove content since we're returning it separately
+                processed_posts.append(post_copy)
+
+        # Prepare response data
+        response_data = {
+            "posts": processed_posts,
+            "content": content_data
+        }
+        if pagination_or_error:
+            response_data["pagination"] = pagination_or_error
+
+        return JsonResponse(response_data)
+
+    except Content.DoesNotExist:
+        return JsonResponse({"error": "Content not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def get_lyrics(request):
+    """
+    Get lyrics from database or fetch from Musixmatch if not available.
+    Query parameters:
+    - spotify_url: Spotify URL to lookup content and fetch lyrics
+    - force_refresh: Optional boolean to force refresh lyrics from Musixmatch
+    """
+    try:
+        spotify_url = request.GET.get('spotify_url')
+        force_refresh = request.GET.get('force_refresh', '').lower() == 'true'
+        
+        if not spotify_url:
+            return JsonResponse({"error": "spotify_url parameter is required"}, status=400)
+
+        # Clean the URL by removing query parameters
+        spotify_url = spotify_url.split('?')[0]
+
+        # Find the content in database
+        content = Content.objects.filter(link=spotify_url).first()
+        if not content:
+            return JsonResponse({"error": "Content not found in database"}, status=404)
+
+        # Only tracks have lyrics
+        if content.content_type != 'track':
+            return JsonResponse({"error": "Lyrics are only available for tracks"}, status=400)
+
+        # Return existing lyrics if available and not forcing refresh
+        if content.lyrics and not force_refresh:
+            return JsonResponse({
+                "lyrics": content.lyrics,
+                "source": "database"
+            })
+
+        # If we need to fetch new lyrics
+        if not content.artist_names or not content.song_name:
+            return JsonResponse({"error": "Missing artist or song information"}, status=400)
+
+        # Format artist name for URL (use first artist if multiple)
+        artist_name = '-'.join(content.artist_names).replace(' ', '-')        
+        print(artist_name)
+        song_name = content.song_name.split(' - ')[0]
+        
+        # Replace quotes and clean up special characters
+        song_name = song_name.replace('"', '')
+        song_name = song_name.replace(' ', '-')
+        # Remove special characters from names
+        artist_name = re.sub(r'[^a-zA-Z0-9-]', '', artist_name)
+        song_name = re.sub(r'[^a-zA-Z0-9-]', '', song_name)
+
+        musixmatch_url = f"https://www.musixmatch.com/lyrics/{artist_name}/{song_name}"
+
+        # Fetch and parse lyrics
+        lyrics = fetch_lyrics(musixmatch_url)
+        if not lyrics or lyrics == "Lyrics not found.":
+            if content.lyrics:  # Keep old lyrics if fetch fails
+                return JsonResponse({
+                    "lyrics": content.lyrics,
+                    "source": "database"
+                })
+            return JsonResponse({"error": "Failed to fetch lyrics"}, status=404)
+
+        # Update the database with new lyrics
+        content.lyrics = lyrics
+        content.save()
+
+        return JsonResponse({
+            "lyrics": lyrics,
+            "source": "musixmatch",
+            "source_url": musixmatch_url
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+
+@require_http_methods(["GET"])
+def get_song_quiz_lyrics(request):
+    try:
+        base_query = Content.objects.filter(
+            content_type='track',
+            lyrics__isnull=False
+        ).exclude(
+            lyrics__exact=''
+        ).exclude(
+            lyrics='Lyrics not found.'
+        )
+
+        print(base_query)
+
+        # Apply genre filter if provided
+        if request.GET.get('genre'):
+            requested_genre = request.GET.get('genre')
+            # Use __icontains for case-insensitive search within the array
+            base_query = base_query.filter(genres__icontains=requested_genre)
+
+
+        # Get a random track from the filtered query
+        correct_content = base_query.order_by('?').first()
+
+        if not correct_content:
+            return JsonResponse({"error": "No songs with lyrics found in database"}, status=404)
+
+        # Build search params from request for the other 3 songs
+        search_params = {}
+        query_parts = []
+        
+        if request.GET.get('genre'):
+            query_parts.append(f"genre:{request.GET.get('genre')}")
+        if request.GET.get('year'):
+            query_parts.append(f"year:{request.GET.get('year')}")
+            
+        if query_parts:
+            search_params['q'] = ' '.join(query_parts)
+
+        # Get 3 random tracks from Spotify
+        other_tracks = get_random_songs_util(search_params=search_params, limit=3)
+        if not other_tracks:
+            return JsonResponse({"error": "Failed to fetch additional songs from Spotify"}, status=500)
+
+        # Combine all tracks for options
+        all_tracks = [{
+            "link": correct_content.link,
+            "name": correct_content.song_name,
+            "artist": correct_content.artist_names[0]
+        }] + [{
+            "link": track['external_urls']['spotify'],
+            "name": track['name'],
+            "artist": track['artists'][0]['name']
+        } for track in other_tracks]
+
+        # Shuffle the options
+        random.shuffle(all_tracks)
+
+        # Get a random lyric snippet from the correct track
+        lyrics_lines = [line.strip() for line in correct_content.lyrics.split('.') if line.strip()]
+        if not lyrics_lines:
+            return JsonResponse({"error": "No valid lyrics found"}, status=404)
+            
+        start_idx = random.randint(0, len(lyrics_lines) - 1)
+        num_lines = random.randint(1, min(2, len(lyrics_lines) - start_idx))
+        lyric_snippet = ' '.join(lyrics_lines[start_idx:start_idx + num_lines])
+
+        # Prepare the quiz data
+        quiz_data = {
+            "lyric_snippet": lyric_snippet,
+            "options": all_tracks,
+            "correct_link": correct_content.link
+        }
+
+        return JsonResponse(quiz_data)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["GET"])
+def search_spotify(request):
+    """
+    Simple Spotify search endpoint.
+    Query parameters:
+    - q: search query (required)
+    - type: comma-separated list of types to search (optional, default: 'track,album,artist')
+    - limit: maximum number of results (optional, default: 20)
+    """
+    try:
+        # Get query parameters
+        query = request.GET.get('q')
+        types = request.GET.get('type', 'track,album,artist')
+        limit = min(int(request.GET.get('limit', 20)), 50)  # Cap at 50 results
+
+        if not query:
+            return JsonResponse({
+                "error": "Search query is required"
+            }, status=400)
+
+        # Get Spotify access token
+        access_token = get_access_token()
+        if not access_token:
+            return JsonResponse({
+                "error": "Failed to get Spotify access token"
+            }, status=500)
+
+        # Make request to Spotify Search API
+        response = requests.get(
+            'https://api.spotify.com/v1/search',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                'q': query,
+                'type': types,
+                'limit': limit
+            }
+        )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Spotify API error: {response.status_code}"
+            }, status=response.status_code)
+
+        data = response.json()
+        results = {}
+
+        # Process tracks
+        if 'tracks' in data:
+            results['tracks'] = [{
+                'id': track['id'],
+                'name': track['name'],
+                'artists': [artist['name'] for artist in track['artists']],
+                'album': track['album']['name'],
+                'preview_url': track['preview_url'],
+                'external_url': track['external_urls']['spotify'],
+                'image_url': track['album']['images'][0]['url'] if track['album']['images'] else None
+            } for track in data['tracks']['items']]
+
+        # Process albums
+        if 'albums' in data:
+            results['albums'] = [{
+                'id': album['id'],
+                'name': album['name'],
+                'artists': [artist['name'] for artist in album['artists']],
+                'release_date': album['release_date'],
+                'external_url': album['external_urls']['spotify'],
+                'image_url': album['images'][0]['url'] if album['images'] else None
+            } for album in data['albums']['items']]
+
+        # Process artists
+        if 'artists' in data:
+            results['artists'] = [{
+                'id': artist['id'],
+                'name': artist['name'],
+                'genres': artist['genres'],
+                'external_url': artist['external_urls']['spotify'],
+                'image_url': artist['images'][0]['url'] if artist['images'] else None
+            } for artist in data['artists']['items']]
+
+        return JsonResponse({
+            "results": results,
+            "query": query
+        })
+
+    except ValueError:
+        return JsonResponse({
+            "error": "Invalid limit parameter"
+        }, status=400)
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": f"Failed to communicate with Spotify API: {str(e)}"
+        }, status=503)
+    except Exception as e:
+        return JsonResponse({
+            "error": str(e)
+        }, status=500)
+
+
+
+@require_http_methods(["GET"])
+def spotify_auth(request):
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
+    scope = "playlist-modify-public playlist-modify-private user-read-private user-library-read"
+
+    
+    # Make sure to properly encode the redirect URI and scope
+    encoded_redirect_uri = quote(redirect_uri)
+    encoded_scope = quote(scope)
+    
+    auth_url = (
+        "https://accounts.spotify.com/authorize"
+        f"?client_id={client_id}"
+        f"&response_type=code"
+        f"&redirect_uri={encoded_redirect_uri}"
+        f"&scope={encoded_scope}"
+        "&show_dialog=true"
+    )
+    print(auth_url)
+    return JsonResponse({"auth_url": auth_url})
+
+
+@require_http_methods(["GET"])
+def spotify_status(request):
+    access_token = request.session.get("spotify_access_token")
+    refresh_token = request.session.get("spotify_refresh_token")
+
+    if not access_token:
+        return JsonResponse({"connected": False})
+
+    # Test if the access token is still valid
+    response = requests.get(
+        "https://api.spotify.com/v1/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    # If token expired or invalid, attempt to refresh
+    if response.status_code == 401:
+        if not refresh_token:
+            return JsonResponse({"connected": False})
+
+        refresh_response = requests.post(
+            "https://accounts.spotify.com/api/token",
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+                "client_id": os.getenv("SPOTIFY_CLIENT_ID"),
+                "client_secret": os.getenv("SPOTIFY_CLIENT_SECRET"),
+            },
+        )
+
+        if refresh_response.status_code != 200:
+            return JsonResponse({"connected": False})
+
+        tokens = refresh_response.json()
+        access_token = tokens.get("access_token")
+
+        # Update session with new token
+        request.session["spotify_access_token"] = access_token
+
+    return JsonResponse({"connected": True})
+
+
+def spotify_callback(request):
+    code = request.GET.get("code")
+
+    if not code:
+        return JsonResponse({"error": "Authorization code missing"}, status=400)
+
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
+
+    try:
+        # Get access token
+        token_response = requests.post(
+            "https://accounts.spotify.com/api/token",
+            data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+        )
+
+        if token_response.status_code != 200:
+            print(f"Token response error: {token_response.status_code}")
+            print(f"Token response content: {token_response.text}")
+            return JsonResponse({"error": "Failed to get access token"}, status=500)
+        
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        expires_in = token_data.get("expires_in", 3600)
+
+        if not access_token:
+            return JsonResponse({"error": "Access token not found"}, status=500)
+
+        # Calculate expiration time
+        expires_at = timezone.now() + timedelta(seconds=expires_in)
+
+        # Fetch user's Spotify profile with error logging
+        profile_response = requests.get(
+            "https://api.spotify.com/v1/me",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        print(f"Profile response status: {profile_response.status_code}")
+        print(f"Profile response content: {profile_response.text}")
+
+        if profile_response.status_code != 200:
+            return JsonResponse({
+                "error": f"Failed to fetch Spotify profile. Status: {profile_response.status_code}, Response: {profile_response.text}"
+            }, status=500)
+
+        profile_data = profile_response.json()
+        spotify_user_id = profile_data.get("id")
+
+        if not spotify_user_id:
+            return JsonResponse({"error": "Spotify user ID not found in profile"}, status=500)
+
+        # Check if user is authenticated
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "User not authenticated"}, status=401)
+
+        # Save or update the SpotifyToken
+        spotify_token, created = SpotifyToken.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'spotify_user_id': spotify_user_id,
+                'expires_at': expires_at
+            }
+        )
+
+        request.session["spotify_access_token"] = access_token
+        request.session["spotify_refresh_token"] = refresh_token
+
+        return HttpResponseRedirect("https://spotonapp.win/view-playlist?connected=true")
+
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+        
+            
+@require_http_methods(["GET"])
+def get_user_spotify_playlists(request, user_id):
+    """Get public playlists for a specific user."""
+    try:
+        # Get user's Spotify token
+        try:
+            user = User.objects.get(id=user_id)
+            spotify_token = SpotifyToken.objects.get(user=user)
+        except (User.DoesNotExist, SpotifyToken.DoesNotExist):
+            return JsonResponse({
+                "error": "User not found or not connected to Spotify",
+                "is_connected": False
+            }, status=200)  # Return 200 but indicate not connected
+
+        # Use the stored access token
+        access_token = spotify_token.access_token
+
+        # Fetch playlists from Spotify API
+        response = requests.get(
+            f'https://api.spotify.com/v1/users/{spotify_token.spotify_user_id}/playlists',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"limit": 50}
+        )
+
+        if response.status_code == 401:
+            # Token expired, try to refresh
+            refresh_token = spotify_token.refresh_token
+            if not refresh_token:
+                return JsonResponse({
+                    "error": "Spotify token expired and no refresh token available",
+                    "is_connected": False
+                }, status=401)
+
+            # Try to refresh the token
+            refresh_response = requests.post(
+                "https://accounts.spotify.com/api/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": os.getenv("SPOTIFY_CLIENT_ID"),
+                    "client_secret": os.getenv("SPOTIFY_CLIENT_SECRET"),
+                },
+            )
+
+            if refresh_response.status_code != 200:
+                return JsonResponse({
+                    "error": "Failed to refresh token",
+                    "is_connected": False
+                }, status=401)
+
+            # Update access token in database
+            tokens = refresh_response.json()
+            new_access_token = tokens.get("access_token")
+            spotify_token.access_token = new_access_token
+            spotify_token.save()
+
+            # Retry the playlist request with new token
+            response = requests.get(
+                f'https://api.spotify.com/v1/users/{spotify_token.spotify_user_id}/playlists',
+                headers={"Authorization": f"Bearer {new_access_token}"},
+                params={"limit": 50}
+            )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Failed to fetch playlists: {response.status_code}",
+                "is_connected": True
+            }, status=500)
+
+        data = response.json()
+        
+        # Process and return only public playlists
+        playlists = [{
+            'id': playlist['id'],
+            'name': playlist['name'],
+            'description': playlist['description'],
+            'image_url': playlist['images'][0]['url'] if playlist['images'] else None,
+            'tracks_total': playlist['tracks']['total'],
+            'external_url': playlist['external_urls']['spotify']
+        } for playlist in data['items'] if playlist['public']]
+
+        return JsonResponse({
+            "playlists": playlists,
+            "total": len(playlists),
+            "is_connected": True
+        })
+
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": f"Failed to communicate with Spotify API: {str(e)}"
+        }, status=503)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+# backend/api/views.py
+
+
+@require_http_methods(["GET"])
+def get_user_playlists(request):
+    """Get user's Spotify playlists."""
+    access_token = request.session.get("spotify_access_token")
+    if not access_token:
+        return JsonResponse({"error": "Not connected to Spotify"}, status=401)
+
+    try:
+        # Get query parameters for pagination
+        limit = min(int(request.GET.get('limit', 20)), 50)  # Cap at 50 playlists
+        offset = int(request.GET.get('offset', 0))
+
+        # Get user's playlists from Spotify
+        response = requests.get(
+            'https://api.spotify.com/v1/me/playlists',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                'limit': limit,
+                'offset': offset
+            }
+        )
+
+        if response.status_code == 401:
+            # Token expired, try to refresh
+            refresh_token = request.session.get("spotify_refresh_token")
+            if not refresh_token:
+                return JsonResponse({"error": "Spotify session expired"}, status=401)
+
+            # Refresh the token
+            refresh_response = requests.post(
+                "https://accounts.spotify.com/api/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": os.getenv("SPOTIFY_CLIENT_ID"),
+                    "client_secret": os.getenv("SPOTIFY_CLIENT_SECRET"),
+                },
+            )
+
+            if refresh_response.status_code != 200:
+                return JsonResponse({"error": "Failed to refresh token"}, status=401)
+
+            # Update access token and retry request
+            tokens = refresh_response.json()
+            access_token = tokens.get("access_token")
+            request.session["spotify_access_token"] = access_token
+
+            response = requests.get(
+                'https://api.spotify.com/v1/me/playlists',
+                headers={"Authorization": f"Bearer {access_token}"},
+                params={
+                    'limit': limit,
+                    'offset': offset
+                }
+            )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Spotify API error: {response.status_code}"
+            }, status=response.status_code)
+
+        data = response.json()
+        
+        # Process playlists to include additional information
+        playlists = []
+        for item in data['items']:
+            playlist = {
+                'id': item['id'],
+                'name': item['name'],
+                'description': item['description'],
+                'public': item['public'],
+                'tracks_total': item['tracks']['total'],
+                'external_url': item['external_urls']['spotify'],
+                'image_url': item['images'][0]['url'] if item['images'] else None,
+                'owner': {
+                    'display_name': item['owner']['display_name'],
+                    'id': item['owner']['id']
+                },
+                'followers': item.get('followers', {}).get('total'),
+                'created_at': None,  # Spotify API doesn't provide this directly
+                'last_modified': None  # Will be fetched for each playlist
+            }
+            playlists.append(playlist)
+
+        return JsonResponse({
+            "playlists": playlists,
+            "total": data['total'],
+            "limit": limit,
+            "offset": offset,
+            "next": data['next'],
+            "previous": data['previous']
+        })
+
+    except ValueError:
+        return JsonResponse({"error": "Invalid limit or offset parameter"}, status=400)
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=503)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_playlist_details(request, playlist_id):
+    """Get detailed information about a specific playlist."""
+    access_token = request.session.get("spotify_access_token")
+    print(access_token)
+    if not access_token:
+        return JsonResponse({"error": "Not connected to Spotify"}, status=401)
+
+    try:
+        # Get playlist details
+        response = requests.get(
+            f'https://api.spotify.com/v1/playlists/{playlist_id}',
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Failed to fetch playlist: {response.status_code}"
+            }, status=response.status_code)
+
+        data = response.json()
+
+        # Get all tracks (handling pagination)
+        tracks = []
+        tracks_url = data['tracks']['href']
+        while tracks_url:
+            tracks_response = requests.get(
+                tracks_url,
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            
+            if tracks_response.status_code != 200:
+                break
+
+            tracks_data = tracks_response.json()
+            for item in tracks_data['items']:
+                if item['track']:  # Check if track exists (not null)
+                    track = item['track']
+                    tracks.append({
+                        'id': track['id'],
+                        'name': track['name'],
+                        'artist': ', '.join(artist['name'] for artist in track['artists']),
+                        'album': track['album']['name'],
+                        'duration_ms': track['duration_ms'],
+                        'image_url': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                        'preview_url': track['preview_url'],
+                        'added_at': item['added_at'],
+                        'added_by': item['added_by']['id']
+                    })
+            
+            tracks_url = tracks_data.get('next')
+
+        playlist_details = {
+            'id': data['id'],
+            'name': data['name'],
+            'description': data['description'],
+            'public': data['public'],
+            'tracks_total': data['tracks']['total'],
+            'image_url': data['images'][0]['url'] if data['images'] else None,
+            'external_url': data['external_urls']['spotify'],
+            'owner': {
+                'display_name': data['owner']['display_name'],
+                'id': data['owner']['id']
+            },
+            'followers': data['followers']['total'],
+            'tracks': tracks
+        }
+
+        return JsonResponse(playlist_details)
+
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=503)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+@require_http_methods(["POST"])
+def add_track_to_playlist(request, playlist_id):
+    """Add a track to a playlist."""
+    access_token = request.session.get("spotify_access_token")
+    if not access_token:
+        return JsonResponse({"error": "Not connected to Spotify"}, status=401)
+
+    try:
+        track_id = request.POST.get('track_id')
+        if not track_id:
+            return JsonResponse({"error": "Track ID is required"}, status=400)
+
+        # Add track to playlist
+        response = requests.post(
+            f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "uris": [f"spotify:track:{track_id}"]
+            }
+        )
+
+        if response.status_code != 201:
+            return JsonResponse({
+                "error": f"Failed to add track: {response.status_code}"
+            }, status=response.status_code)
+
+        return JsonResponse({"success": True})
+
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=503)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+def get_user_spotify_tracks(request, user_id):
+    """Get liked songs for a specific user."""
+    try:
+        # Get user's Spotify token
+        try:
+            user = User.objects.get(id=user_id)
+            spotify_token = SpotifyToken.objects.get(user=user)
+        except (User.DoesNotExist, SpotifyToken.DoesNotExist):
+            return JsonResponse({
+                "error": "User not found or not connected to Spotify",
+                "is_connected": False
+            }, status=200)  # Return 200 but indicate not connected
+
+        # Use the stored access token
+        access_token = spotify_token.access_token
+
+        # Fetch tracks from Spotify API
+        response = requests.get(
+            'https://api.spotify.com/v1/me/tracks',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "limit": 50,  # Max number of items to return (1-50)
+            }
+        )
+        
+        print(response.json())
+        if response.status_code == 401:
+            # Token expired, try to refresh
+            refresh_token = spotify_token.refresh_token
+            if not refresh_token:
+                return JsonResponse({
+                    "error": "Spotify token expired and no refresh token available",
+                    "is_connected": False
+                }, status=401)
+
+            # Try to refresh the token
+            refresh_response = requests.post(
+                "https://accounts.spotify.com/api/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": os.getenv("SPOTIFY_CLIENT_ID"),
+                    "client_secret": os.getenv("SPOTIFY_CLIENT_SECRET"),
+                },
+            )
+
+            if refresh_response.status_code != 200:
+                return JsonResponse({
+                    "error": "Failed to refresh token",
+                    "is_connected": False
+                }, status=401)
+
+            # Update access token in database
+            tokens = refresh_response.json()
+            new_access_token = tokens.get("access_token")
+            spotify_token.access_token = new_access_token
+            spotify_token.save()
+
+            # Retry the tracks request with new token
+            response = requests.get(
+                f'https://api.spotify.com/v1/users/{spotify_token.spotify_user_id}/tracks',
+                headers={"Authorization": f"Bearer {new_access_token}"},
+                params={"limit": 15}
+            )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Failed to fetch tracks: {response.status_code}",
+                "is_connected": True
+            }, status=500)
+
+        data = response.json()
+        
+# Process and return user's liked tracks
+# Response should be parsed in a way the frontend asks
+        liked_tracks = [{
+            'id': item['track']['id'],
+            'name': item['track']['name'],
+            'artists': [artist['name'] for artist in item['track']['artists']],
+            'album': item['track']['album']['name'],
+            'image_url': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None,
+            'external_url': item['track']['external_urls']['spotify']
+        } for item in data['items']]
+
+        return JsonResponse({
+            "liked_tracks": liked_tracks,
+            "total": len(liked_tracks),
+            "is_connected": True
+        })
+
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": f"Failed to communicate with Spotify API: {str(e)}"
+        }, status=503)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    

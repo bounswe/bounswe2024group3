@@ -10,8 +10,7 @@ import {
   Text,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import PostCard from '../../components/PostCard';
-import { REACT_APP_BACKEND_URL } from '@env';
+import SearchCard from '../../components/SearchCard';
 import axios from 'axios';
 
 export default function SearchScreen() {
@@ -36,7 +35,9 @@ export default function SearchScreen() {
       setError('');
       try {
         const searchQuery = `search/?search=${query}`;
-        const response = await axios.get(`${REACT_APP_BACKEND_URL}${searchQuery}`);
+        console.log('Search query:', searchQuery);
+        console.log('Backend URL:', process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL);
+        const response = await axios.get(`${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}${searchQuery}`);
         const fetchedPosts = response.data.contents || [];
         if (fetchedPosts.length === 0) {
           setError('No posts found');
@@ -59,43 +60,30 @@ export default function SearchScreen() {
   }, [query]);
 
   const renderPost = ({ item }) => {
-    // Extract image URL using regex to handle the description string
-    let imageUrl = '';
-    const imageMatch = item.description.match(/'images': \[{'url': '([^']+)'/);
-    
-    if (imageMatch) {
-      imageUrl = imageMatch[1]; // Extracted URL from description
-    } else {
-      imageUrl = ''; // Fallback to an empty string if no image is found
-    }
+    const {
+      ai_description = "No description available",
+      album_name = "Unknown album",
+      artist_names = [],
+      content_type = "Unknown",
+      genres = [],
+      id,
+      link,
+      song_name = "Untitled",
+    } = item;
   
-    // Extract release date from the description
-    let releaseDate = 'Unknown';
-    const releaseDateMatch = item.description.match(/'release_date': '([^']+)'/);
-
-
-    if (releaseDateMatch) {
-      releaseDate = `release date: ${releaseDateMatch[1]}`; // Format as "release date: {date}"
-    } else {
-      releaseDate = 'release date: Unknown'; // Fallback if release date is not found
-    }
+    const spotifyId = link.split("/").pop();
   
     return (
-      <PostCard
+      <SearchCard
         post={{
-          id: item.id,
-          title: item.comment || 'Untitled', // Use comment as title or default to "Untitled"
-          content: releaseDate || 'Unknown release date', // Use release date as content
-          username: item.content_type || 'Unknown User', // Use content_type or fallback
-          imageUrl: imageUrl, // Use extracted image URL
-          type: item.content_type || 'unknown', // Extract type from content_type
-          spotifyId: item.link.split('/').pop(), // Extract Spotify ID from the link
-          likes: item.total_likes || 0, // Fallback to 0 if no likes field
-          dislikes: item.total_dislikes || 0, // Fallback to 0 if no dislikes field
-          userAction: null, // No user action initially
-          created_at: new Date(item.created_at), // Parse created_at timestamp
+          id,
+          title: song_name, // Use song_name as the title
+          content: `Album: ${album_name}`, // Use album_name as content
+          username: artist_names.join(", ") || "Unknown Artist", // Join artist names
+          spotifyId, // Extract Spotify ID
+          genres, // Include genres
+          type: content_type, // Pass content type for SpotifyEmbed
         }}
-        isFeed={true}
         isDarkTheme={isDarkTheme}
       />
     );

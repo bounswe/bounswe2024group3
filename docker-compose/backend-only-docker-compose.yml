@@ -8,7 +8,7 @@ services:
     restart: always
     shm_size: 128mb
     environment:
-      POSTGRES_PASSWORD: topsecret
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
 
   # Adminer for database management
   adminer:
@@ -31,9 +31,12 @@ services:
       DB_PORT: 5432
       DB_NAME: postgres
       DB_USERNAME: postgres
-      DB_PASSWORD: topsecret
-      SPOTIFY_CLIENT_ID: c62a7c9ab8724af590583cf994eb285a
-      SPOTIFY_CLIENT_SECRET: 3ffb6e9ee94b47788078cffdcdd6f31b
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI} 
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DEBUG: ${DJANGO_DEBUG}
 
     depends_on:
       - db

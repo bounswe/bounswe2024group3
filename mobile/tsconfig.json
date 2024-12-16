@@ -20,8 +20,6 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "context/ThemeContext.js",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "context/ThemeContext.js"
   ]
 }

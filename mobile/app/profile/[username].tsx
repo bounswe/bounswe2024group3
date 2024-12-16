@@ -9,10 +9,12 @@ import {
   Alert,
   FlatList,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 import axios from 'axios';
 import { useLocalSearchParams } from 'expo-router';
 import PostCard from '../../components/PostCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface UserData {
   message: string;
@@ -48,10 +50,38 @@ interface UserPost {
 
 export default function UserProfileScreen() {
   const { username } = useLocalSearchParams<{ username: string }>();
+
   const [userData, setUserData] = useState<UserData | null>(null);
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [loadingUser, setLoadingUser] = useState<boolean>(true);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
+
+  // Follow/unfollow states
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [loadingFollow, setLoadingFollow] = useState<boolean>(false);
+
+  // We'll also need the logged-in user's data (with user_id).
+  // Stored in AsyncStorage, or provided by some context, etc.
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  // On mount, load the current logged-in user's info from AsyncStorage
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('userData');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // E.g. parsed might contain { user_id, username, name, ... }
+          if (parsed.user_id) {
+            setCurrentUserId(parsed.user_id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load current user data:", error);
+      }
+    };
+    loadCurrentUser();
+  }, []);
 
   // Fetch user details
   const fetchUserData = useCallback(async () => {
@@ -87,10 +117,63 @@ export default function UserProfileScreen() {
     }
   }, [username]);
 
+  // Check if currently following
+  const checkFollowing = useCallback(async () => {
+    if (!username) return;
+    try {
+      const response = await axios.get(
+        `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}check-following`,
+        { params: { username } }
+      );
+      // response.data => { "is_following": true/false, "current_user": "a", "target_user": "aa" }
+      setIsFollowing(response.data.is_following);
+    } catch (error) {
+      console.error("Failed to check following:", error);
+    }
+  }, [username]);
+
+  // Follow user
+  const handleFollow = async () => {
+    if (!userData) return; // we need userData.user_id
+    setLoadingFollow(true);
+
+    try {
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}follow/${userData.user_id}/`
+      );
+      // After successful follow, set isFollowing to true
+      setIsFollowing(true);
+    } catch (error) {
+      console.error("Failed to follow:", error);
+      Alert.alert("Error", "Failed to follow user.");
+    } finally {
+      setLoadingFollow(false);
+    }
+  };
+
+  // Unfollow user
+  const handleUnfollow = async () => {
+    if (!userData) return;
+    setLoadingFollow(true);
+
+    try {
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}unfollow/${userData.user_id}/`
+      );
+      setIsFollowing(false);
+    } catch (error) {
+      console.error("Failed to unfollow:", error);
+      Alert.alert("Error", "Failed to unfollow user.");
+    } finally {
+      setLoadingFollow(false);
+    }
+  };
+
   useEffect(() => {
     fetchUserData();
     fetchUserPosts();
-  }, [fetchUserData, fetchUserPosts]);
+    checkFollowing();
+  }, [fetchUserData, fetchUserPosts, checkFollowing]);
 
   // Map the userPost structure into the props your PostCard expects
   const mapUserPostToPost = (userPost: UserPost) => {
@@ -145,7 +228,7 @@ export default function UserProfileScreen() {
     labelsArray = [];
   }
 
-  // Render a header component that displays user info
+  // Render a header component that displays user info + follow button
   const renderHeader = () => (
     <View>
       <View style={styles.userInfo}>
@@ -153,7 +236,26 @@ export default function UserProfileScreen() {
         <Text style={styles.username}>@{userData.username}</Text>
         <Text style={styles.email}>{userData.email}</Text>
         <Text style={styles.labels}>Labels: {labelsArray.join(', ')}</Text>
+
+        {/* Follow/Unfollow logic */}
+        {currentUserId && currentUserId !== userData.user_id ? (
+          <View style={{ marginTop: 12 }}>
+            {loadingFollow ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : isFollowing ? (
+              <TouchableOpacity style={styles.unfollowButton} onPress={handleUnfollow}>
+                <Text style={styles.buttonText}>Unfollow</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
+                <Text style={styles.buttonText}>Follow</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : null}
+        {/* If the current logged-in user is viewing their own profile or no user info, hide the follow button */}
       </View>
+
       <View style={styles.divider} />
       <Text style={styles.sectionTitle}>Posts by {username}</Text>
     </View>
@@ -228,5 +330,22 @@ const styles = StyleSheet.create({
     color: '#555',
     textAlign: 'center',
     marginTop: 16,
+  },
+  followButton: {
+    backgroundColor: '#2f95dc',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  unfollowButton: {
+    backgroundColor: 'red',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

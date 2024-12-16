@@ -210,7 +210,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       </Text>
 
       {/* Spotify Embed */}
-      {isFeed && <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />}
+      {<SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />}
 
       {/* Text Content */}
       {post.content && (

@@ -46,23 +46,15 @@ export default function CombinedPosts() {
 
   const renderPost = ({ item }) => {
     // Extract image URL using regex to handle the description string
-    let imageUrl = '';
-    const imageMatch = item.content.description.match(/'images': \[{'url': '([^']+)'/);
-  
-    if (imageMatch) {
-      imageUrl = imageMatch[1]; // The URL is captured in the first capturing group
-    } else {
-      imageUrl = item.image || ''; // Fallback to `item.image` if no match
-    }
+    console.log('Item:', item);
   
     return (
       <PostCard
         post={{
           id: item.id,
-          title: item.comment || 'Untitled', // Use comment as title or default to "Untitled"
+          title: '', // Use comment as title or default to "Untitled"
           content: item.comment || 'No content available', // Fallback if no comment
           username: item.username,
-          imageUrl: imageUrl, // Use extracted image URL
           type: item.content.content_type || 'unknown', // Extract type from content
           spotifyId: item.content.link.split('/').pop(), // Extract Spotify ID from the link
           likes: item.total_likes || 0, // Fallback to 0 if no likes field

@@ -8,18 +8,14 @@
       "@/*": [
         "./*"
       ],
-      "@env": [
-        "./env.d.ts"
-      ]
+      "@env": ["./env.d.ts"]
     },
-    "typeRoots": [
-      "./node_modules/@types",
-      "./"
-    ]
+    "typeRoots": ["./node_modules/@types", "./"]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "context/ThemeContext.js"
-  ]
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+, "context/ThemeContext.js"  ]
 }

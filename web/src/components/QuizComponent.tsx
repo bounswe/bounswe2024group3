@@ -37,6 +37,11 @@ const QuizComponent: React.FC<QuizProps> = ({ posts }) => {
       console.log("Selected tracks:", selectedTracks);
       console.log("Correct answer:", correctAnswer);
 
+      if (correctAnswer === correctTrack) {
+        generateQuiz();
+        return;
+      }
+
       setQuizTracks(selectedTracks);
       setCorrectTrack(correctAnswer);
     } catch (error) {
@@ -69,10 +74,37 @@ const QuizComponent: React.FC<QuizProps> = ({ posts }) => {
           <div
             className="absolute inset-0 bg-white"
             style={{
-              pointerEvents: "none", // Allow interaction with the play button
+              // pointerEvents: "none", // Allow interaction with the play button
               clipPath: "polygon(0 0, 100% 0, 90% 60%, 100% 100%, 0 100%)", // Rectangle covering the leftmost part (60% width)
             }}
           ></div>
+
+          <div
+            className="absolute inset-0 bg-white"
+            style={{
+              // pointerEvents: "none", // Allow interaction with the play button
+              clipPath: "polygon(190% 0, 75% 0, 97% 58%, 75% 100%, 190% 100%)", // Rectangle covering the leftmost part (60% width)
+            }}
+          ></div>
+
+          <div
+            className="absolute inset-0 bg-white"
+            style={{
+              pointerEvents: "none", // Allow interaction with the play button
+            }}
+          ></div>
+
+          <div
+            className="absolute text-center text-black"
+            style={{
+              top: "41%", // Adjust y-axis (default center)
+              left: "88%", // Adjust x-axis (default center)
+              // transform: "translate(-50%, -50%)", // Center align the text
+              fontSize: "14px", // Adjust font size if needed
+              pointerEvents: "none", // Allow interaction with the play button
+            }}
+          >Play
+          </div>
         </div>
       )}
       <div className="grid grid-cols-2 gap-4">

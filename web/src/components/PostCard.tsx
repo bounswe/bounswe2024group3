@@ -12,6 +12,7 @@ const PostCard = ({ post, isFeed }: { post: PostDetails; isFeed: boolean }) => {
   const [likes, setLikes] = useState(post.total_likes);
   const [dislikes, setDislikes] = useState(post.total_dislikes);
   const [userAction, setUserAction] = useState<string | null>(post.userAction);
+
   // const [isFollowing, setIsFollowing] = useState(post.isFollowing); // Check if the user is already followed
   useAccessibility();
 

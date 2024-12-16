@@ -12,6 +12,7 @@ import { UserProvider } from "./providers/UserContext";
 import ResetRequestPage from "./pages/ResetRequestPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { FeedPage } from "./pages/FeedPage";
+import { QuizPage } from "./pages/QuizPage";
 import UserPage from "./pages/UserPage";
 import ListPlaylistsPage from "./pages/ListPlaylistsPage"; 
 import PlaylistDetailPage from "./pages/PlaylistDetailPage";
@@ -28,6 +29,7 @@ root.render(
             <Layout>
               <Routes>
                 <Route path= "/"    element={<FeedPage/>} />,
+                <Route path= "/quiz"    element={<QuizPage/>} />,
                 <Route path="/feed" element={<FeedPage />} />
                 <Route path="track/:spotifyId" element={<PostPage type="track" />} />
                 <Route path="artist/:spotifyId" element={<PostPage type="artist" />} />

@@ -22,6 +22,9 @@ const Header = () => {
         <Link className="btn btn-ghost text-xl" to="/" aria-label="Spot On">
           Spot On
         </Link>
+        <Link className="btn btn-ghost text-s" to="/quiz">
+          Fun Quiz
+        </Link>
       </div>  
 
       { <form onSubmit={handleSearch} className="flex-none gap-2">

@@ -1,6 +1,6 @@
 # SpotOn
 
-SpotOn is a platform where users can express their feelings and opinions on music, find concert events, and explore engaging music-related content through semantic search and personalized recommendations. Whether you're a listener, an artist, or a hobbyist, SpotOn brings music lovers together in a dynamic and interactive environment.
+SpotOn is a platform where users can express their feelings and opinions on music, find events, and explore engaging music-related content through semantic search and personalized recommendations. Whether you're a listener, an artist, or a hobbyist, SpotOn brings music lovers together in a dynamic and interactive environment.
 
 ## General Features
 

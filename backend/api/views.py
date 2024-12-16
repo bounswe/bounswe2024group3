@@ -1495,7 +1495,6 @@ def search_spotify(request):
 @require_http_methods(["GET"])
 def spotify_auth(request):
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
-    batuhan/advanceSearchAndFollowingPost
     redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
     scope = "playlist-modify-public playlist-modify-private user-read-private user-library-read"
 

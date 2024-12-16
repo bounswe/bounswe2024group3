@@ -14,16 +14,7 @@ import {
 import SpotifyEmbed from './SpotifyEmbed';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
-
-interface PostDetails {
-  // Define the structure based on your actual post details
-}
-
-interface PostCardProps {
-  post: Post;
-  isFeed: boolean;
-  isDarkTheme: boolean;
-}
+import { Link } from 'expo-router';
 
 interface Post {
   id: number;
@@ -35,17 +26,20 @@ interface Post {
   dislikes: number;
   userAction: 'like' | 'dislike' | null;
   created_at: Date;
-  imageUrl?: string; // Assuming there's an image URL
-  content?: string;  // Assuming there's content
+  imageUrl?: string;
+  content?: string;
 }
 
+interface PostCardProps {
+  post: Post;
+  isFeed: boolean;
+  isDarkTheme: boolean;
+}
 
 const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [likes, setLikes] = useState<number>(post.likes);
   const [dislikes, setDislikes] = useState<number>(post.dislikes);
-  const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(
-    post.userAction
-  );
+  const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(post.userAction);
 
   // Loading states
   const [isLiking, setIsLiking] = useState<boolean>(false);
@@ -60,40 +54,49 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const likeScale = useState(new Animated.Value(1))[0];
   const dislikeScale = useState(new Animated.Value(1))[0];
 
-  // Handle Like Action
+  // Theme-based colors
+  const backgroundColor = isDarkTheme ? '#1e1e1e' : '#fff';
+  const textColor = isDarkTheme ? '#fff' : '#000';
+
+  // Determine button color
+  const getActionColor = (action: 'like' | 'dislike') => {
+    if (userAction === action) {
+      return action === 'like' ? 'blue' : 'red';
+    }
+    return isDarkTheme ? '#aaa' : '#555';
+  };
+
+  // Handle Like
   const handleLike = async () => {
     if (userAction === 'like') {
       Alert.alert('Oops!', 'You have already liked this post.');
       return;
     }
-
     setIsLiking(true);
-
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}posts/${post.id}/like/`
       );
 
-      console.log('Like Response:', response.data); // Debugging
-
-      // Scenario 1 & 3: Backend returns updated counts
       if (response.data.likes !== undefined && response.data.dislikes !== undefined) {
         setLikes(response.data.likes);
         setDislikes(response.data.dislikes);
-      } else if (response.data.total_likes !== undefined && response.data.total_dislikes !== undefined) {
+      } else if (
+        response.data.total_likes !== undefined &&
+        response.data.total_dislikes !== undefined
+      ) {
         setLikes(response.data.total_likes);
         setDislikes(response.data.total_dislikes);
       } else {
-        // Scenario 2: Backend does not return updated counts
-        setLikes((prevLikes) => prevLikes + 1);
+        // If no updated counts from backend:
+        setLikes((prev) => prev + 1);
         if (userAction === 'dislike') {
-          setDislikes((prevDislikes) => prevDislikes - 1);
+          setDislikes((prev) => Math.max(prev - 1, 0));
         }
       }
 
       setUserAction('like');
 
-      // Trigger like animation
       Animated.sequence([
         Animated.timing(likeScale, {
           toValue: 1.2,
@@ -107,56 +110,43 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
         }),
       ]).start();
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
-          const message = error.response.data.message || 'Bad Request';
-          Alert.alert('Error', message);
-        } else {
-          Alert.alert('Error', 'Failed to like the post. Please try again.');
-        }
-      } else {
-        Alert.alert('Error', 'An unexpected error occurred.');
-      }
+      console.error(error);
+      Alert.alert('Error', 'Failed to like the post. Please try again.');
     } finally {
       setIsLiking(false);
     }
   };
 
-  // Handle Dislike Action
+  // Handle Dislike
   const handleDislike = async () => {
     if (userAction === 'dislike') {
       Alert.alert('Oops!', 'You have already disliked this post.');
       return;
     }
-
     setIsDisliking(true);
-
     try {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}posts/${post.id}/dislike/`
       );
 
-      console.log('Dislike Response:', response.data); // Debugging
-
-      // Scenario 1 & 3: Backend returns updated counts
       if (response.data.likes !== undefined && response.data.dislikes !== undefined) {
         setLikes(response.data.likes);
         setDislikes(response.data.dislikes);
-      } else if (response.data.total_likes !== undefined && response.data.total_dislikes !== undefined) {
+      } else if (
+        response.data.total_likes !== undefined &&
+        response.data.total_dislikes !== undefined
+      ) {
         setLikes(response.data.total_likes);
         setDislikes(response.data.total_dislikes);
       } else {
-        // Scenario 2: Backend does not return updated counts
-        setDislikes((prevDislikes) => prevDislikes + 1);
+        setDislikes((prev) => prev + 1);
         if (userAction === 'like') {
-          setLikes((prevLikes) => prevLikes - 1);
+          setLikes((prev) => Math.max(prev - 1, 0));
         }
       }
 
-
       setUserAction('dislike');
 
-      // Trigger dislike animation
       Animated.sequence([
         Animated.timing(dislikeScale, {
           toValue: 1.2,
@@ -170,26 +160,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
         }),
       ]).start();
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
-          const message = error.response.data.message || 'Bad Request';
-          Alert.alert('Error', message);
-        } else {
-          Alert.alert('Error', 'Failed to dislike the post. Please try again.');
-        }
-      } else {
-        Alert.alert('Error', 'An unexpected error occurred.');
-      }
+      console.error(error);
+      Alert.alert('Error', 'Failed to dislike the post. Please try again.');
     } finally {
       setIsDisliking(false);
     }
   };
 
-  // Called when the user presses "Show lyrics"
+  // Fetch lyrics
   const fetchLyrics = async () => {
     try {
       setIsLyricsLoading(true);
-      // Build the full Spotify URL using the ID
       const spotifyUrl = `https://open.spotify.com/track/${post.spotifyId}`;
       const { data } = await axios.get(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get_lyrics/`,
@@ -203,61 +184,48 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       setLyrics('Failed to load lyrics. Please try again.');
     } finally {
       setIsLyricsLoading(false);
-      setShowLyrics(true); // Toggle the display
+      setShowLyrics(true);
     }
-  };
-
-  // Define colors based on the theme
-  const backgroundColor = isDarkTheme ? '#1e1e1e' : '#fff';
-  const textColor = isDarkTheme ? '#fff' : '#000';
-
-  // Helper function to determine action button color
-  const getActionColor = (action: 'like' | 'dislike') => {
-    if (userAction === action) {
-      return action === 'like' ? 'blue' : 'red';
-    }
-    return isDarkTheme ? '#aaa' : '#555';
   };
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {/* Title or image */}
+      {/* Title or Image */}
       {post.imageUrl ? (
         <Image source={{ uri: post.imageUrl }} style={styles.image} />
       ) : (
-        post.title && (
-          <Text style={[styles.title, { color: textColor }]}>{post.title}</Text>
-        )
+        post.title && <Text style={[styles.title, { color: textColor }]}>{post.title}</Text>
       )}
 
-      {/* Username and date */}
-      <Text style={[styles.username, { color: textColor }]}>
-        {post.username}
-      </Text>
+      {/* Make the username clickable via expo-router Link */}
+      <Link href={`/profile/${post.username}`} asChild>
+        <TouchableOpacity>
+          <Text style={[styles.username, { color: textColor }]}>{post.username}</Text>
+        </TouchableOpacity>
+      </Link>
+
+      {/* Date */}
       <Text style={[styles.date, { color: textColor }]}>
         {new Date(post.created_at).toLocaleString()}
       </Text>
 
-      {/* Spotify embed if feed */}
+      {/* Spotify Embed */}
       {isFeed && <SpotifyEmbed type={post.type} spotifyId={post.spotifyId} />}
 
-      {/* If there's text content, show it */}
+      {/* Text Content */}
       {post.content && (
-        <Text style={[styles.content, { color: textColor }]}>
-          {post.content}
-        </Text>
+        <Text style={[styles.content, { color: textColor }]}>{post.content}</Text>
       )}
 
-      {/* Like and Dislike buttons */}
+      {/* Like / Dislike */}
       <View style={styles.actions}>
-        <TouchableOpacity onPress={handleLike} activeOpacity={0.7} disabled={isLiking}>
+        <TouchableOpacity onPress={handleLike} disabled={isLiking}>
           <Animated.View
             style={[
               styles.actionButton,
               {
                 transform: [{ scale: likeScale }],
-                backgroundColor:
-                  userAction === 'like' ? '#e0f7fa' : 'transparent',
+                backgroundColor: userAction === 'like' ? '#e0f7fa' : 'transparent',
               },
             ]}
           >
@@ -267,9 +235,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
               color={getActionColor('like')}
               style={styles.icon}
             />
-            <Text style={[styles.actionText, { color: textColor }]}>
-              {likes}
-            </Text>
+            <Text style={[styles.actionText, { color: textColor }]}>{likes}</Text>
             {isLiking && (
               <ActivityIndicator
                 size="small"
@@ -280,14 +246,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
           </Animated.View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleDislike} activeOpacity={0.7} disabled={isDisliking}>
+        <TouchableOpacity onPress={handleDislike} disabled={isDisliking}>
           <Animated.View
             style={[
               styles.actionButton,
               {
                 transform: [{ scale: dislikeScale }],
-                backgroundColor:
-                  userAction === 'dislike' ? '#ffebee' : 'transparent',
+                backgroundColor: userAction === 'dislike' ? '#ffebee' : 'transparent',
               },
             ]}
           >
@@ -297,9 +262,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
               color={getActionColor('dislike')}
               style={styles.icon}
             />
-            <Text style={[styles.actionText, { color: textColor }]}>
-              {dislikes}
-            </Text>
+            <Text style={[styles.actionText, { color: textColor }]}>{dislikes}</Text>
             {isDisliking && (
               <ActivityIndicator
                 size="small"
@@ -311,32 +274,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Show Lyrics Button */}
+      {/* Show / Hide Lyrics Button */}
       <View style={{ marginTop: 16 }}>
         {!showLyrics ? (
           <TouchableOpacity
-            style={[
-              styles.showLyricsButton,
-              { borderColor: isDarkTheme ? '#fff' : '#333' },
-            ]}
+            style={[styles.showLyricsButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
             onPress={fetchLyrics}
           >
-            <Text style={{ color: textColor, fontWeight: 'bold' }}>
-              Show lyrics
-            </Text>
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Show lyrics</Text>
           </TouchableOpacity>
         ) : (
-          // If we already have lyrics or are loading them, toggle the view
           <TouchableOpacity
-            style={[
-              styles.showLyricsButton,
-              { borderColor: isDarkTheme ? '#fff' : '#333' },
-            ]}
+            style={[styles.showLyricsButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
             onPress={() => setShowLyrics(false)}
           >
-            <Text style={{ color: textColor, fontWeight: 'bold' }}>
-              Hide lyrics
-            </Text>
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Hide lyrics</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -355,6 +307,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   );
 };
 
+export default PostCard;
+
 const styles = StyleSheet.create({
   container: {
     padding: 16,
@@ -362,9 +316,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     elevation: 2, // Android shadow
     shadowColor: '#000', // iOS shadow
-    shadowOffset: { width: 0, height: 1 }, // iOS shadow
-    shadowOpacity: 0.2, // iOS shadow
-    shadowRadius: 1.41, // iOS shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   image: {
     width: '100%',
@@ -378,7 +332,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontWeight: '600',
-    marginBottom: 4,
+    marginVertical: 4,
   },
   date: {
     fontSize: 12,
@@ -404,9 +358,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontSize: 16,
   },
-  icon: {
-    // Additional styling if needed
-  },
+  icon: {},
   showLyricsButton: {
     padding: 10,
     borderRadius: 8,
@@ -414,5 +366,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-
-export default PostCard;

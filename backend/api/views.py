@@ -1494,7 +1494,7 @@ def search_spotify(request):
 @require_http_methods(["GET"])
 def spotify_auth(request):
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
-    redirect_uri = "http://localhost:8000/api/spotify/callback/"
+    redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
     scope = "playlist-modify-public playlist-modify-private user-read-private"
     
     # Make sure to properly encode the redirect URI and scope
@@ -1562,7 +1562,7 @@ def spotify_callback(request):
 
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
-    redirect_uri = "http://localhost:8000/api/spotify/callback/"
+    redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
 
     try:
         # Get access token
@@ -1631,7 +1631,7 @@ def spotify_callback(request):
         request.session["spotify_access_token"] = access_token
         request.session["spotify_refresh_token"] = refresh_token
 
-        return HttpResponseRedirect("http://localhost:3000/view-playlist?connected=true")
+        return HttpResponseRedirect("https://spotonapp.win/view-playlist?connected=true")
 
     except Exception as e:
         print(f"Unexpected error: {str(e)}")

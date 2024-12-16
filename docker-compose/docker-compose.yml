@@ -8,7 +8,7 @@ services:
     restart: always
     shm_size: 128mb
     environment:
-      POSTGRES_PASSWORD: topsecret
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -23,7 +23,11 @@ services:
   backend:
     build: ../backend
     container_name: backend
-    command: bash -c "sleep 3 && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: >
+      bash -c "sleep 3 &&
+      python manage.py makemigrations &&
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ../backend-vol:/backend
     ports:
@@ -33,12 +37,13 @@ services:
       DB_PORT: 5432
       DB_NAME: postgres
       DB_USERNAME: postgres
-      DB_PASSWORD: topsecret
-      SPOTIFY_CLIENT_ID: c62a7c9ab8724af590583cf994eb285a
-      SPOTIFY_CLIENT_SECRET: 3ffb6e9ee94b47788078cffdcdd6f31b
-      OPENAI_API_KEY : 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
-      DEBUG: ${DJANGO_DEBUG:-True}
-      PROD_HOST: ${BACKEND_URL:-0.0.0.0}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI} 
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DEBUG: ${DJANGO_DEBUG}
+      PROD_HOST: ${BACKEND_URL}
     depends_on:
       - db
     links:
@@ -54,7 +59,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_BACKEND_URL: ${BACKEND_URL:-0.0.0.0:8000}/api/
+      REACT_APP_BACKEND_URL: ${BACKEND_URL}/api/
       HOST: 0.0.0.0
     depends_on:
       - backend

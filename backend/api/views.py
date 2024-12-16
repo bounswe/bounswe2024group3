@@ -565,6 +565,7 @@ def get_following_posts(request):
             post_data = {
                 "id": post.id,
                 "user": user_info,
+                "username": post.belongs_to.username,
                 "comment": post.comment,
                 "image": post.image,
                 "link": post.link,
@@ -1494,8 +1495,10 @@ def search_spotify(request):
 @require_http_methods(["GET"])
 def spotify_auth(request):
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    batuhan/advanceSearchAndFollowingPost
     redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
-    scope = "playlist-modify-public playlist-modify-private user-read-private"
+    scope = "playlist-modify-public playlist-modify-private user-read-private user-library-read"
+
     
     # Make sure to properly encode the redirect URI and scope
     encoded_redirect_uri = quote(redirect_uri)
@@ -1946,3 +1949,101 @@ def add_track_to_playlist(request, playlist_id):
         return JsonResponse({"error": str(e)}, status=503)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+def get_user_spotify_tracks(request, user_id):
+    """Get liked songs for a specific user."""
+    try:
+        # Get user's Spotify token
+        try:
+            user = User.objects.get(id=user_id)
+            spotify_token = SpotifyToken.objects.get(user=user)
+        except (User.DoesNotExist, SpotifyToken.DoesNotExist):
+            return JsonResponse({
+                "error": "User not found or not connected to Spotify",
+                "is_connected": False
+            }, status=200)  # Return 200 but indicate not connected
+
+        # Use the stored access token
+        access_token = spotify_token.access_token
+
+        # Fetch tracks from Spotify API
+        response = requests.get(
+            'https://api.spotify.com/v1/me/tracks',
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "limit": 50,  # Max number of items to return (1-50)
+            }
+        )
+        
+        print(response.json())
+        if response.status_code == 401:
+            # Token expired, try to refresh
+            refresh_token = spotify_token.refresh_token
+            if not refresh_token:
+                return JsonResponse({
+                    "error": "Spotify token expired and no refresh token available",
+                    "is_connected": False
+                }, status=401)
+
+            # Try to refresh the token
+            refresh_response = requests.post(
+                "https://accounts.spotify.com/api/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": os.getenv("SPOTIFY_CLIENT_ID"),
+                    "client_secret": os.getenv("SPOTIFY_CLIENT_SECRET"),
+                },
+            )
+
+            if refresh_response.status_code != 200:
+                return JsonResponse({
+                    "error": "Failed to refresh token",
+                    "is_connected": False
+                }, status=401)
+
+            # Update access token in database
+            tokens = refresh_response.json()
+            new_access_token = tokens.get("access_token")
+            spotify_token.access_token = new_access_token
+            spotify_token.save()
+
+            # Retry the tracks request with new token
+            response = requests.get(
+                f'https://api.spotify.com/v1/users/{spotify_token.spotify_user_id}/tracks',
+                headers={"Authorization": f"Bearer {new_access_token}"},
+                params={"limit": 15}
+            )
+
+        if response.status_code != 200:
+            return JsonResponse({
+                "error": f"Failed to fetch tracks: {response.status_code}",
+                "is_connected": True
+            }, status=500)
+
+        data = response.json()
+        
+# Process and return user's liked tracks
+# Response should be parsed in a way the frontend asks
+        liked_tracks = [{
+            'id': item['track']['id'],
+            'name': item['track']['name'],
+            'artists': [artist['name'] for artist in item['track']['artists']],
+            'album': item['track']['album']['name'],
+            'image_url': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None,
+            'external_url': item['track']['external_urls']['spotify']
+        } for item in data['items']]
+
+        return JsonResponse({
+            "liked_tracks": liked_tracks,
+            "total": len(liked_tracks),
+            "is_connected": True
+        })
+
+    except requests.RequestException as e:
+        return JsonResponse({
+            "error": f"Failed to communicate with Spotify API: {str(e)}"
+        }, status=503)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    

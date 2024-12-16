@@ -12,7 +12,6 @@ import {
 import PostCard from '../../components/PostCard';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import { req } from '../../utils/client';
 import FloatingButton from '../../components/FloatingButton';
 import CreatePostModal from '../../components/CreatePostModal';
 

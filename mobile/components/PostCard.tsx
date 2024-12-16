@@ -16,6 +16,15 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
 import { Link } from 'expo-router';
 
+
+interface Suggestion {
+  name: string;
+  artist: string;
+  spotify_url: string;
+  reason: string;
+}
+
+
 interface Post {
   id: number;
   title: string;
@@ -35,8 +44,8 @@ interface PostCardProps {
   isFeed: boolean;
   isDarkTheme: boolean;
 }
-
 const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
+
   const [likes, setLikes] = useState<number>(post.likes);
   const [dislikes, setDislikes] = useState<number>(post.dislikes);
   const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(post.userAction);
@@ -45,10 +54,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
   const [isLiking, setIsLiking] = useState<boolean>(false);
   const [isDisliking, setIsDisliking] = useState<boolean>(false);
 
-  // State for lyrics
+  // Lyrics states
   const [lyrics, setLyrics] = useState<string | null>(null);
   const [isLyricsLoading, setIsLyricsLoading] = useState<boolean>(false);
   const [showLyrics, setShowLyrics] = useState<boolean>(false);
+
+  // AI description & suggestions
+  const [aiDescription, setAiDescription] = useState<string>('');
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [isFetchingAi, setIsFetchingAi] = useState<boolean>(false);
+  const [hasFetchedAi, setHasFetchedAi] = useState<boolean>(false);
+
+  // Toggles for displaying fetched data
+  const [showDescription, setShowDescription] = useState<boolean>(false);
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
 
   // Animation values
   const likeScale = useState(new Animated.Value(1))[0];
@@ -66,7 +85,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
     return isDarkTheme ? '#aaa' : '#555';
   };
 
-  // Handle Like
+  //=== LIKE ACTION
   const handleLike = async () => {
     if (userAction === 'like') {
       Alert.alert('Oops!', 'You have already liked this post.');
@@ -77,6 +96,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}posts/${post.id}/like/`
       );
+      console.log('Like Response:', response.data);
 
       if (response.data.likes !== undefined && response.data.dislikes !== undefined) {
         setLikes(response.data.likes);
@@ -97,27 +117,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
 
       setUserAction('like');
 
+      // Trigger animation
       Animated.sequence([
-        Animated.timing(likeScale, {
-          toValue: 1.2,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(likeScale, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
+        Animated.timing(likeScale, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+        Animated.timing(likeScale, { toValue: 1, duration: 100, useNativeDriver: true }),
       ]).start();
     } catch (error) {
-      console.error(error);
+      console.error('Failed to like post:', error);
       Alert.alert('Error', 'Failed to like the post. Please try again.');
     } finally {
       setIsLiking(false);
     }
   };
 
-  // Handle Dislike
+  //=== DISLIKE ACTION
   const handleDislike = async () => {
     if (userAction === 'dislike') {
       Alert.alert('Oops!', 'You have already disliked this post.');
@@ -128,6 +141,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}posts/${post.id}/dislike/`
       );
+      console.log('Dislike Response:', response.data);
 
       if (response.data.likes !== undefined && response.data.dislikes !== undefined) {
         setLikes(response.data.likes);
@@ -142,41 +156,34 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
         setDislikes((prev) => prev + 1);
         if (userAction === 'like') {
           setLikes((prev) => Math.max(prev - 1, 0));
+
         }
       }
 
       setUserAction('dislike');
 
       Animated.sequence([
-        Animated.timing(dislikeScale, {
-          toValue: 1.2,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(dislikeScale, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
+        Animated.timing(dislikeScale, { toValue: 1.2, duration: 100, useNativeDriver: true }),
+        Animated.timing(dislikeScale, { toValue: 1, duration: 100, useNativeDriver: true }),
       ]).start();
     } catch (error) {
-      console.error(error);
+      console.error('Failed to dislike post:', error);
       Alert.alert('Error', 'Failed to dislike the post. Please try again.');
     } finally {
       setIsDisliking(false);
     }
   };
 
-  // Fetch lyrics
+
+  //=== LYRICS
   const fetchLyrics = async () => {
     try {
       setIsLyricsLoading(true);
       const spotifyUrl = `https://open.spotify.com/track/${post.spotifyId}`;
+      console.log('Fetching lyrics for:', spotifyUrl);
       const { data } = await axios.get(
         `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get_lyrics/`,
-        {
-          params: { spotify_url: spotifyUrl },
-        }
+        { params: { spotify_url: spotifyUrl } }
       );
       setLyrics(data.lyrics);
     } catch (error) {
@@ -185,6 +192,37 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
     } finally {
       setIsLyricsLoading(false);
       setShowLyrics(true);
+    }
+  };
+
+  //=== AI DESCRIPTION & SUGGESTIONS
+  const fetchAiAndSuggestions = async () => {
+    // Only fetch once
+    if (hasFetchedAi) return;
+
+    try {
+      setIsFetchingAi(true);
+      console.log('Fetching AI description & suggestions with id=', post.id);
+
+      const endpoint = `${process.env.EXPO_PUBLIC_REACT_APP_BACKEND_URL}get_pages_of_spot_embeds/`;
+      const response = await axios.get(endpoint, {
+        params: { id: post.id },
+      });
+
+      const { content } = response.data;
+      if (content) {
+        setAiDescription(content.ai_description || '');
+        setSuggestions(content.suggestions || []);
+      } else {
+        setAiDescription('No AI description returned.');
+        setSuggestions([]);
+      }
+      setHasFetchedAi(true);
+    } catch (error) {
+      console.error('Error fetching AI description or suggestions:', error);
+      Alert.alert('Error', 'Failed to fetch suggestions. Please try again later.');
+    } finally {
+      setIsFetchingAi(false);
     }
   };
 
@@ -205,6 +243,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       </Link>
 
       {/* Date */}
+
       <Text style={[styles.date, { color: textColor }]}>
         {new Date(post.created_at).toLocaleString()}
       </Text>
@@ -229,12 +268,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
               },
             ]}
           >
+
             <Icon
               name="thumb-up"
               size={24}
               color={getActionColor('like')}
               style={styles.icon}
             />
+
             <Text style={[styles.actionText, { color: textColor }]}>{likes}</Text>
             {isLiking && (
               <ActivityIndicator
@@ -278,17 +319,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
       <View style={{ marginTop: 16 }}>
         {!showLyrics ? (
           <TouchableOpacity
-            style={[styles.showLyricsButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
+            style={[styles.showButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
             onPress={fetchLyrics}
           >
-            <Text style={{ color: textColor, fontWeight: 'bold' }}>Show lyrics</Text>
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Show Lyrics</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.showLyricsButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
+            style={[styles.showButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
             onPress={() => setShowLyrics(false)}
           >
-            <Text style={{ color: textColor, fontWeight: 'bold' }}>Hide lyrics</Text>
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Hide Lyrics</Text>
+
           </TouchableOpacity>
         )}
       </View>
@@ -300,6 +342,91 @@ const PostCard: React.FC<PostCardProps> = ({ post, isFeed, isDarkTheme }) => {
             <ActivityIndicator size="small" color={isDarkTheme ? '#fff' : '#000'} />
           ) : (
             <Text style={{ color: textColor }}>{lyrics}</Text>
+          )}
+        </View>
+      )}
+
+      {/* DESCRIPTION BUTTON (ALWAYS VISIBLE, fetch & toggle) */}
+      <View style={{ marginTop: 16 }}>
+        {!showDescription ? (
+          <TouchableOpacity
+            style={[styles.showButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
+            onPress={async () => {
+              if (!hasFetchedAi) await fetchAiAndSuggestions();
+              setShowDescription(true);
+            }}
+          >
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Show Description</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.showButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
+            onPress={() => setShowDescription(false)}
+          >
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Hide Description</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* DESCRIPTION DISPLAY */}
+      {showDescription && aiDescription !== '' && (
+        <View style={{ marginTop: 16 }}>
+          {isFetchingAi ? (
+            <ActivityIndicator size="small" color={isDarkTheme ? '#fff' : '#000'} />
+          ) : (
+            <Text style={{ color: textColor }}>{aiDescription}</Text>
+          )}
+        </View>
+      )}
+
+      {/* SUGGESTIONS BUTTON (ALWAYS VISIBLE, fetch & toggle) */}
+      <View style={{ marginTop: 16 }}>
+        {!showSuggestions ? (
+          <TouchableOpacity
+            style={[styles.showButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
+            onPress={async () => {
+              if (!hasFetchedAi) await fetchAiAndSuggestions();
+              setShowSuggestions(true);
+            }}
+          >
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Show Suggestions</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.showButton, { borderColor: isDarkTheme ? '#fff' : '#333' }]}
+            onPress={() => setShowSuggestions(false)}
+          >
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Hide Suggestions</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* SUGGESTIONS DISPLAY */}
+      {showSuggestions && (
+        <View style={{ marginTop: 16 }}>
+          {isFetchingAi ? (
+            <ActivityIndicator size="small" color={isDarkTheme ? '#fff' : '#000'} />
+          ) : suggestions.length > 0 ? (
+            suggestions.map((item, idx) => {
+              const urlParts = item.spotify_url.split('/');
+
+              // The embedId is the last part
+              const embedId = urlParts[urlParts.length - 1] || '';
+              
+              // The type is the second-to-last part
+              const type = urlParts[urlParts.length - 2] || '';
+              console.log('Url:', item.spotify_url);
+              console.log('Embed ID:', embedId, 'Type:', type);
+              return (
+                <View key={idx} style={{ marginBottom: 20 }}>
+                  <Text style={{ color: textColor, fontWeight: '600' }}>{item.name}</Text>
+                  <Text style={{ color: textColor, marginBottom: 8 }}>{item.reason}</Text>
+                  <SpotifyEmbed type={type} spotifyId={embedId} />
+                </View>
+              );
+            })
+          ) : (
+            <Text style={{ color: textColor }}>No suggestions found.</Text>
           )}
         </View>
       )}
@@ -359,7 +486,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   icon: {},
-  showLyricsButton: {
+
+  showButton: {
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,

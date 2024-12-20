@@ -470,3 +470,158 @@ class SearchTests(TestCase):
         data = response.json()
         self.assertEqual(data['total_results'], 1)
         self.assertEqual(data['contents'][0]['description'], 'First content description')
+
+
+from django.test import TestCase, Client
+from django.urls import reverse
+from unittest.mock import patch
+import json
+
+class SpotifyEmbedTests(TestCase):
+    def setUp(self):
+        # Create test content
+        self.content = Content.objects.create(
+            link="https://open.spotify.com/track/123",
+            content_type="track",
+            artist_names=["Test Artist"],
+            song_name="Test Song",
+            album_name="Test Album",
+            genres=["pop"],
+            ai_description="Test description"
+        )
+        
+        # Create test suggestions
+        self.suggestion = ContentSuggestion.objects.create(
+            content=self.content,
+            name="Suggested Song",
+            artist="Suggested Artist",
+            spotify_url="https://open.spotify.com/track/456",
+            reason="Test reason",
+            type="track"
+        )
+
+    @patch('api.views.get_access_token')
+    @patch('api.views.requests.get')
+    def test_get_pages_existing_content(self, mock_requests, mock_token):
+        response = self.client.get(
+            reverse('get_pages_of_spot_embeds'),
+            {'link': self.content.link}
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Verify content data
+        self.assertIn('content', data)
+        content_data = data['content']
+        self.assertEqual(content_data['link'], self.content.link)
+        self.assertEqual(content_data['song_name'], self.content.song_name)
+        
+        # Verify suggestions
+        self.assertIn('suggestions', content_data)
+        self.assertEqual(len(content_data['suggestions']), 1)
+        self.assertEqual(content_data['suggestions'][0]['name'], "Suggested Song")
+
+    @patch('api.views.get_access_token')
+    @patch('api.views.requests.get')
+    def test_get_pages_new_content(self, mock_requests, mock_token):
+        # Mock Spotify API responses
+        mock_token.return_value = "fake_token"
+        mock_requests.return_value.status_code = 200
+        mock_requests.return_value.json.return_value = {
+            "name": "New Song",
+            "artists": [{"name": "New Artist"}],
+            "album": {"name": "New Album"}
+        }
+
+        response = self.client.get(
+            reverse('get_pages_of_spot_embeds'),
+            {'link': 'https://open.spotify.com/track/789'}
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Content.objects.filter(link='https://open.spotify.com/track/789').exists())
+
+    def test_get_pages_invalid_link(self):
+        response = self.client.get(
+            reverse('get_pages_of_spot_embeds'),
+            {'link': 'invalid_link'}
+        )
+        
+        self.assertEqual(response.status_code, 400)
+
+
+class LyricsQuizTests(TestCase):
+    def setUp(self):
+        # Create test content with lyrics
+        self.content = Content.objects.create(
+            link="https://open.spotify.com/track/123",
+            content_type="track",
+            artist_names=["Test Artist"],
+            song_name="Test Song",
+            lyrics="Line 1. Line 2. Line 3.",
+            ai_description="Test description"
+        )
+        
+        # Create suggestions
+        for i in range(3):
+            ContentSuggestion.objects.create(
+                content=self.content,
+                name=f"Suggested Song {i}",
+                artist=f"Artist {i}",
+                spotify_url=f"https://open.spotify.com/track/45{i}",
+                reason="Test reason",
+                type="track"
+            )
+
+    @patch('api.views.get_random_songs_util')
+    def test_get_song_quiz_success(self, mock_random_songs):
+        # Mock random Spotify track
+        mock_random_songs.return_value = [{
+            'external_urls': {'spotify': 'https://open.spotify.com/track/789'},
+            'name': 'Random Song',
+            'artists': [{'name': 'Random Artist'}]
+        }]
+
+        response = self.client.get(reverse('get_song_quiz_lyrics'))
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Verify response structure
+        self.assertIn('lyric_snippet', data)
+        self.assertIn('options', data)
+        self.assertIn('correct_link', data)
+        
+        # Verify options
+        self.assertEqual(len(data['options']), 4)  # 1 correct + 2 suggestions + 1 random
+        self.assertEqual(data['correct_link'], self.content.link)
+
+    def test_get_song_quiz_no_lyrics(self):
+        # Delete lyrics from test content
+        self.content.lyrics = ""
+        self.content.save()
+
+        response = self.client.get(reverse('get_song_quiz_lyrics'))
+        
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json())
+
+    @patch('api.views.get_random_songs_util')
+    def test_get_song_quiz_no_random_track(self, mock_random_songs):
+        # Mock random songs utility to return None
+        mock_random_songs.return_value = None
+
+        response = self.client.get(reverse('get_song_quiz_lyrics'))
+        
+        self.assertEqual(response.status_code, 500)
+        self.assertIn('error', response.json())
+
+    def test_get_song_quiz_no_suggestions(self):
+        # Delete all suggestions
+        ContentSuggestion.objects.all().delete()
+
+        response = self.client.get(reverse('get_song_quiz_lyrics'))
+        
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json())

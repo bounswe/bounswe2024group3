@@ -974,7 +974,7 @@ Implemented Python scripts to register users and use save_now_playing after logg
 - [Burkay/parse content json](https://github.com/bounswe/bounswe2024group3/pull/510)
 
 ### Additional
-- I have consulted wiut the new content type
+- I have consulted with other people to create the new content type, since the old one was causing too much problems. I have also worked on the communications within the team.
 
 
 
